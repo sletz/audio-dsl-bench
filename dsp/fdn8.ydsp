@@ -1,0 +1,67 @@
+// 8-line feedback delay network: one-pole damping, Hadamard feedback matrix, mono in, sum out.
+// A feedback cycle cannot be a YDSP graph: the network is one processor. Scalar state stays in
+// registers across the sample loop; each line has its own array and a counter wrapped at a
+// constant, which the optimiser proves in range. The Hadamard matrix is written as signed sums
+// (Faust's order), YDSP leaving nested loops rolled.
+processor Fdn8 {
+    input stream in1;
+    output stream out1;
+    input parameter float g = 0.9 [[ min: 0.0, max: 0.999 ]];
+    input parameter float damp = 0.3 [[ min: 0.0, max: 0.99 ]];
+
+    state float d0[1008];
+    state int i0;
+    state float d1[1150];
+    state int i1;
+    state float d2[1278];
+    state int i2;
+    state float d3[1380];
+    state int i3;
+    state float d4[1498];
+    state int i4;
+    state float d5[1606];
+    state int i5;
+    state float d6[1732];
+    state int i6;
+    state float d7[1860];
+    state int i7;
+    state float s0, s1, s2, s3, s4, s5, s6, s7;
+    state float yp0, yp1, yp2, yp3, yp4, yp5, yp6, yp7;
+
+    process {
+        let gn = g / sqrt (8.0);
+        s0 = (1.0 - damp) * yp0 + damp * s0;
+        s1 = (1.0 - damp) * yp1 + damp * s1;
+        s2 = (1.0 - damp) * yp2 + damp * s2;
+        s3 = (1.0 - damp) * yp3 + damp * s3;
+        s4 = (1.0 - damp) * yp4 + damp * s4;
+        s5 = (1.0 - damp) * yp5 + damp * s5;
+        s6 = (1.0 - damp) * yp6 + damp * s6;
+        s7 = (1.0 - damp) * yp7 + damp * s7;
+        let v0 = (s0 + s1 + s2 + s3 + s4 + s5 + s6 + s7) * gn;
+        let v1 = (s0 - s1 + s2 - s3 + s4 - s5 + s6 - s7) * gn;
+        let v2 = (s0 + s1 - s2 - s3 + s4 + s5 - s6 - s7) * gn;
+        let v3 = (s0 - s1 - s2 + s3 + s4 - s5 - s6 + s7) * gn;
+        let v4 = (s0 + s1 + s2 + s3 - s4 - s5 - s6 - s7) * gn;
+        let v5 = (s0 - s1 + s2 - s3 - s4 + s5 - s6 + s7) * gn;
+        let v6 = (s0 + s1 - s2 - s3 - s4 - s5 + s6 + s7) * gn;
+        let v7 = (s0 - s1 - s2 + s3 - s4 + s5 + s6 - s7) * gn;
+        let x = in1;
+        yp0 = d0[i0]; d0[i0] = v0 + x; i0 += 1; if (i0 >= 1008) { i0 = 0; }
+        yp1 = d1[i1]; d1[i1] = v1 + x; i1 += 1; if (i1 >= 1150) { i1 = 0; }
+        yp2 = d2[i2]; d2[i2] = v2 + x; i2 += 1; if (i2 >= 1278) { i2 = 0; }
+        yp3 = d3[i3]; d3[i3] = v3 + x; i3 += 1; if (i3 >= 1380) { i3 = 0; }
+        yp4 = d4[i4]; d4[i4] = v4 + x; i4 += 1; if (i4 >= 1498) { i4 = 0; }
+        yp5 = d5[i5]; d5[i5] = v5 + x; i5 += 1; if (i5 >= 1606) { i5 = 0; }
+        yp6 = d6[i6]; d6[i6] = v6 + x; i6 += 1; if (i6 >= 1732) { i6 = 0; }
+        yp7 = d7[i7]; d7[i7] = v7 + x; i7 += 1; if (i7 >= 1860) { i7 = 0; }
+        out1 = (yp0 + yp1 + yp2 + yp3 + yp4 + yp5 + yp6 + yp7) * 0.25;
+    }
+}
+
+graph Main {
+    input stream in1;
+    output stream out1;
+    node p = Fdn8;
+    connection { in1 -> p.in1; p.out1 -> out1; }
+}

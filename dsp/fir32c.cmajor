@@ -1,0 +1,29 @@
+// 32-tap FIR, coefficients sin(0.3 (i+1)) / (i+1), circular history.
+processor Fir32
+{
+    input stream float in1;
+    output stream float out1;
+
+    float[32] c, h;
+    wrap<32> idx;
+
+    void init()
+    {
+        for (wrap<32> i)
+            c[i] = sin (0.3f * float (i + 1)) / float (i + 1);
+    }
+
+    void main()
+    {
+        loop
+        {
+            h[idx] = in1;
+            var acc = 0.0f;
+            for (wrap<32> i)
+                acc += c[i] * h[wrap<32> (idx - i)];
+            idx++;
+            out1 <- acc;
+            advance();
+        }
+    }
+}

@@ -1,0 +1,177 @@
+// pm.clarinet_ui_MIDI of Faust's physmodels.lib (examples/physicalModeling/clarinetMIDI.dsp), after
+// dsp/clarinet.onda, gate held at 1 like clarinet.dsp. Blower: pressure envelope + vibrato (os.osc:
+// 65536-point sine table, fixed-point phasor) + low-passed breath noise. Mouthpiece: reed table.
+// Bore: two fractional delay lines read by 4th-order Lagrange interpolation (de.fdelay4).
+// Bell: reflection through a one-pole smoother (si.smooth).
+processor Clarinet
+{
+    output stream float out1, out2;
+    input event float freq [[ min: 50.0f, max: 1000.0f, init: 440.0f ]];
+    input event float bend [[ min: -2.0f, max: 2.0f, init: 0.0f ]];
+    input event float gain [[ min: 0.0f, max: 1.0f, init: 0.600000024f ]];
+    input event float envAttack [[ min: 0.0f, max: 30.0f, init: 1.0f ]];
+    input event float sustain [[ min: 0.0f, max: 1.0f, init: 0.0f ]];
+    input event float reedStiffness [[ min: 0.0f, max: 1.0f, init: 0.5f ]];
+    input event float bellOpening [[ min: 0.0f, max: 1.0f, init: 0.5f ]];
+    input event float vibratoFreq [[ min: 1.0f, max: 10.0f, init: 5.0f ]];
+    input event float vibratoGain [[ min: 0.0f, max: 1.0f, init: 0.25f ]];
+    input event float outGain [[ min: 0.0f, max: 1.0f, init: 0.5f ]];
+    input event float gate [[ min: 0.0f, max: 1.0f, init: 1.0f ]];
+
+    let C = 340.0f;     // pm.speedOfSound
+    let NMAX = 427;     // int(l2s(pm.maxLength) + 4), the de.fdelay4 bound at 48 kHz
+
+    // si.smooth (error form): y = x + e, e = pole * (e + x[n-1] - x)
+    struct Smooth { float e, xp; }
+
+    float tick (Smooth& s, float x, float pole)
+    {
+        s.e = pole * (s.e + (s.xp - x));
+        s.xp = x;
+        return x + s.e;
+    }
+
+    // One bore direction: a delay line read by 4th-order Lagrange interpolation.
+    struct Line { float[2048] buf; wrap<2048> w; }
+
+    void write (Line& l, float x)
+    {
+        l.w++;
+        l.buf[l.w] = x;
+    }
+
+    float read4 (Line& l, int[5]& taps, float fd)
+    {
+        return lagrange (l.buf[wrap<2048> (l.w - taps[0])], l.buf[wrap<2048> (l.w - taps[1])],
+                         l.buf[wrap<2048> (l.w - taps[2])], l.buf[wrap<2048> (l.w - taps[3])],
+                         l.buf[wrap<2048> (l.w - taps[4])], fd);
+    }
+
+    // de.fdelay4: 4th-order Lagrange interpolation of the 5 taps around the delay
+    float lagrange (float x0, float x1, float x2, float x3, float x4, float fd)
+    {
+        let a = fd - 1.0f;
+        let b = fd - 2.0f;
+        let c = fd - 3.0f;
+        let q = fd - 4.0f;
+        let p1 = fd * a;
+        let p2 = p1 * b;
+        let p3 = p2 * c;
+        return q * (c * (b * (0.041666668f * x0 * a - 0.16666667f * fd * x1) + 0.25f * p1 * x2) - 0.16666667f * p2 * x3) + 0.041666668f * p3 * x4;
+    }
+
+    float freqV = 440.0f, bendV = 0.0f, gainV = 0.600000024f, envAttackV = 1.0f, sustainV = 0.0f, reedStiffnessV = 0.5f, bellOpeningV = 0.5f, vibratoFreqV = 5.0f, vibratoGainV = 0.25f, outGainV = 0.5f, gateV = 1.0f;
+    // control-rate values, recomputed by the event handlers
+    float pb, loopDelay, ratio, gt, vg, target, envPole, slope;
+    int incInt, incFrac;
+
+    float[65536] sine;          // os.osc's table, sin(2 pi i / 65536)
+    Smooth bendSmooth, env, bell;
+    float gatePrev;
+    int phase, phaseFrac;       // os.osc phasor: 30-bit integer part and 24-bit fraction
+    int seed;                   // no.noise
+    float s1, s2;               // breath lowpass (fi.lowpass(2, 2000), TPT SVF)
+    float g, gk, c1;
+    Line toMouth;               // wave travelling from the bell to the reed
+    Line toBell;                // wave travelling from the reed to the bell
+    float boreIn;               // toMouth output, one sample late
+    float mouth;                // pressure at the reed, previous sample
+    float bellOut;              // toBell output reaching the bell
+    float bellIn;               // toBell output read this sample
+
+    event freq (float v) { freqV = v; }
+    event bend (float v) { bendV = v; update(); }
+    event gain (float v) { gainV = v; update(); }
+    event envAttack (float v) { envAttackV = v; update(); }
+    event sustain (float v) { sustainV = v; update(); }
+    event reedStiffness (float v) { reedStiffnessV = v; update(); }
+    event bellOpening (float v) { bellOpeningV = v; update(); }
+    event vibratoFreq (float v) { vibratoFreqV = v; update(); }
+    event vibratoGain (float v) { vibratoGainV = v; update(); }
+    event outGain (float v) { outGainV = v; }
+    event gate (float v) { gateV = v; update(); }
+
+    void update()
+    {
+        let sr = float (processor.frequency);
+        pb = pow (bellOpeningV, 44100.0f / sr);
+        loopDelay = C / sr * (0.964f * (pb / max (1.0f - pb, 0.01f)) + 5.99f);
+        ratio = pow (2.0f, 0.083333336f * bendV);
+        gt = min (1.0f, gateV + sustainV);
+        vg = 0.01f * vibratoGainV;
+        let inc = 1073741824.0f * (1.0f / sr) * vibratoFreqV;   // 2^30 * f / SR
+        incInt = int (floor (inc));
+        incFrac = int (16777216.0f * (inc - floor (inc)));
+        target = gainV * gt;
+        let tau = 0.001f * envAttackV;
+        envPole = 0.0f;
+        if (abs (tau) >= 0.00000011920929f)
+            envPole = exp (-((1.0f / sr) / tau));
+        slope = 0.26f * reedStiffnessV - 0.44f;
+    }
+
+    void init()
+    {
+        let sr = float (processor.frequency);
+        for (wrap<65536> i)
+            sine[i] = sin (float (i) * float (twoPi) / 65536.0f);
+        g = tan (max (0.0f, min (float (pi) * 2000.0f / sr, 1.5676547f)));
+        gk = g + 1.4142135f;
+        c1 = g * min (3.4028235e38f, 1.0f / (g * gk + 1.0f));
+        update();
+    }
+
+    void main()
+    {
+        let sr = float (processor.frequency);
+
+        loop
+        {
+            // bell: the wave leaving the bore comes back through the smoother
+            write (toMouth, tick (bell, bellOut, pb));
+            // pitch: bend (si.polySmooth), vibrato (os.osc), envelope
+            var hold = 0.0f;
+            if (gt == gatePrev || gt == 0.0f)
+                hold = 0.999f;
+            gatePrev = gt;
+            let bendRatio = tick (bendSmooth, ratio, hold);
+            let vib = sine[wrap<65536> ((phase >> 6) >> 8)];
+            phaseFrac += incFrac;
+            phase = (incInt + phase + (phaseFrac >> 24)) & 1073741823;
+            phaseFrac &= 16777215;
+            let e = tick (env, target, envPole);
+            let halfLength = 170.0f / freqV / (bendRatio * (1.0f + vg * vib * e));
+            let d = 0.0014705883f * sr * max (1020.0f / sr, halfLength - loopDelay);
+            // de.fdelay4 taps and fractional part
+            let dmo = d - 1.499995f;
+            let fl = floor (dmo);
+            let id = int (min (float (NMAX), max (-4.0f, dmo)));
+            int[5] taps;
+            for (wrap<5> i)
+                taps[i] = 1 + min (NMAX, max (0, id + i));
+            let fd = d - fl;
+            let fromBell = read4 (toMouth, taps, fd);
+            // blower: pressure + vibrato + breath noise
+            seed = 12345 + 1103515245 * seed;
+            let n = 0.0000000004656613f * float (seed);
+            let t = n - (gk * s1 + s2);
+            let v1 = s1 + c1 * t;
+            let lp = s2 + g * v1;
+            s1 += 2.0f * c1 * t;
+            s2 += 2.0f * g * v1;
+            let blow = e + vg * vib + 0.05f * e * lp;
+            // mouthpiece: reed table on the pressure difference
+            let p = blow + boreIn;
+            write (toBell, blow - mouth * clamp (0.7f - slope * mouth, -1.0f, 1.0f));
+            mouth = p;
+            boreIn = fromBell;
+            // bell side: the toBell output reaches the bell one sample after it is read
+            bellOut = bellIn;
+            bellIn = read4 (toBell, taps, fd);
+            let o = outGainV * bellOut;
+            out1 <- o;
+            out2 <- o;
+            advance();
+        }
+    }
+}

@@ -1,0 +1,71 @@
+// 10-band parametric EQ (RBJ peaking, octave bands from 31.25 Hz, Q = 1.41), direct form I.
+// Cmajor has no top-level endpoint arrays: one event endpoint per band gain.
+processor Peq10
+{
+    input stream float in1;
+    output stream float out1;
+    input event float g0 [[ min: -12.0f, max: 12.0f, init: 3.0f ]];
+    input event float g1 [[ min: -12.0f, max: 12.0f, init: -2.0f ]];
+    input event float g2 [[ min: -12.0f, max: 12.0f, init: 4.0f ]];
+    input event float g3 [[ min: -12.0f, max: 12.0f, init: -3.0f ]];
+    input event float g4 [[ min: -12.0f, max: 12.0f, init: 2.0f ]];
+    input event float g5 [[ min: -12.0f, max: 12.0f, init: -4.0f ]];
+    input event float g6 [[ min: -12.0f, max: 12.0f, init: 3.0f ]];
+    input event float g7 [[ min: -12.0f, max: 12.0f, init: -2.0f ]];
+    input event float g8 [[ min: -12.0f, max: 12.0f, init: 1.0f ]];
+    input event float g9 [[ min: -12.0f, max: 12.0f, init: -1.0f ]];
+
+    float[10] gains = (3.0f, -2.0f, 4.0f, -3.0f, 2.0f, -4.0f, 3.0f, -2.0f, 1.0f, -1.0f);
+    float[10] b0, b1, b2, a1, a2;
+    float[10] x1, x2, y1, y2;
+
+    event g0 (float v) { gains[0] = v; update(); }
+    event g1 (float v) { gains[1] = v; update(); }
+    event g2 (float v) { gains[2] = v; update(); }
+    event g3 (float v) { gains[3] = v; update(); }
+    event g4 (float v) { gains[4] = v; update(); }
+    event g5 (float v) { gains[5] = v; update(); }
+    event g6 (float v) { gains[6] = v; update(); }
+    event g7 (float v) { gains[7] = v; update(); }
+    event g8 (float v) { gains[8] = v; update(); }
+    event g9 (float v) { gains[9] = v; update(); }
+
+    void update()
+    {
+        let sr = float (processor.frequency);
+        for (wrap<10> k)
+        {
+            let A = pow (10.0f, gains[k] / 40.0f);
+            let w0 = float (twoPi) * (31.25f * pow (2.0f, float (k))) / sr;
+            let al = sin (w0) / (2.0f * 1.41f);
+            let cw = cos (w0);
+            let a0 = 1.0f + al / A;
+            b0[k] = (1.0f + al * A) / a0;
+            b1[k] = -2.0f * cw / a0;
+            b2[k] = (1.0f - al * A) / a0;
+            a1[k] = -2.0f * cw / a0;
+            a2[k] = (1.0f - al / A) / a0;
+        }
+    }
+
+    void init() { update(); }
+
+    void main()
+    {
+        loop
+        {
+            var x = in1;
+            for (wrap<10> k)
+            {
+                let y = b0[k] * x + b1[k] * x1[k] + b2[k] * x2[k] + (-a1[k] * y1[k] - a2[k] * y2[k]);
+                x2[k] = x1[k];
+                x1[k] = x;
+                y2[k] = y1[k];
+                y1[k] = y;
+                x = y;
+            }
+            out1 <- x;
+            advance();
+        }
+    }
+}

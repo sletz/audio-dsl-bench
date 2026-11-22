@@ -1,0 +1,111 @@
+// 16-channel mixer: dB gain and constant-power pan per channel, master gain.
+// Block mode: the per-channel coefficients are computed once per block.
+processor Mixer16 {
+    input stream in1;
+    input stream in2;
+    input stream in3;
+    input stream in4;
+    input stream in5;
+    input stream in6;
+    input stream in7;
+    input stream in8;
+    input stream in9;
+    input stream in10;
+    input stream in11;
+    input stream in12;
+    input stream in13;
+    input stream in14;
+    input stream in15;
+    input stream in16;
+    output stream out1;
+    output stream out2;
+    input parameter float gain0 = -6.0 [[ min: -60.0, max: 12.0 ]];
+    input parameter float gain1 = -6.0 [[ min: -60.0, max: 12.0 ]];
+    input parameter float gain2 = -6.0 [[ min: -60.0, max: 12.0 ]];
+    input parameter float gain3 = -6.0 [[ min: -60.0, max: 12.0 ]];
+    input parameter float gain4 = -6.0 [[ min: -60.0, max: 12.0 ]];
+    input parameter float gain5 = -6.0 [[ min: -60.0, max: 12.0 ]];
+    input parameter float gain6 = -6.0 [[ min: -60.0, max: 12.0 ]];
+    input parameter float gain7 = -6.0 [[ min: -60.0, max: 12.0 ]];
+    input parameter float gain8 = -6.0 [[ min: -60.0, max: 12.0 ]];
+    input parameter float gain9 = -6.0 [[ min: -60.0, max: 12.0 ]];
+    input parameter float gain10 = -6.0 [[ min: -60.0, max: 12.0 ]];
+    input parameter float gain11 = -6.0 [[ min: -60.0, max: 12.0 ]];
+    input parameter float gain12 = -6.0 [[ min: -60.0, max: 12.0 ]];
+    input parameter float gain13 = -6.0 [[ min: -60.0, max: 12.0 ]];
+    input parameter float gain14 = -6.0 [[ min: -60.0, max: 12.0 ]];
+    input parameter float gain15 = -6.0 [[ min: -60.0, max: 12.0 ]];
+    input parameter float pan0 = 0.000000000 [[ min: 0.0, max: 1.0 ]];
+    input parameter float pan1 = 0.066666667 [[ min: 0.0, max: 1.0 ]];
+    input parameter float pan2 = 0.133333333 [[ min: 0.0, max: 1.0 ]];
+    input parameter float pan3 = 0.200000000 [[ min: 0.0, max: 1.0 ]];
+    input parameter float pan4 = 0.266666667 [[ min: 0.0, max: 1.0 ]];
+    input parameter float pan5 = 0.333333333 [[ min: 0.0, max: 1.0 ]];
+    input parameter float pan6 = 0.400000000 [[ min: 0.0, max: 1.0 ]];
+    input parameter float pan7 = 0.466666667 [[ min: 0.0, max: 1.0 ]];
+    input parameter float pan8 = 0.533333333 [[ min: 0.0, max: 1.0 ]];
+    input parameter float pan9 = 0.600000000 [[ min: 0.0, max: 1.0 ]];
+    input parameter float pan10 = 0.666666667 [[ min: 0.0, max: 1.0 ]];
+    input parameter float pan11 = 0.733333333 [[ min: 0.0, max: 1.0 ]];
+    input parameter float pan12 = 0.800000000 [[ min: 0.0, max: 1.0 ]];
+    input parameter float pan13 = 0.866666667 [[ min: 0.0, max: 1.0 ]];
+    input parameter float pan14 = 0.933333333 [[ min: 0.0, max: 1.0 ]];
+    input parameter float pan15 = 1.000000000 [[ min: 0.0, max: 1.0 ]];
+    input parameter float master = -3.0 [[ min: -60.0, max: 12.0 ]];
+    state float gains[16], pans[16], gl[16], gr[16];
+
+    process block {
+        gains[0] = gain0; pans[0] = pan0;
+        gains[1] = gain1; pans[1] = pan1;
+        gains[2] = gain2; pans[2] = pan2;
+        gains[3] = gain3; pans[3] = pan3;
+        gains[4] = gain4; pans[4] = pan4;
+        gains[5] = gain5; pans[5] = pan5;
+        gains[6] = gain6; pans[6] = pan6;
+        gains[7] = gain7; pans[7] = pan7;
+        gains[8] = gain8; pans[8] = pan8;
+        gains[9] = gain9; pans[9] = pan9;
+        gains[10] = gain10; pans[10] = pan10;
+        gains[11] = gain11; pans[11] = pan11;
+        gains[12] = gain12; pans[12] = pan12;
+        gains[13] = gain13; pans[13] = pan13;
+        gains[14] = gain14; pans[14] = pan14;
+        gains[15] = gain15; pans[15] = pan15;
+        let m = pow (10.0, master / 20.0);
+        for k in 0..16 {
+            let g = pow (10.0, gains[k] / 20.0) * m;
+            gl[k] = g * cos (pans[k] * pi * 0.5);
+            gr[k] = g * sin (pans[k] * pi * 0.5);
+        }
+        for i in 0..blockSize {
+            out1[i] = in1[i] * gl[0] + in2[i] * gl[1] + in3[i] * gl[2] + in4[i] * gl[3] + in5[i] * gl[4] + in6[i] * gl[5] + in7[i] * gl[6] + in8[i] * gl[7] + in9[i] * gl[8] + in10[i] * gl[9] + in11[i] * gl[10] + in12[i] * gl[11] + in13[i] * gl[12] + in14[i] * gl[13] + in15[i] * gl[14] + in16[i] * gl[15];
+            out2[i] = in1[i] * gr[0] + in2[i] * gr[1] + in3[i] * gr[2] + in4[i] * gr[3] + in5[i] * gr[4] + in6[i] * gr[5] + in7[i] * gr[6] + in8[i] * gr[7] + in9[i] * gr[8] + in10[i] * gr[9] + in11[i] * gr[10] + in12[i] * gr[11] + in13[i] * gr[12] + in14[i] * gr[13] + in15[i] * gr[14] + in16[i] * gr[15];
+        }
+    }
+}
+
+graph Main {
+    input stream in1;
+    input stream in2;
+    input stream in3;
+    input stream in4;
+    input stream in5;
+    input stream in6;
+    input stream in7;
+    input stream in8;
+    input stream in9;
+    input stream in10;
+    input stream in11;
+    input stream in12;
+    input stream in13;
+    input stream in14;
+    input stream in15;
+    input stream in16;
+    output stream out1;
+    output stream out2;
+    node p = Mixer16;
+    connection {
+        in1 -> p.in1; in2 -> p.in2; in3 -> p.in3; in4 -> p.in4; in5 -> p.in5; in6 -> p.in6; in7 -> p.in7; in8 -> p.in8; in9 -> p.in9; in10 -> p.in10; in11 -> p.in11; in12 -> p.in12; in13 -> p.in13; in14 -> p.in14; in15 -> p.in15; in16 -> p.in16;
+        p.out1 -> out1; p.out2 -> out2;
+    }
+}

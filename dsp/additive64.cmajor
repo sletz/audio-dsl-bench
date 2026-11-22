@@ -1,0 +1,35 @@
+// 64 harmonic partials with 1/k amplitudes, one phase per partial.
+processor Additive64
+{
+    output stream float out1;
+    input event float freq [[ min: 20.0f, max: 200.0f, init: 110.0f ]];
+
+    float freqV = 110.0f, inc;
+    float[64] phase, amp;
+
+    event freq (float v) { freqV = v; inc = freqV / float (processor.frequency); }
+
+    void init()
+    {
+        inc = freqV / float (processor.frequency);
+        for (wrap<64> k)
+            amp[k] = 1.0f / float (k + 1);
+    }
+
+    void main()
+    {
+        loop
+        {
+            var acc = 0.0f;
+            for (wrap<64> k)
+            {
+                var p = phase[k] + inc * float (k + 1);
+                p -= floor (p);
+                phase[k] = p;
+                acc += sin (float (twoPi) * p) * amp[k];
+            }
+            out1 <- acc * 0.1f;
+            advance();
+        }
+    }
+}

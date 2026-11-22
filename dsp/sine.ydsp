@@ -1,0 +1,17 @@
+processor Sine {
+    output stream out1;
+    input parameter float freq = 440.0 [[ name: "freq", min: 20.0, max: 20000.0 ]];
+    state float phase;
+
+    process {
+        phase = phase + freq / sampleRate;
+        phase = phase - floor (phase);
+        out1 = sin (2.0 * pi * phase) * 0.5;
+    }
+}
+
+graph Main {
+    output stream out1;
+    node osc = Sine;
+    connection { osc.out1 -> out1; }
+}

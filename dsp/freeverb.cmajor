@@ -1,0 +1,120 @@
+// Freeverb (Faust's freeverb.dsp structure): 8 damped combs in parallel, 4 allpasses in series.
+// A graph of processors parameterised by their delay length, the style of Cmajor's own Freeverb example.
+graph Freeverb [[ main ]]
+{
+    input stream float in1;
+    output stream float out1;
+    input event float room [[ min: 0.0f, max: 0.99f, init: 0.84f ]];
+    input event float damp [[ min: 0.0f, max: 1.0f,  init: 0.2f ]];
+
+    node pre = Gain (0.1f);
+    node c0 = Comb (1116);
+    node c1 = Comb (1188);
+    node c2 = Comb (1277);
+    node c3 = Comb (1356);
+    node c4 = Comb (1422);
+    node c5 = Comb (1491);
+    node c6 = Comb (1557);
+    node c7 = Comb (1617);
+    node a0 = Allpass (556);
+    node a1 = Allpass (441);
+    node a2 = Allpass (341);
+    node a3 = Allpass (225);
+
+    connection
+    {
+        in1 -> pre.in;
+        pre.out -> c0.in;
+        pre.out -> c1.in;
+        pre.out -> c2.in;
+        pre.out -> c3.in;
+        pre.out -> c4.in;
+        pre.out -> c5.in;
+        pre.out -> c6.in;
+        pre.out -> c7.in;
+        c0.out -> a0.in;
+        c1.out -> a0.in;
+        c2.out -> a0.in;
+        c3.out -> a0.in;
+        c4.out -> a0.in;
+        c5.out -> a0.in;
+        c6.out -> a0.in;
+        c7.out -> a0.in;
+        a0.out -> a1.in;
+        a1.out -> a2.in;
+        a2.out -> a3.in;
+        a3.out -> out1;
+        room -> c0.room;
+        room -> c1.room;
+        room -> c2.room;
+        room -> c3.room;
+        room -> c4.room;
+        room -> c5.room;
+        room -> c6.room;
+        room -> c7.room;
+        damp -> c0.damp;
+        damp -> c1.damp;
+        damp -> c2.damp;
+        damp -> c3.damp;
+        damp -> c4.damp;
+        damp -> c5.damp;
+        damp -> c6.damp;
+        damp -> c7.damp;
+    }
+}
+
+processor Gain (float gain)
+{
+    input stream float in;
+    output stream float out;
+
+    void main() { loop { out <- in * gain; advance(); } }
+}
+
+processor Comb (int size)
+{
+    input stream float in;
+    output stream float out;
+    input event float room, damp;
+
+    float roomV = 0.84f, dampV = 0.2f, s;
+    float[size] buf;
+    wrap<size> idx;
+
+    event room (float v) { roomV = v; }
+    event damp (float v) { dampV = v; }
+
+    void main()
+    {
+        loop
+        {
+            let y = buf[idx];
+            buf[idx] = in + roomV * s;
+            s = (1.0f - dampV) * y + dampV * s;
+            idx++;
+            out <- y;
+            advance();
+        }
+    }
+}
+
+processor Allpass (int size)
+{
+    input stream float in;
+    output stream float out;
+
+    float[size] buf;
+    wrap<size> idx;
+
+    void main()
+    {
+        loop
+        {
+            let b = buf[idx];
+            buf[idx] = in + 0.5f * b;
+            idx++;
+            out <- b - in;
+            advance();
+        }
+    }
+}

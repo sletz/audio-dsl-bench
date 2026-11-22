@@ -1,0 +1,141 @@
+// pm.violin_ui_MIDI of Faust's physmodels.lib (examples/physicalModeling/violinMIDI.dsp), after
+// dsp/violin.onda, gate held at 1 like violin.dsp. Bowed string: two string segments (nut to bow,
+// bow to bridge), each a pair of fractional delay lines read by 4th-order Lagrange interpolation
+// (de.fdelay4); nut and bridge reflections (pm.bridgeFilter); bow table; body resonance
+// (fi.resonbp at 500 Hz, TPT state variable filter). The four lines share one write position.
+
+let NMAX = 427;         // int(l2s(pm.maxLength) + 4), the de.fdelay4 bound at 48 kHz
+
+// de.fdelay4: 4th-order Lagrange interpolation of the 5 taps around the delay
+func lagrange (x0: float, x1: float, x2: float, x3: float, x4: float, fd: float): float {
+    let a = fd - 1.0;
+    let b = fd - 2.0;
+    let c = fd - 3.0;
+    let q = fd - 4.0;
+    let p1 = fd * a;
+    let p2 = p1 * b;
+    let p3 = p2 * c;
+    return q * (c * (b * (0.041666668 * x0 * a - 0.16666667 * fd * x1) + 0.25 * p1 * x2) - 0.16666667 * p2 * x3) + 0.041666668 * p3 * x4;
+}
+
+processor Violin {
+    output stream out1;
+    output stream out2;
+    input parameter float freq = 440.0 [[ min: 50.0, max: 1000.0 ]];
+    input parameter float bend = 0.0 [[ min: -2.0, max: 2.0 ]];
+    input parameter float gain = 0.600000024 [[ min: 0.0, max: 1.0 ]];
+    input parameter float envAttack = 1.0 [[ min: 0.0, max: 30.0 ]];
+    input parameter float sustain = 0.0 [[ min: 0.0, max: 1.0 ]];
+    input parameter float pressure = 0.5 [[ min: 0.0, max: 1.0 ]];
+    input parameter float position = 0.699999988 [[ min: 0.0, max: 1.0 ]];
+    input parameter float vibratoFrequency = 6.0 [[ min: 1.0, max: 10.0 ]];
+    input parameter float vibratoGain = 0.5 [[ min: 0.0, max: 1.0 ]];
+    input parameter float outGain = 0.5 [[ min: 0.0, max: 1.0 ]];
+    input parameter float gate = 1.0 [[ min: 0.0, max: 1.0 ]];
+
+    state float sine[65536];                        // os.osc's table, sin(2 pi i / 65536)
+    state float bridgeToBow[2048], bowToBridge[2048];  // bow-to-bridge segment
+    state float bowToNut[2048], nutToBow[2048];        // nut-to-bow segment
+    state int w;
+    state float bendE, bendXp, envE, envXp, posE, posXp, pressE, pressXp;   // si.smooth states
+    state float gatePrev;
+    state int phase, phaseFrac;                     // os.osc phasor: 30-bit integer part, 24-bit fraction
+    state float fromBridge, fromNut;                // waves reaching the bow, previous sample
+    state float an0, an1, an2, an3, atNutIn;        // wave reaching the nut, history
+    state float ab0, ab1, ab2, ab3, atBridgeIn;     // wave reaching the bridge, history
+    state float s1, s2;                             // body resonance (fi.resonbp(500, 2, 1))
+    state float g, gc, gk;
+
+    init {
+        for i in 0..65536 { sine[i] = sin (float (i) * (2.0 * pi) / 65536.0); }
+        g = tan (max (0.0, min (pi * 500.0 / sampleRate, 1.5676547)));
+        gc = g * min (3.4028235e38, 1.0 / (g * (g + 0.5) + 1.0));
+        gk = -0.5 - g;
+    }
+
+    process {
+        let ratio = pow (2.0, 0.083333336 * bend);
+        let gt = min (1.0, gate + sustain);
+        let vg = 0.01 * vibratoGain;
+        let inc = 1073741824.0 * (1.0 / sampleRate) * vibratoFrequency;    // 2^30 * f / SR
+        let incInt = int (floor (inc));
+        let incFrac = int (16777216.0 * (inc - floor (inc)));
+        let target = gain * gt;
+        let tau = 0.001 * envAttack;
+        let envPole = select (abs (tau) >= 0.00000011920929, exp (-((1.0 / sampleRate) / tau)), 0.0);
+        let smoo = 1.0 - 44.1 / sampleRate;                                  // si.smoo
+
+        w = (w + 1) & 2047;
+        // bridge reflection: -pm.bridgeFilter(0.2, 0.9)
+        bridgeToBow[w] = -0.989264667 * (0.6 * ab2 + 0.2 * (ab1 + ab3));
+        // pitch: bend (si.polySmooth), vibrato (os.osc), envelope (bow velocity)
+        let hold = select (gt == gatePrev || gt == 0.0, 0.999, 0.0);
+        gatePrev = gt;
+        bendE = hold * (bendE + (bendXp - ratio));
+        bendXp = ratio;
+        let bendRatio = ratio + bendE;
+        let vib = sine[(phase >> 6) >> 8];
+        phaseFrac += incFrac;
+        phase = (incInt + phase + (phaseFrac >> 24)) & 1073741823;
+        phaseFrac = phaseFrac & 16777215;
+        envE = envPole * (envE + (envXp - target));
+        envXp = target;
+        let velocity = target + envE;
+        let stringLength = 340.0 / freq / (bendRatio * (1.0 + vg * vib * velocity)) - 12.0 * 340.0 / sampleRate;
+        posE = smoo * (posE + (posXp - position));
+        posXp = position;
+        let p = position + posE;
+        let dLower = 0.0014705883 * sampleRate * stringLength * ((1.0 - position) - posE);
+        let idlo = int (min (float (NMAX), max (-4.0, dLower - 1.499995)));
+        let lo0 = min (NMAX, max (0, idlo));
+        let lo1 = min (NMAX, max (0, idlo + 1));
+        let lo2 = min (NMAX, max (0, idlo + 2));
+        let lo3 = min (NMAX, max (0, idlo + 3));
+        let lo4 = min (NMAX, max (0, idlo + 4));
+        let fdlo = dLower - floor (dLower - 1.499995);
+        let dUpper = 0.0014705883 * sampleRate * stringLength * p;
+        let idup = int (min (float (NMAX), max (-4.0, dUpper - 1.499995)));
+        let up0 = min (NMAX, max (0, idup));
+        let up1 = min (NMAX, max (0, idup + 1));
+        let up2 = min (NMAX, max (0, idup + 2));
+        let up3 = min (NMAX, max (0, idup + 3));
+        let up4 = min (NMAX, max (0, idup + 4));
+        let fdup = dUpper - floor (dUpper - 1.499995);
+        let reachBow = lagrange (bridgeToBow[(w - 1 - lo0) & 2047], bridgeToBow[(w - 1 - lo1) & 2047], bridgeToBow[(w - 1 - lo2) & 2047], bridgeToBow[(w - 1 - lo3) & 2047], bridgeToBow[(w - 1 - lo4) & 2047], fdlo);
+        let reachNut = lagrange (bowToNut[(w - 1 - up0) & 2047], bowToNut[(w - 1 - up1) & 2047], bowToNut[(w - 1 - up2) & 2047], bowToNut[(w - 1 - up3) & 2047], bowToNut[(w - 1 - up4) & 2047], fdup);
+        // nut reflection: -pm.bridgeFilter(0.6, 0.1)
+        an0 = atNutIn;
+        nutToBow[w] = -0.99880147 * (0.8 * an2 + 0.1 * (an1 + an3));
+        let reachBowFromNut = lagrange (nutToBow[(w - 2 - up0) & 2047], nutToBow[(w - 2 - up1) & 2047], nutToBow[(w - 2 - up2) & 2047], nutToBow[(w - 2 - up3) & 2047], nutToBow[(w - 2 - up4) & 2047], fdup);
+        // bow: velocity difference through the bow table
+        let dv = velocity - (fromBridge + fromNut);
+        pressE = smoo * (pressE + (pressXp - pressure));
+        pressXp = pressure;
+        let slope = 5.0 - 4.0 * (pressure + pressE);
+        let f = dv * min (1.0, pow (0.75 + abs (dv * slope), -4.0));
+        bowToNut[w] = fromBridge + f;
+        bowToBridge[w] = fromNut + f;
+        let reachBridge = lagrange (bowToBridge[(w - 0 - lo0) & 2047], bowToBridge[(w - 0 - lo1) & 2047], bowToBridge[(w - 0 - lo2) & 2047], bowToBridge[(w - 0 - lo3) & 2047], bowToBridge[(w - 0 - lo4) & 2047], fdlo);
+        // body resonance on the wave reaching the bridge
+        ab0 = atBridgeIn;
+        let v1 = s1 + gc * (ab1 + gk * s1 - s2);
+        s1 = 2.0 * v1 - s1;
+        s2 = 2.0 * (s2 + g * v1) - s2;
+        out1 = outGain * v1;
+        out2 = outGain * v1;
+        // one-sample state updates
+        fromBridge = reachBow;
+        fromNut = reachBowFromNut;
+        atNutIn = reachNut;
+        atBridgeIn = reachBridge;
+        an3 = an2;  an2 = an1;  an1 = an0;
+        ab3 = ab2;  ab2 = ab1;  ab1 = ab0;
+    }
+}
+
+graph Main {
+    output stream out1;
+    output stream out2;
+    node p = Violin;
+    connection { p.out1 -> out1; p.out2 -> out2; }
+}

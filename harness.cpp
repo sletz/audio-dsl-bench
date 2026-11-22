@@ -1,5 +1,5 @@
-// One benchmark binary per DSP: onda AOT objects, Faust C++ classes and the
-// Faust LLVM JIT measured by the same loop, on the same input, interleaved.
+// One benchmark binary per DSP: onda AOT objects, Faust C++ classes, the Faust LLVM JIT, Cmajor (generated C++
+// and its LLVM JIT) and YUP's YDSP JIT, measured by the same loop, on the same input, interleaved.
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -18,9 +18,12 @@
 #include <faust/gui/UI.h>
 #include <faust/gui/meta.h>
 
+#include "ext_dsp.h"     // Cmajor and YDSP engines behind the Faust dsp interface
+#include "cmaj_jit.h"
+#include "ydsp_engine.h"
 #include "onda_meta.h"  // ONDA_STATE_SIZE, ONDA_STATE_ALIGN, ONDA_PARAM_SIZE, onda_write_defaults, ONDA_NIN, ONDA_NOUT
 
-static const int BS = 256;
+static const int BS = 256;  // also given to the Cmajor C++ generator (build.sh)
 static const int SR = 48000;
 static const int NCH = 16;  // input and output channels provided to every engine
 
@@ -42,6 +45,22 @@ dsp* make_faust_ocpp_fast();
 dsp* make_faust_best_fast();
 dsp* make_faust_ocpp48_strict();
 dsp* make_faust_best48_fast();
+dsp* make_cmaj_cpp_strict();  // nullptr when the program has no Cmajor port (dsp/NAME.cmajor)
+dsp* make_cmaj_cpp_fast();
+
+// CMAJ_SRC and YDSP_SRC: the dsp/NAME.cmajor and dsp/NAME.ydsp ports, "" when the program has none
+static dsp* make_cmaj_jit(int opt) {
+    if (!*CMAJ_SRC) return nullptr;
+    int nin = 0, nout = 0;
+    void* e = cmajjit_create(CMAJ_SRC, opt, SR, BS, &nin, &nout);
+    return e ? new c_api_dsp(e, nin, nout, cmajjit_reset, cmajjit_process, cmajjit_destroy) : nullptr;
+}
+static dsp* make_ydsp(int fastMath) {
+    if (!*YDSP_SRC) return nullptr;
+    int nin = 0, nout = 0;
+    void* e = ydsp_create(YDSP_SRC, fastMath, SR, BS, &nin, &nout);
+    return e ? new c_api_dsp(e, nin, nout, ydsp_reset, ydsp_process, ydsp_destroy) : nullptr;
+}
 
 typedef uint32_t (*init_fn)(const void*, void*, int, void* const*, const int32_t*, const int32_t*, const float*, void*);
 typedef uint32_t (*proc_fn)(void*, const void*, const void* const*, void* const*, int32_t, int32_t, int32_t,
@@ -112,6 +131,14 @@ int main(int argc, char** argv) {
     // the same two with SR fixed at 48 kHz at compile time (sr48/platform.lib), as onda does
     add_faust("ocpp48", make_faust_ocpp48_strict());
     add_faust("best48-fm", make_faust_best48_fast());
+    // Cmajor: C++ from `cmaj generate` (clang strict and -ffast-math), and its own LLVM JIT at -O3 and -O4 (fast math)
+    add_faust("cmaj-cpp", make_cmaj_cpp_strict());
+    add_faust("cmaj-cpp-fm", make_cmaj_cpp_fast());
+    add_faust("cmaj-jit", make_cmaj_jit(3));
+    add_faust("cmaj-jit-fm", make_cmaj_jit(4));
+    // YUP's YDSP JIT (asmjit), strict and with its default fastMath
+    add_faust("ydsp", make_ydsp(0));
+    add_faust("ydsp-fm", make_ydsp(1));
     std::vector<llvm_dsp_factory*> factories;
     const char* llvm_variants[][6] = {{"llvm-scal", "-I", FAUSTLIB, "-scal", nullptr, nullptr},
                                       {"llvm-vec", "-I", FAUSTLIB, "-vec", "-vs", "32"},

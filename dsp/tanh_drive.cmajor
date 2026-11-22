@@ -1,0 +1,19 @@
+processor TanhDrive
+{
+    input stream float in1;
+    output stream float out1;
+    input event float drive [[ min: 1.0f, max: 20.0f, init: 4.0f ]];
+
+    float driveV = 4.0f;
+
+    event drive (float v) { driveV = v; }
+
+    void main()
+    {
+        loop
+        {
+            out1 <- tanh (in1 * driveV) * 0.5f;
+            advance();
+        }
+    }
+}

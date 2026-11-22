@@ -1,0 +1,37 @@
+// 8 identical RBJ lowpass biquads in series, direct form II.
+// The coefficients depend on parameters only: the optimiser hoists them out of the sample loop.
+processor Biquad8 {
+    input stream in1;
+    output stream out1;
+    input parameter float cutoff = 1000.0 [[ min: 20.0, max: 20000.0 ]];
+    input parameter float q = 0.707 [[ min: 0.1, max: 10.0 ]];
+    state float w1[8];
+    state float w2[8];
+
+    process {
+        let w0 = 2.0 * pi * cutoff / sampleRate;
+        let alpha = sin (w0) / (2.0 * q);
+        let cw = cos (w0);
+        let a0 = 1.0 + alpha;
+        let b0 = (1.0 - cw) * 0.5 / a0;
+        let b1 = (1.0 - cw) / a0;
+        let b2 = b0;
+        let a1 = -2.0 * cw / a0;
+        let a2 = (1.0 - alpha) / a0;
+        float x = in1;
+        for i in 0..8 {
+            let w = x + (-a1 * w1[i] - a2 * w2[i]);
+            x = b0 * w + b1 * w1[i] + b2 * w2[i];
+            w2[i] = w1[i];
+            w1[i] = w;
+        }
+        out1 = x;
+    }
+}
+
+graph Main {
+    input stream in1;
+    output stream out1;
+    node p = Biquad8;
+    connection { in1 -> p.in1; p.out1 -> out1; }
+}

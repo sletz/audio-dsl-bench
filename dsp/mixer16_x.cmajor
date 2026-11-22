@@ -1,0 +1,126 @@
+// 16-channel mixer: dB gain and constant-power pan per channel, master gain.
+// The per-channel coefficients are recomputed when a parameter changes.
+processor Mixer16
+{
+    input stream float in1;
+    input stream float in2;
+    input stream float in3;
+    input stream float in4;
+    input stream float in5;
+    input stream float in6;
+    input stream float in7;
+    input stream float in8;
+    input stream float in9;
+    input stream float in10;
+    input stream float in11;
+    input stream float in12;
+    input stream float in13;
+    input stream float in14;
+    input stream float in15;
+    input stream float in16;
+    output stream float out1;
+    output stream float out2;
+    input event float gain0 [[ min: -60.0f, max: 12.0f, init: -6.0f ]];
+    input event float gain1 [[ min: -60.0f, max: 12.0f, init: -6.0f ]];
+    input event float gain2 [[ min: -60.0f, max: 12.0f, init: -6.0f ]];
+    input event float gain3 [[ min: -60.0f, max: 12.0f, init: -6.0f ]];
+    input event float gain4 [[ min: -60.0f, max: 12.0f, init: -6.0f ]];
+    input event float gain5 [[ min: -60.0f, max: 12.0f, init: -6.0f ]];
+    input event float gain6 [[ min: -60.0f, max: 12.0f, init: -6.0f ]];
+    input event float gain7 [[ min: -60.0f, max: 12.0f, init: -6.0f ]];
+    input event float gain8 [[ min: -60.0f, max: 12.0f, init: -6.0f ]];
+    input event float gain9 [[ min: -60.0f, max: 12.0f, init: -6.0f ]];
+    input event float gain10 [[ min: -60.0f, max: 12.0f, init: -6.0f ]];
+    input event float gain11 [[ min: -60.0f, max: 12.0f, init: -6.0f ]];
+    input event float gain12 [[ min: -60.0f, max: 12.0f, init: -6.0f ]];
+    input event float gain13 [[ min: -60.0f, max: 12.0f, init: -6.0f ]];
+    input event float gain14 [[ min: -60.0f, max: 12.0f, init: -6.0f ]];
+    input event float gain15 [[ min: -60.0f, max: 12.0f, init: -6.0f ]];
+    input event float pan0 [[ min: 0.0f, max: 1.0f, init: 0.000000000f ]];
+    input event float pan1 [[ min: 0.0f, max: 1.0f, init: 0.066666667f ]];
+    input event float pan2 [[ min: 0.0f, max: 1.0f, init: 0.133333333f ]];
+    input event float pan3 [[ min: 0.0f, max: 1.0f, init: 0.200000000f ]];
+    input event float pan4 [[ min: 0.0f, max: 1.0f, init: 0.266666667f ]];
+    input event float pan5 [[ min: 0.0f, max: 1.0f, init: 0.333333333f ]];
+    input event float pan6 [[ min: 0.0f, max: 1.0f, init: 0.400000000f ]];
+    input event float pan7 [[ min: 0.0f, max: 1.0f, init: 0.466666667f ]];
+    input event float pan8 [[ min: 0.0f, max: 1.0f, init: 0.533333333f ]];
+    input event float pan9 [[ min: 0.0f, max: 1.0f, init: 0.600000000f ]];
+    input event float pan10 [[ min: 0.0f, max: 1.0f, init: 0.666666667f ]];
+    input event float pan11 [[ min: 0.0f, max: 1.0f, init: 0.733333333f ]];
+    input event float pan12 [[ min: 0.0f, max: 1.0f, init: 0.800000000f ]];
+    input event float pan13 [[ min: 0.0f, max: 1.0f, init: 0.866666667f ]];
+    input event float pan14 [[ min: 0.0f, max: 1.0f, init: 0.933333333f ]];
+    input event float pan15 [[ min: 0.0f, max: 1.0f, init: 1.000000000f ]];
+    input event float master [[ min: -60.0f, max: 12.0f, init: -3.0f ]];
+
+    float[16] gain = -6.0f;
+    float[16] pan = (0.000000000f, 0.066666667f, 0.133333333f, 0.200000000f, 0.266666667f, 0.333333333f, 0.400000000f, 0.466666667f, 0.533333333f, 0.600000000f, 0.666666667f, 0.733333333f, 0.800000000f, 0.866666667f, 0.933333333f, 1.000000000f);
+    float masterV = -3.0f;
+    float[16] gl, gr;
+
+    event gain0 (float v) { gain[0] = v; update(); }
+    event gain1 (float v) { gain[1] = v; update(); }
+    event gain2 (float v) { gain[2] = v; update(); }
+    event gain3 (float v) { gain[3] = v; update(); }
+    event gain4 (float v) { gain[4] = v; update(); }
+    event gain5 (float v) { gain[5] = v; update(); }
+    event gain6 (float v) { gain[6] = v; update(); }
+    event gain7 (float v) { gain[7] = v; update(); }
+    event gain8 (float v) { gain[8] = v; update(); }
+    event gain9 (float v) { gain[9] = v; update(); }
+    event gain10 (float v) { gain[10] = v; update(); }
+    event gain11 (float v) { gain[11] = v; update(); }
+    event gain12 (float v) { gain[12] = v; update(); }
+    event gain13 (float v) { gain[13] = v; update(); }
+    event gain14 (float v) { gain[14] = v; update(); }
+    event gain15 (float v) { gain[15] = v; update(); }
+    event pan0 (float v) { pan[0] = v; update(); }
+    event pan1 (float v) { pan[1] = v; update(); }
+    event pan2 (float v) { pan[2] = v; update(); }
+    event pan3 (float v) { pan[3] = v; update(); }
+    event pan4 (float v) { pan[4] = v; update(); }
+    event pan5 (float v) { pan[5] = v; update(); }
+    event pan6 (float v) { pan[6] = v; update(); }
+    event pan7 (float v) { pan[7] = v; update(); }
+    event pan8 (float v) { pan[8] = v; update(); }
+    event pan9 (float v) { pan[9] = v; update(); }
+    event pan10 (float v) { pan[10] = v; update(); }
+    event pan11 (float v) { pan[11] = v; update(); }
+    event pan12 (float v) { pan[12] = v; update(); }
+    event pan13 (float v) { pan[13] = v; update(); }
+    event pan14 (float v) { pan[14] = v; update(); }
+    event pan15 (float v) { pan[15] = v; update(); }
+    event master (float v) { masterV = v; update(); }
+
+    void update()
+    {
+        let m = pow (10.0f, masterV / 20.0f);
+        for (wrap<16> i)
+        {
+            let g = pow (10.0f, gain[i] / 20.0f) * m;
+            gl[i] = g * cos (pan[i] * float (pi) * 0.5f);
+            gr[i] = g * sin (pan[i] * float (pi) * 0.5f);
+        }
+    }
+
+    void init() { update(); }
+
+    void main()
+    {
+        loop
+        {
+            let x = float[16] (in1, in2, in3, in4, in5, in6, in7, in8, in9, in10, in11, in12, in13, in14, in15, in16);
+            var l = 0.0f;
+            var r = 0.0f;
+            for (wrap<16> i)
+            {
+                l += x[i] * gl[i];
+                r += x[i] * gr[i];
+            }
+            out1 <- l;
+            out2 <- r;
+            advance();
+        }
+    }
+}

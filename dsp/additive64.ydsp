@@ -1,0 +1,29 @@
+// 64 harmonic partials with 1/k amplitudes, one phase per partial.
+processor Additive64 {
+    output stream out1;
+    input parameter float freq = 110.0 [[ min: 20.0, max: 200.0 ]];
+    state float phase[64];
+    state float amp[64];
+
+    init {
+        for k in 0..64 { amp[k] = 1.0 / float (k + 1); }
+    }
+
+    process {
+        let inc = freq / sampleRate;
+        float acc = 0.0;
+        for k in 0..64 {
+            float p = phase[k] + inc * float (k + 1);
+            p -= floor (p);
+            phase[k] = p;
+            acc += sin (2.0 * pi * p) * amp[k];
+        }
+        out1 = acc * 0.1;
+    }
+}
+
+graph Main {
+    output stream out1;
+    node p = Additive64;
+    connection { p.out1 -> out1; }
+}

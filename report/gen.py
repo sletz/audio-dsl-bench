@@ -1,4 +1,4 @@
-"""Builds report/onda-vs-faust.html from results/results.tsv (default clang contract)
+"""Builds report/audio-dsl-bench.html (onda, Faust, Cmajor and YUP YDSP) from results/results.tsv (default clang contract)
 and results/results_nocontract.tsv (C++ strict variants at -ffp-contract=off)."""
 import collections, html, json, math, os, re, sys
 
@@ -16,7 +16,7 @@ def load(path):
 
 R = load(f"{B}/results/results.tsv")
 for n, r in load(f"{B}/results/results_nocontract.tsv").items():
-    for k in ('cpp-scal', 'cpp-vec', 'ocpp', 'ocpp48'):
+    for k in ('cpp-scal', 'cpp-vec', 'ocpp', 'ocpp48', 'cmaj-cpp'):
         if k in r:
             R[n][k + '-ieee'] = r[k]
 json.dump(R, open(f"{B}/results/results.json", 'w'), indent=1)
@@ -44,7 +44,12 @@ cols = [('onda', 'onda'), ('onda-fm', 'onda --fast-math'),
         ('cpp-scal-ieee', 'C++ IEEE'), ('cpp-scal-fm', 'C++ -ffast-math'), ('cpp-vec-fm', 'C++ -vec -ffast-math'),
         ('cpp-vec-acc', 'C++ -vec + Accelerate'), ('llvm-scal', 'Faust LLVM'), ('llvm48', 'Faust LLVM, fixed SR'),
         ('ocpp-ieee', 'ocpp IEEE'), ('ocpp48-ieee', 'ocpp IEEE, fixed SR'), ('ocpp-fm', 'ocpp -ffast-math'),
-        ('best-fm', 'fcautotool pick'), ('best48-fm', 'pick, fixed SR')]
+        ('best-fm', 'fcautotool pick'), ('best48-fm', 'pick, fixed SR'),
+        ('cmaj-cpp-ieee', 'Cmajor C++ IEEE'), ('cmaj-cpp-fm', 'Cmajor C++ -ffast-math'), ('cmaj-jit', 'Cmajor JIT -O3'),
+        ('cmaj-jit-fm', 'Cmajor JIT -O4'), ('ydsp', 'YDSP strict'), ('ydsp-fm', 'YDSP fastMath')]
+# Cmajor and YDSP, strict and fast-math, against the best Faust build and onda (section "Cmajor and YDSP")
+CMAJ_S, CMAJ_F = ['cmaj-cpp-ieee', 'cmaj-jit'], ['cmaj-cpp-fm', 'cmaj-jit-fm']
+YDSP_S, YDSP_F = ['ydsp'], ['ydsp-fm']
 IEEE = ['cpp-scal-ieee', 'cpp-vec-ieee', 'ocpp-ieee', 'ocpp48-ieee']
 FAST = ['cpp-scal-fm', 'cpp-vec-fm', 'cpp-vec-acc', 'llvm-scal', 'llvm-vec', 'llvm48', 'ocpp-fm', 'best-fm', 'best48-fm']
 IEEE_OLD = ['cpp-scal-ieee', 'cpp-vec-ieee']                                   # Faust 2.95.1
@@ -87,6 +92,27 @@ fwins = sum(x[1] >= 1.05 for x in stats); fties = sum(0.95 < x[1] < 1.05 for x i
 ocpp_gain = g([R[n]['cpp-scal-ieee'] / R[n]['ocpp-ieee'] for _, p in CATS for n, _ in p if n not in VARIANTS and 'ocpp-ieee' in R[n]])
 best_gain = g([R[n]['cpp-scal-fm'] / R[n]['best-fm'] for _, p in CATS for n, _ in p if n not in VARIANTS and 'best-fm' in R[n]])
 
+# Cmajor and YDSP table: best of each language, strict and fast-math, and its ratio to the best Faust build
+drows, dstats = [], []
+def cell(v, lo):
+    return ('<td class="best">' if v == lo else '<td>') + num(v) + '</td>'
+for cat, progs in CATS:
+    drows.append(f'<tr class="cat"><th colspan="11" scope="rowgroup">{html.escape(cat)}</th></tr>')
+    for n, lab in progs:
+        r = R[n]
+        if n in VARIANTS or not any(k in r for k in CMAJ_S + YDSP_S):
+            continue
+        fs, ff = best(r, IEEE), best(r, FAST)
+        cs, cf = best(r, CMAJ_S), best(r, CMAJ_F)
+        ys, yf = best(r, YDSP_S), best(r, YDSP_F)
+        los, lof = min(fs, r['onda'], cs, ys), min(ff, r['onda-fm'], cf, yf)
+        drows.append(f'<tr><th scope="row"><code>{n}</code><span class="lab">{html.escape(lab)}</span></th>'
+                     f'{cell(fs, los)}{cell(r["onda"], los)}{cell(cs, los)}{cell(ys, los)}'
+                     f'{cell(ff, lof)}{cell(r["onda-fm"], lof)}{cell(cf, lof)}{cell(yf, lof)}'
+                     f'{rat(fs / cs)}{rat(fs / ys)}</tr>')
+        dstats.append((fs / cs, ff / cf, fs / ys, ff / yf, r['onda'] / cs, r['onda'] / ys,
+                       best(r, ['cmaj-jit']) / best(r, ['cmaj-cpp-ieee']), r['ydsp'] / r['ydsp-fm']))
+
 # options elected by fcautotool
 erows = []
 for _, progs in CATS:
@@ -105,11 +131,14 @@ for _, progs in CATS:
 src = []
 for cat, progs in CATS:
     for n, lab in progs:
-        fd = open(f"{B}/dsp/{n}.dsp").read(); od = open(f"{B}/dsp/{n}.onda").read()
+        figs = ''
+        for lang, ext in (('Faust', 'dsp'), ('Onda', 'onda'), ('Cmajor', 'cmajor'), ('YDSP', 'ydsp')):
+            if os.path.exists(f"{B}/dsp/{n}.{ext}"):
+                code = html.escape(open(f"{B}/dsp/{n}.{ext}").read())
+                figs += f'<figure><figcaption>{lang} · {n}.{ext}</figcaption><pre><code>{code}</code></pre></figure>\n'
         op = ' open' if n == 'zita_rev' else ''
         src.append(f'''<details{op}><summary><code>{n}</code> — {html.escape(lab)}</summary><div class="pair">
-<figure><figcaption>Faust · {n}.dsp</figcaption><pre><code>{html.escape(fd)}</code></pre></figure>
-<figure><figcaption>Onda · {n}.onda</figcaption><pre><code>{html.escape(od)}</code></pre></figure></div></details>''')
+{figs}</div></details>''')
 
 fr = lambda x: f'{x:.2f}'
 sub = {'ROWS': '\n'.join(rows), 'HEAD': ''.join(f'<th scope="col">{html.escape(t)}</th>' for _, t in cols),
@@ -117,11 +146,17 @@ sub = {'ROWS': '\n'.join(rows), 'HEAD': ''.join(f'<th scope="col">{html.escape(t
        'GS': fr(gs), 'GF': fr(gf), 'GSO': fr(gso), 'GFO': fr(gfo), 'NPROG': str(len(stats)),
        'WINS': str(wins), 'TIES': str(ties), 'LOSSES': str(losses),
        'FWINS': str(fwins), 'FTIES': str(fties), 'FLOSSES': str(flosses),
-       'OCPPGAIN': fr(ocpp_gain), 'BESTGAIN': fr(best_gain)}
+       'OCPPGAIN': fr(ocpp_gain), 'BESTGAIN': fr(best_gain), 'DROWS': '\n'.join(drows), 'NDSL': str(len(dstats)),
+       'CS': fr(g([x[0] for x in dstats])), 'CF': fr(g([x[1] for x in dstats])),
+       'YS': fr(g([x[2] for x in dstats])), 'YF': fr(g([x[3] for x in dstats])),
+       'OC': fr(g([x[4] for x in dstats])), 'OY': fr(g([x[5] for x in dstats])),
+       'JITCPP': fr(g([x[6] for x in dstats])), 'YFM': fr(g([x[7] for x in dstats]))}
 out = open(f"{B}/report/template.html").read()
 for k, v in sub.items():
     out = out.replace(f'%%{k}%%', v)
 assert '%%' not in out, re.findall(r'%%\w+%%', out)
-open(f"{B}/report/onda-vs-faust.html", 'w').write(out)
+open(f"{B}/report/audio-dsl-bench.html", 'w').write(out)
 print(f'{len(stats)} programs: strict {gs:.3f} fast {gf:.3f} | vs 2.95.1 strict {gso:.3f} fast {gfo:.3f} | '
       f'strict W/T/L {wins}/{ties}/{losses} fast {fwins}/{fties}/{flosses} | ocpp/cpp {ocpp_gain:.2f} best/cppfm {best_gain:.2f}')
+print(f"best Faust / Cmajor: strict {sub['CS']} fast {sub['CF']} | best Faust / YDSP: strict {sub['YS']} fast {sub['YF']} | "
+      f"onda / Cmajor {sub['OC']} onda / YDSP {sub['OY']} ({sub['NDSL']} programs)")

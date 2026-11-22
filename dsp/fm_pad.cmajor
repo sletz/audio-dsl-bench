@@ -1,0 +1,49 @@
+// Two detuned 2-operator FM voices through a tanh shaper: cheap phase recursions,
+// heavy recursion-free math (4 sin + 2 tanh per sample).
+processor FmPad
+{
+    output stream float out1;
+    input event float freq   [[ min: 20.0f,  max: 2000.0f, init: 220.0f ]];
+    input event float ratio  [[ min: 0.25f,  max: 8.0f,    init: 1.5f ]];
+    input event float index  [[ min: 0.0f,   max: 10.0f,   init: 3.0f ]];
+    input event float drive  [[ min: 1.0f,   max: 10.0f,   init: 2.0f ]];
+    input event float detune [[ min: 1.0f,   max: 1.02f,   init: 1.003f ]];
+
+    float freqV = 220.0f, ratioV = 1.5f, indexV = 3.0f, driveV = 2.0f, detuneV = 1.003f;
+    float ic1, im1, ic2, im2;   // phase increments
+    float pc1, pm1, pc2, pm2;   // carrier and modulator phases
+
+    event freq (float v)   { freqV = v; update(); }
+    event ratio (float v)  { ratioV = v; update(); }
+    event index (float v)  { indexV = v; }
+    event drive (float v)  { driveV = v; }
+    event detune (float v) { detuneV = v; update(); }
+
+    void update()
+    {
+        let sr = float (processor.frequency);
+        ic1 = freqV / sr;
+        im1 = freqV * ratioV / sr;
+        ic2 = freqV * detuneV / sr;
+        im2 = freqV * detuneV * ratioV / sr;
+    }
+
+    void init() { update(); }
+
+    void main()
+    {
+        let w = float (twoPi);
+
+        loop
+        {
+            pc1 += ic1;  pc1 -= floor (pc1);
+            pm1 += im1;  pm1 -= floor (pm1);
+            pc2 += ic2;  pc2 -= floor (pc2);
+            pm2 += im2;  pm2 -= floor (pm2);
+            let v1 = tanh (driveV * sin (w * pc1 + indexV * sin (w * pm1)));
+            let v2 = tanh (driveV * sin (w * pc2 + indexV * sin (w * pm2)));
+            out1 <- (v1 + v2) * 0.25f;
+            advance();
+        }
+    }
+}

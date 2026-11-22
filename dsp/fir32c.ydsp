@@ -1,0 +1,27 @@
+// 32-tap FIR, coefficients sin(0.3 (i+1)) / (i+1), circular history.
+processor Fir32 {
+    input stream in1;
+    output stream out1;
+    state float c[32];
+    state float h[32];
+    state int idx;
+
+    init {
+        for i in 0..32 { c[i] = sin (0.3 * float (i + 1)) / float (i + 1); }
+    }
+
+    process {
+        h[idx] = in1;
+        float acc = 0.0;
+        for i in 0..32 { acc += c[i] * h[(idx - i) & 31]; }
+        idx = (idx + 1) & 31;
+        out1 = acc;
+    }
+}
+
+graph Main {
+    input stream in1;
+    output stream out1;
+    node p = Fir32;
+    connection { in1 -> p.in1; p.out1 -> out1; }
+}

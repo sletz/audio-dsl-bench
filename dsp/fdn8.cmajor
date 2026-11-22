@@ -1,0 +1,63 @@
+// 8-line feedback delay network: one-pole damping, Hadamard feedback matrix, mono in, sum out.
+processor Fdn8
+{
+    input stream float in1;
+    output stream float out1;
+    input event float g    [[ min: 0.0f, max: 0.999f, init: 0.9f ]];
+    input event float damp [[ min: 0.0f, max: 0.99f,  init: 0.3f ]];
+
+    // Hadamard signs: (-1)^popcount(i & j)
+    let H = float[8, 8] (
+        (1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f),
+        (1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f),
+        (1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f),
+        (1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f),
+        (1.0f, 1.0f, 1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f),
+        (1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f),
+        (1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, 1.0f),
+        (1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f));
+
+    float gV = 0.9f, dampV = 0.3f, gn;
+    float[8] yp, s;
+    float[1008] d0;  wrap<1008> i0;
+    float[1150] d1;  wrap<1150> i1;
+    float[1278] d2;  wrap<1278> i2;
+    float[1380] d3;  wrap<1380> i3;
+    float[1498] d4;  wrap<1498> i4;
+    float[1606] d5;  wrap<1606> i5;
+    float[1732] d6;  wrap<1732> i6;
+    float[1860] d7;  wrap<1860> i7;
+
+    event g (float v)    { gV = v; gn = gV / sqrt (8.0f); }
+    event damp (float v) { dampV = v; }
+
+    void init() { gn = gV / sqrt (8.0f); }
+
+    void main()
+    {
+        loop
+        {
+            for (wrap<8> i)
+                s[i] = (1.0f - dampV) * yp[i] + dampV * s[i];
+            float[8] v;
+            for (wrap<8> i)
+            {
+                var acc = 0.0f;
+                for (wrap<8> j)
+                    acc += H[i, j] * s[j];
+                v[i] = acc * gn;
+            }
+            let x = in1;
+            yp[0] = d0[i0];  d0[i0] = v[0] + x;  i0++;
+            yp[1] = d1[i1];  d1[i1] = v[1] + x;  i1++;
+            yp[2] = d2[i2];  d2[i2] = v[2] + x;  i2++;
+            yp[3] = d3[i3];  d3[i3] = v[3] + x;  i3++;
+            yp[4] = d4[i4];  d4[i4] = v[4] + x;  i4++;
+            yp[5] = d5[i5];  d5[i5] = v[5] + x;  i5++;
+            yp[6] = d6[i6];  d6[i6] = v[6] + x;  i6++;
+            yp[7] = d7[i7];  d7[i7] = v[7] + x;  i7++;
+            out1 <- (yp[0] + yp[1] + yp[2] + yp[3] + yp[4] + yp[5] + yp[6] + yp[7]) * 0.25f;
+            advance();
+        }
+    }
+}

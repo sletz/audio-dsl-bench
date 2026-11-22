@@ -1,0 +1,24 @@
+// Parameters are event endpoints: the handler recomputes what derives from them (Cmajor's way to keep
+// per-parameter math out of the sample loop; the state holds the defaults).
+processor Sine
+{
+    output stream float out1;
+    input event float freq [[ name: "freq", min: 20.0f, max: 20000.0f, init: 440.0f ]];
+
+    float freqValue = 440.0f, inc, phase;
+
+    event freq (float v) { freqValue = v; update(); }
+    void update() { inc = freqValue / float (processor.frequency); }
+    void init() { update(); }
+
+    void main()
+    {
+        loop
+        {
+            phase += inc;
+            phase -= floor (phase);
+            out1 <- sin (float (twoPi) * phase) * 0.5f;
+            advance();
+        }
+    }
+}

@@ -1,4 +1,12 @@
-# onda vs Faust: benchmark
+# Audio DSL bench: onda, Faust, Cmajor, YDSP
+
+Four audio DSP languages measured on the same harness, the same programs and the same input:
+onda, Faust, [Cmajor](https://cmajor.dev) and YDSP, the JIT-compiled DSP language of the
+[YUP](https://github.com/kunitoki/yup) framework (module `yup_dsp_jit`). The project started as
+an onda vs Faust comparison (this section); Cmajor and YDSP are described
+[below](#cmajor-and-ydsp).
+
+## onda vs Faust
 
 Compares the native code of onda (AOT object, strict and `--fast-math`) with Faust C++
 (`-scal`/`-vec`, clang with its default contract, `-ffp-contract=off` and `-ffast-math`)
@@ -15,19 +23,60 @@ from the faust of the `master-dev-certification-4` branch (`tools/faust-cert4`, 
 `results/autotool/`, redone by `tools/autotune_all.sh`), and the same with SR fixed at 48 kHz
 (`ocpp48`, `best48-fm`, plus `llvm48` for the Faust LLVM JIT). Fixed SR means the `sr48/`
 copy of the libraries, where `platform.lib` says `SR = 48000.0`. Measured in November 2026 on
-an Apple M5: `results/`; report: `report/onda-vs-faust.html`.
+an Apple M5: `results/`; report: `report/audio-dsl-bench.html`.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="report/chart-dark.svg">
-  <img alt="onda speedup over the best Faust build, per program, strict IEEE and fast-math, log scale. onda wins on additive64, tanh_drive, noise and zita_rev; Faust wins on freeverb, fdn8, diffuser32, peq10, biquad8, fm_pad and the three physical models. Geometric mean x0.90 strict, x0.78 fast-math." src="report/chart-light.svg">
+  <img alt="onda speedup over the best Faust build, per program, strict IEEE and fast-math, log scale. onda wins on additive64, tanh_drive, noise and zita_rev; Faust wins on freeverb, fdn8, diffuser32, peq10, biquad8, fm_pad and the three physical models. Geometric mean x0.89 strict, x0.77 fast-math." src="report/chart-light.svg">
 </picture>
 
 | onda against… (geometric mean, 18 programs) | strict IEEE | fast-math |
 | --- | ---: | ---: |
-| Faust 2.95.1 (C++ and LLVM, every option) | ×1.19 | ×1.06 |
-| best Faust, master-dev-certification-4 included | ×0.90 | ×0.78 |
+| Faust 2.95.1 (C++ and LLVM, every option) | ×1.18 | ×1.03 |
+| best Faust, master-dev-certification-4 included | ×0.89 | ×0.77 |
 
-Above ×1 onda is faster. Full tables and analysis: `report/onda-vs-faust.html`.
+Above ×1 onda is faster. Full tables and analysis: `report/audio-dsl-bench.html`.
+
+## Cmajor and YDSP
+
+The 18 programs are also written in Cmajor (`dsp/*.cmajor`) and YDSP (`dsp/*.ydsp`), after the
+onda ports: same equations, same delay lengths, same order of operations where the language
+allows (the 4 alternative onda writings have no Cmajor or YDSP version). Six engines:
+
+| Engine | What runs |
+| --- | --- |
+| `cmaj-cpp`, `cmaj-cpp-fm` | the C++ class of `cmaj generate --target=cpp`, clang `-O3` (IEEE pass: `-ffp-contract=off`) or `-O3 -ffast-math` |
+| `cmaj-jit`, `cmaj-jit-fm` | Cmajor's own LLVM JIT (`libCmajPerformer`), optimisation level 3, or 4 (fast maths); the sample rate is given at build time |
+| `ydsp`, `ydsp-fm` | YUP's YDSP JIT (asmjit backend, host target), `fastMath` false or true (its default) |
+
+| Against the best Faust build of the same contract (geometric mean, 18 programs) | strict IEEE | fast-math |
+| --- | ---: | ---: |
+| best Cmajor engine (generated C++ or JIT) | ×0.61 | ×0.53 |
+| YDSP | ×0.63 | ×0.63 |
+| for reference: onda | ×0.89 | ×0.77 |
+
+Against plain Faust C++ (`-lang cpp -scal`): Cmajor ×0.91 strict, ×0.96 fast-math; YDSP ×0.93
+strict, ×1.12 fast-math. Cmajor wins outright on the violin (17.5 ns against 21.4 for the best
+Faust in IEEE, 10.8 against 16.3 with fast maths); its per-frame runtime and its audio copies
+cost about 2 ns per sample, much more with many channels (hoa_decoder, mixer16). YDSP with
+`fastMath` is the fastest of all engines on tanh_drive and beats every Faust 2.95.1 build on
+freeverb (only cert-4 does better); strict, it leaves transcendentals on scalar libm (additive64,
+fm_pad). Per-program tables and findings: section "Cmajor and YDSP" of the report.
+
+Writing notes, measured while porting (they decided the form of the ports):
+
+- Cmajor parameters are `input event` endpoints whose handlers recompute the derived
+  coefficients, Cmajor's way to keep control-rate math out of the sample loop (the generated
+  C++ ignores the `init` annotation of `input value` endpoints, and reads a value endpoint
+  through a per-frame ramp). The state holds the defaults.
+- YDSP rewards scalar state, kept in registers across the sample loop, and delay lines whose
+  counter wraps at a constant (`i += 1; if (i >= 1008) { i = 0; }`), which its optimiser proves
+  in range. On fdn8, a struct array of lines with a nested Hadamard loop took 44 ns/sample,
+  named lines with scalar state 5.7 ns; freeverb and diffuser32 as graphs of one processor
+  with a run-time `size` parameter took 14.8 and 33.9 ns, as single processors 4.4 and 19.2 ns.
+- The Cmajor JIT also prefers scalars: biquad8 with its state in two `float[8]` took 19.5 ns,
+  in 16 scalars 7.2 ns (the generated C++ stayed at 18 ns: its state lives in memory from one
+  frame to the next). On peq10 the scalar form was slower in both languages, so it keeps arrays.
 
 ## Requirements
 
@@ -46,6 +95,13 @@ Above ×1 onda is faster. Full tables and analysis: `report/onda-vs-faust.html`.
   the strict and fast-math onda objects, which export the same names.
 - The Faust libraries of the `../faustlibraries` checkout (`FAUSTLIB` in `build.sh`;
   zita_rev depends on them).
+- Cmajor 1.0.3209: `cmaj` in the `PATH` (`CMAJ=...` otherwise), the API headers in
+  `/usr/local/include/cmajor` and `/usr/local/include/choc`, and
+  `/usr/local/lib/libCmajPerformer.dylib`, loaded at run time by the `cmaj-jit` engines.
+- A YUP checkout (`git clone https://github.com/kunitoki/yup ../yup`, or `YUP_ROOT=...`),
+  CMake ≥ 3.31 and Ninja. `build.sh` builds `build/_ydsp/libydsp_engine.a` once (YUP's own
+  CMake, a few minutes the first time); YUP fetches the missing upstream sources of its
+  third-party modules.
 
 ## Usage
 
@@ -59,10 +115,10 @@ deviation, maximum and relative RMS difference against `cpp-scal`, finiteness, R
 reference.
 
 ```bash
-./run_all.sh                         # the 22 programs in two passes, ~60 min
+./run_all.sh                         # the 22 programs in two passes, ~90 min
 ```
 
-`run_all.sh` regenerates `results/` and `report/onda-vs-faust.html`. The second pass
+`run_all.sh` regenerates `results/` and `report/audio-dsl-bench.html`. The second pass
 compiles the strict C++ variants with `-ffp-contract=off` (the "IEEE" columns).
 Measure on an idle machine, on AC power.
 
@@ -70,8 +126,12 @@ Measure on an idle machine, on AC power.
 
 | File | Role |
 | --- | --- |
-| `harness.cpp` | Links the 15 engines (16 input and output channels), compares the outputs over 4 s, then times interleaved, shuffled rounds |
-| `build.sh` | One program: onda objects, Faust C++ classes, harness |
+| `harness.cpp` | Links the 21 engines (16 input and output channels), compares the outputs over 4 s, then times interleaved, shuffled rounds |
+| `build.sh` | One program: onda objects, Faust C++ classes, Cmajor C++ classes, harness |
+| `dsp/NAME.dsp`, `.onda`, `.cmajor`, `.ydsp` | The programs in the four languages |
+| `tools/ext_dsp.h` | Cmajor and YDSP engines behind the Faust `dsp` interface |
+| `tools/cmaj_jit.cpp`, `tools/cmaj_jit.h` | Cmajor LLVM JIT engine (C interface over the Cmajor API) |
+| `tools/ydsp/` | YDSP engine: C interface over `yup_dsp_jit`, and the CMake project that builds it as a static library |
 | `run_all.sh` | The 22 programs in two passes, then the report and the chart |
 | `report/gen.py`, `report/template.html` | Merge the two passes (`results/results.json`) and generate the HTML report |
 | `report/readme_chart.py` | Draws `report/chart-light.svg` and `report/chart-dark.svg`, the README chart |
@@ -84,7 +144,11 @@ Measure on an idle machine, on AC power.
 ## Method notes
 
 - onda fixes the block size (256) and the sample rate (48 kHz) at compile time;
-  Faust gets `compute(256, ...)` and `init(48000)`.
+  Faust gets `compute(256, ...)` and `init(48000)`. The Cmajor JIT gets the sample rate at
+  build time too; the Cmajor C++ class (`initialise(0, 48000)`) and YDSP
+  (`prepare(48000, 256)`) get it at run time.
+- Cmajor exchanges audio by copies (`setInputFrames`, `advance`, `copyOutputFrames`): they are
+  part of its measured time. YDSP processes the harness buffers in place.
 - Faust LLVM emits every operation with fast-math flags: its columns are not IEEE.
   clang contracts into FMA by default.
 - `zita_rev.onda` ports `re.zita_rev1_stereo(60, f1, f2, t60dc, t60m, 48000)` with delay

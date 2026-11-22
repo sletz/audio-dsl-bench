@@ -1,0 +1,161 @@
+// Port of re.zita_rev1_stereo(60, f1, f2, t60dc, t60m, fsmax) from faustlibraries, after
+// dsp/zita_rev.onda: delay lengths computed for 48 kHz exactly as reverbs.lib does (floor(0.5 + SR*t)).
+// The decay coefficients depend on parameters only and are hoisted out of the sample loop; the
+// filter state is scalar; each delay line has its own array and a counter wrapped at a constant.
+processor ZitaRev {
+    input stream in1;
+    input stream in2;
+    output stream out1;
+    output stream out2;
+    input parameter float f1 = 200.0 [[ min: 50.0, max: 1000.0 ]];
+    input parameter float f2 = 6000.0 [[ min: 1500.0, max: 23520.0 ]];
+    input parameter float t60dc = 3.0 [[ min: 1.0, max: 8.0 ]];
+    input parameter float t60m = 2.0 [[ min: 1.0, max: 8.0 ]];
+
+    state float dl[1920], dr[1920];   // input delay rdel - 20 = 40 ms
+    state int dli, dri;
+    state float ap0[977];  state int api0;  // allpass
+    state float ap1[1172];  state int api1;  // allpass
+    state float ap2[1517];  state int api2;  // allpass
+    state float ap3[1312];  state int api3;  // allpass
+    state float ap4[1099];  state int api4;  // allpass
+    state float ap5[1406];  state int api5;  // allpass
+    state float ap6[646];  state int api6;  // allpass
+    state float ap7[918];  state int api7;  // allpass
+    state float fb0[6372];  state int fbi0;  // feedback delay
+    state float fb1[8926];  state int fbi1;  // feedback delay
+    state float fb2[4618];  state int fbi2;  // feedback delay
+    state float fb3[11018];  state int fbi3;  // feedback delay
+    state float fb4[7286];  state int fbi4;  // feedback delay
+    state float fb5[7824];  state int fbi5;  // feedback delay
+    state float fb6[5353];  state int fbi6;  // feedback delay
+    state float fb7[9641];  state int fbi7;  // feedback delay
+    state float hp0, hp1, hp2, hp3, hp4, hp5, hp6, hp7;          // Hadamard outputs, previous sample
+    state float s1_0, s1_1, s1_2, s1_3, s1_4, s1_5, s1_6, s1_7;  // one-pole TPT lowpass (low shelf)
+    state float e0, e1, e2, e3, e4, e5, e6, e7;                  // si.smooth error states
+    state float xp0, xp1, xp2, xp3, xp4, xp5, xp6, xp7;          // si.smooth previous inputs
+
+    process {
+        let g1 = tan (max (0.0, min (pi * f1 / sampleRate, 0.499 * pi)));
+        let gk = g1 * (1.0 / (g1 + 1.0));
+        let gk2 = 2.0 * gk;
+        let c = select (f2 > 0.49 * sampleRate, -1.0, cos (2.0 * pi * f2 / sampleRate));
+        let gm0 = exp (-6.9077554 * 7350.0 / (t60m * sampleRate));
+        let shelf0 = exp (-6.9077554 * 7350.0 / (t60dc * sampleRate)) / gm0 - 1.0;
+        let mbo0 = (1.0 - gm0 * gm0 * c) / (1.0 - gm0 * gm0);
+        let pole0 = mbo0 - sqrt (max (0.0, mbo0 * mbo0 - 1.0));
+        let gm1 = exp (-6.9077554 * 10099.0 / (t60m * sampleRate));
+        let shelf1 = exp (-6.9077554 * 10099.0 / (t60dc * sampleRate)) / gm1 - 1.0;
+        let mbo1 = (1.0 - gm1 * gm1 * c) / (1.0 - gm1 * gm1);
+        let pole1 = mbo1 - sqrt (max (0.0, mbo1 * mbo1 - 1.0));
+        let gm2 = exp (-6.9077554 * 6136.0 / (t60m * sampleRate));
+        let shelf2 = exp (-6.9077554 * 6136.0 / (t60dc * sampleRate)) / gm2 - 1.0;
+        let mbo2 = (1.0 - gm2 * gm2 * c) / (1.0 - gm2 * gm2);
+        let pole2 = mbo2 - sqrt (max (0.0, mbo2 * mbo2 - 1.0));
+        let gm3 = exp (-6.9077554 * 12331.0 / (t60m * sampleRate));
+        let shelf3 = exp (-6.9077554 * 12331.0 / (t60dc * sampleRate)) / gm3 - 1.0;
+        let mbo3 = (1.0 - gm3 * gm3 * c) / (1.0 - gm3 * gm3);
+        let pole3 = mbo3 - sqrt (max (0.0, mbo3 * mbo3 - 1.0));
+        let gm4 = exp (-6.9077554 * 8386.0 / (t60m * sampleRate));
+        let shelf4 = exp (-6.9077554 * 8386.0 / (t60dc * sampleRate)) / gm4 - 1.0;
+        let mbo4 = (1.0 - gm4 * gm4 * c) / (1.0 - gm4 * gm4);
+        let pole4 = mbo4 - sqrt (max (0.0, mbo4 * mbo4 - 1.0));
+        let gm5 = exp (-6.9077554 * 9231.0 / (t60m * sampleRate));
+        let shelf5 = exp (-6.9077554 * 9231.0 / (t60dc * sampleRate)) / gm5 - 1.0;
+        let mbo5 = (1.0 - gm5 * gm5 * c) / (1.0 - gm5 * gm5);
+        let pole5 = mbo5 - sqrt (max (0.0, mbo5 * mbo5 - 1.0));
+        let gm6 = exp (-6.9077554 * 6000.0 / (t60m * sampleRate));
+        let shelf6 = exp (-6.9077554 * 6000.0 / (t60dc * sampleRate)) / gm6 - 1.0;
+        let mbo6 = (1.0 - gm6 * gm6 * c) / (1.0 - gm6 * gm6);
+        let pole6 = mbo6 - sqrt (max (0.0, mbo6 * mbo6 - 1.0));
+        let gm7 = exp (-6.9077554 * 10560.0 / (t60m * sampleRate));
+        let shelf7 = exp (-6.9077554 * 10560.0 / (t60dc * sampleRate)) / gm7 - 1.0;
+        let mbo7 = (1.0 - gm7 * gm7 * c) / (1.0 - gm7 * gm7);
+        let pole7 = mbo7 - sqrt (max (0.0, mbo7 * mbo7 - 1.0));
+        let t1 = 0.525 / sqrt (t60m);
+        let inv = 1.0 / sqrt (8.0);
+
+        // damping filters on the delayed Hadamard outputs
+        float d = 0.0;
+        float v = 0.0;
+        float sh = 0.0;
+        d = hp0 - s1_0;  v = s1_0 + gk * d;  s1_0 = s1_0 + gk2 * d;
+        sh = gm0 * (hp0 + shelf0 * v);  e0 = pole0 * (e0 + (xp0 - sh));  xp0 = sh;
+        let z0 = inv * (sh + e0) + 1.0e-20;
+        d = hp1 - s1_1;  v = s1_1 + gk * d;  s1_1 = s1_1 + gk2 * d;
+        sh = gm1 * (hp1 + shelf1 * v);  e1 = pole1 * (e1 + (xp1 - sh));  xp1 = sh;
+        let z1 = inv * (sh + e1) + 1.0e-20;
+        d = hp2 - s1_2;  v = s1_2 + gk * d;  s1_2 = s1_2 + gk2 * d;
+        sh = gm2 * (hp2 + shelf2 * v);  e2 = pole2 * (e2 + (xp2 - sh));  xp2 = sh;
+        let z2 = inv * (sh + e2) + 1.0e-20;
+        d = hp3 - s1_3;  v = s1_3 + gk * d;  s1_3 = s1_3 + gk2 * d;
+        sh = gm3 * (hp3 + shelf3 * v);  e3 = pole3 * (e3 + (xp3 - sh));  xp3 = sh;
+        let z3 = inv * (sh + e3) + 1.0e-20;
+        d = hp4 - s1_4;  v = s1_4 + gk * d;  s1_4 = s1_4 + gk2 * d;
+        sh = gm4 * (hp4 + shelf4 * v);  e4 = pole4 * (e4 + (xp4 - sh));  xp4 = sh;
+        let z4 = inv * (sh + e4) + 1.0e-20;
+        d = hp5 - s1_5;  v = s1_5 + gk * d;  s1_5 = s1_5 + gk2 * d;
+        sh = gm5 * (hp5 + shelf5 * v);  e5 = pole5 * (e5 + (xp5 - sh));  xp5 = sh;
+        let z5 = inv * (sh + e5) + 1.0e-20;
+        d = hp6 - s1_6;  v = s1_6 + gk * d;  s1_6 = s1_6 + gk2 * d;
+        sh = gm6 * (hp6 + shelf6 * v);  e6 = pole6 * (e6 + (xp6 - sh));  xp6 = sh;
+        let z6 = inv * (sh + e6) + 1.0e-20;
+        d = hp7 - s1_7;  v = s1_7 + gk * d;  s1_7 = s1_7 + gk2 * d;
+        sh = gm7 * (hp7 + shelf7 * v);  e7 = pole7 * (e7 + (xp7 - sh));  xp7 = sh;
+        let z7 = inv * (sh + e7) + 1.0e-20;
+
+        let xl = 0.3 * dl[dli];  dl[dli] = in1;  dli += 1;  if (dli >= 1920) { dli = 0; }
+        let xr = 0.3 * dr[dri];  dr[dri] = in2;  dri += 1;  if (dri >= 1920) { dri = 0; }
+        let fo0 = fb0[fbi0];  fb0[fbi0] = z0;  fbi0 += 1;  if (fbi0 >= 6372) { fbi0 = 0; }
+        let r0 = ap0[api0];  let u0 = (fo0 + xl) - (0.6) * r0;  ap0[api0] = u0;
+        api0 += 1;  if (api0 >= 977) { api0 = 0; }
+        let q0 = r0 + (0.6) * u0;
+        let fo1 = fb1[fbi1];  fb1[fbi1] = z1;  fbi1 += 1;  if (fbi1 >= 8926) { fbi1 = 0; }
+        let r1 = ap1[api1];  let u1 = (fo1 + xl) - (-0.6) * r1;  ap1[api1] = u1;
+        api1 += 1;  if (api1 >= 1172) { api1 = 0; }
+        let q1 = r1 + (-0.6) * u1;
+        let fo2 = fb2[fbi2];  fb2[fbi2] = z2;  fbi2 += 1;  if (fbi2 >= 4618) { fbi2 = 0; }
+        let r2 = ap2[api2];  let u2 = (fo2 - xl) - (0.6) * r2;  ap2[api2] = u2;
+        api2 += 1;  if (api2 >= 1517) { api2 = 0; }
+        let q2 = r2 + (0.6) * u2;
+        let fo3 = fb3[fbi3];  fb3[fbi3] = z3;  fbi3 += 1;  if (fbi3 >= 11018) { fbi3 = 0; }
+        let r3 = ap3[api3];  let u3 = (fo3 - xl) - (-0.6) * r3;  ap3[api3] = u3;
+        api3 += 1;  if (api3 >= 1312) { api3 = 0; }
+        let q3 = r3 + (-0.6) * u3;
+        let fo4 = fb4[fbi4];  fb4[fbi4] = z4;  fbi4 += 1;  if (fbi4 >= 7286) { fbi4 = 0; }
+        let r4 = ap4[api4];  let u4 = (fo4 + xr) - (0.6) * r4;  ap4[api4] = u4;
+        api4 += 1;  if (api4 >= 1099) { api4 = 0; }
+        let q4 = r4 + (0.6) * u4;
+        let fo5 = fb5[fbi5];  fb5[fbi5] = z5;  fbi5 += 1;  if (fbi5 >= 7824) { fbi5 = 0; }
+        let r5 = ap5[api5];  let u5 = (fo5 + xr) - (-0.6) * r5;  ap5[api5] = u5;
+        api5 += 1;  if (api5 >= 1406) { api5 = 0; }
+        let q5 = r5 + (-0.6) * u5;
+        let fo6 = fb6[fbi6];  fb6[fbi6] = z6;  fbi6 += 1;  if (fbi6 >= 5353) { fbi6 = 0; }
+        let r6 = ap6[api6];  let u6 = (fo6 - xr) - (0.6) * r6;  ap6[api6] = u6;
+        api6 += 1;  if (api6 >= 646) { api6 = 0; }
+        let q6 = r6 + (0.6) * u6;
+        let fo7 = fb7[fbi7];  fb7[fbi7] = z7;  fbi7 += 1;  if (fbi7 >= 9641) { fbi7 = 0; }
+        let r7 = ap7[api7];  let u7 = (fo7 - xr) - (-0.6) * r7;  ap7[api7] = u7;
+        api7 += 1;  if (api7 >= 918) { api7 = 0; }
+        let q7 = r7 + (-0.6) * u7;
+
+        // ro.hadamard(8): butterfly(8), then hadamard(4) on each half
+        let b0 = q0 + q4;  let b1 = q1 + q5;  let b2 = q2 + q6;  let b3 = q3 + q7;
+        let b4 = q0 - q4;  let b5 = q1 - q5;  let b6 = q2 - q6;  let b7 = q3 - q7;
+        let c0 = b0 + b2;  let c1 = b1 + b3;  let c2 = b0 - b2;  let c3 = b1 - b3;
+        let c4 = b4 + b6;  let c5 = b5 + b7;  let c6 = b4 - b6;  let c7 = b5 - b7;
+        hp0 = c0 + c1;  hp1 = c0 - c1;  hp2 = c2 + c3;  hp3 = c2 - c3;
+        hp4 = c4 + c5;  hp5 = c4 - c5;  hp6 = c6 + c7;  hp7 = c6 - c7;
+        out1 = (hp1 + hp2) * t1;
+        out2 = (hp1 - hp2) * t1;
+    }
+}
+
+graph Main {
+    input stream in1;
+    input stream in2;
+    output stream out1;
+    output stream out2;
+    node p = ZitaRev;
+    connection { in1 -> p.in1; in2 -> p.in2; p.out1 -> out1; p.out2 -> out2; }
+}

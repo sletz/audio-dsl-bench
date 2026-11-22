@@ -1,0 +1,23 @@
+// Linear congruential noise (Faust's no.noise) through a one-pole lowpass.
+processor Noise
+{
+    output stream float out1;
+    input event float damp [[ min: 0.0f, max: 0.999f, init: 0.9f ]];
+
+    float dampV = 0.9f, lp;
+    int seed;
+
+    event damp (float v) { dampV = v; }
+
+    void main()
+    {
+        loop
+        {
+            seed = seed * 1103515245 + 12345;
+            let x = float (seed) * (1.0f / 2147483647.0f);
+            lp = x * (1.0f - dampV) + lp * dampV;
+            out1 <- lp;
+            advance();
+        }
+    }
+}

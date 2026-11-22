@@ -1,0 +1,131 @@
+// pm.clarinet_ui_MIDI of Faust's physmodels.lib (examples/physicalModeling/clarinetMIDI.dsp), after
+// dsp/clarinet.onda, gate held at 1 like clarinet.dsp. Blower: pressure envelope + vibrato (os.osc:
+// 65536-point sine table, fixed-point phasor) + low-passed breath noise. Mouthpiece: reed table.
+// Bore: two fractional delay lines read by 4th-order Lagrange interpolation (de.fdelay4).
+// Bell: reflection through a one-pole smoother (si.smooth). The parameter-only values are hoisted
+// out of the sample loop by the optimiser.
+
+let NMAX = 427;         // int(l2s(pm.maxLength) + 4), the de.fdelay4 bound at 48 kHz
+
+// de.fdelay4: 4th-order Lagrange interpolation of the 5 taps around the delay
+func lagrange (x0: float, x1: float, x2: float, x3: float, x4: float, fd: float): float {
+    let a = fd - 1.0;
+    let b = fd - 2.0;
+    let c = fd - 3.0;
+    let q = fd - 4.0;
+    let p1 = fd * a;
+    let p2 = p1 * b;
+    let p3 = p2 * c;
+    return q * (c * (b * (0.041666668 * x0 * a - 0.16666667 * fd * x1) + 0.25 * p1 * x2) - 0.16666667 * p2 * x3) + 0.041666668 * p3 * x4;
+}
+
+processor Clarinet {
+    output stream out1;
+    output stream out2;
+    input parameter float freq = 440.0 [[ min: 50.0, max: 1000.0 ]];
+    input parameter float bend = 0.0 [[ min: -2.0, max: 2.0 ]];
+    input parameter float gain = 0.600000024 [[ min: 0.0, max: 1.0 ]];
+    input parameter float envAttack = 1.0 [[ min: 0.0, max: 30.0 ]];
+    input parameter float sustain = 0.0 [[ min: 0.0, max: 1.0 ]];
+    input parameter float reedStiffness = 0.5 [[ min: 0.0, max: 1.0 ]];
+    input parameter float bellOpening = 0.5 [[ min: 0.0, max: 1.0 ]];
+    input parameter float vibratoFreq = 5.0 [[ min: 1.0, max: 10.0 ]];
+    input parameter float vibratoGain = 0.25 [[ min: 0.0, max: 1.0 ]];
+    input parameter float outGain = 0.5 [[ min: 0.0, max: 1.0 ]];
+    input parameter float gate = 1.0 [[ min: 0.0, max: 1.0 ]];
+
+    state float sine[65536];            // os.osc's table, sin(2 pi i / 65536)
+    state float toMouth[2048];          // wave travelling from the bell to the reed
+    state int wm;
+    state float toBell[2048];           // wave travelling from the reed to the bell
+    state int wb;
+    state float bendE, bendXp, envE, envXp, bellE, bellXp;   // si.smooth states
+    state float gatePrev;
+    state int phase, phaseFrac;         // os.osc phasor: 30-bit integer part and 24-bit fraction
+    state int seed;                     // no.noise
+    state float s1, s2;                 // breath lowpass (fi.lowpass(2, 2000), TPT SVF)
+    state float boreIn, mouth, bellOut, bellIn;
+    state float g, gk, c1;
+
+    init {
+        for i in 0..65536 { sine[i] = sin (float (i) * (2.0 * pi) / 65536.0); }
+        g = tan (max (0.0, min (pi * 2000.0 / sampleRate, 1.5676547)));
+        gk = g + 1.4142135;
+        c1 = g * min (3.4028235e38, 1.0 / (g * gk + 1.0));
+    }
+
+    process {
+        let pb = pow (bellOpening, 44100.0 / sampleRate);
+        let loopDelay = 340.0 / sampleRate * (0.964 * (pb / max (1.0 - pb, 0.01)) + 5.99);
+        let ratio = pow (2.0, 0.083333336 * bend);
+        let gt = min (1.0, gate + sustain);
+        let vg = 0.01 * vibratoGain;
+        let inc = 1073741824.0 * (1.0 / sampleRate) * vibratoFreq;     // 2^30 * f / SR
+        let incInt = int (floor (inc));
+        let incFrac = int (16777216.0 * (inc - floor (inc)));
+        let target = gain * gt;
+        let tau = 0.001 * envAttack;
+        let envPole = select (abs (tau) >= 0.00000011920929, exp (-((1.0 / sampleRate) / tau)), 0.0);
+        let slope = 0.26 * reedStiffness - 0.44;
+
+        // bell: the wave leaving the bore comes back through the smoother
+        bellE = pb * (bellE + (bellXp - bellOut));
+        bellXp = bellOut;
+        wm = (wm + 1) & 2047;
+        toMouth[wm] = bellOut + bellE;
+        // pitch: bend (si.polySmooth), vibrato (os.osc), envelope
+        let hold = select (gt == gatePrev || gt == 0.0, 0.999, 0.0);
+        gatePrev = gt;
+        bendE = hold * (bendE + (bendXp - ratio));
+        bendXp = ratio;
+        let bendRatio = ratio + bendE;
+        let vib = sine[(phase >> 6) >> 8];
+        phaseFrac += incFrac;
+        phase = (incInt + phase + (phaseFrac >> 24)) & 1073741823;
+        phaseFrac = phaseFrac & 16777215;
+        envE = envPole * (envE + (envXp - target));
+        envXp = target;
+        let env = target + envE;
+        let halfLength = 170.0 / freq / (bendRatio * (1.0 + vg * vib * env));
+        let d = 0.0014705883 * sampleRate * max (1020.0 / sampleRate, halfLength - loopDelay);
+        // de.fdelay4 taps and fractional part
+        let dmo = d - 1.499995;
+        let id = int (min (float (NMAX), max (-4.0, dmo)));
+        let t0 = 1 + min (NMAX, max (0, id));
+        let t1 = 1 + min (NMAX, max (0, id + 1));
+        let t2 = 1 + min (NMAX, max (0, id + 2));
+        let t3 = 1 + min (NMAX, max (0, id + 3));
+        let t4 = 1 + min (NMAX, max (0, id + 4));
+        let fd = d - floor (dmo);
+        let fromBell = lagrange (toMouth[(wm - t0) & 2047], toMouth[(wm - t1) & 2047], toMouth[(wm - t2) & 2047],
+                                 toMouth[(wm - t3) & 2047], toMouth[(wm - t4) & 2047], fd);
+        // blower: pressure + vibrato + breath noise
+        seed = int32 (int64 (seed) * 1103515245 + 12345);
+        let n = 0.0000000004656613 * float (seed);
+        let t = n - (gk * s1 + s2);
+        let v1 = s1 + c1 * t;
+        let lp = s2 + g * v1;
+        s1 += 2.0 * c1 * t;
+        s2 += 2.0 * g * v1;
+        let blow = env + vg * vib + 0.05 * env * lp;
+        // mouthpiece: reed table on the pressure difference
+        let p = blow + boreIn;
+        wb = (wb + 1) & 2047;
+        toBell[wb] = blow - mouth * clamp (0.7 - slope * mouth, -1.0, 1.0);
+        mouth = p;
+        boreIn = fromBell;
+        // bell side: the toBell output reaches the bell one sample after it is read
+        bellOut = bellIn;
+        bellIn = lagrange (toBell[(wb - t0) & 2047], toBell[(wb - t1) & 2047], toBell[(wb - t2) & 2047],
+                           toBell[(wb - t3) & 2047], toBell[(wb - t4) & 2047], fd);
+        out1 = outGain * bellOut;
+        out2 = outGain * bellOut;
+    }
+}
+
+graph Main {
+    output stream out1;
+    output stream out2;
+    node p = Clarinet;
+    connection { p.out1 -> out1; p.out2 -> out2; }
+}

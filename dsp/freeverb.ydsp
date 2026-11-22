@@ -1,0 +1,96 @@
+// Freeverb (Faust's freeverb.dsp structure): 8 damped combs in parallel, 4 allpasses in series.
+// One processor: each line has its own array and a counter wrapped at a constant, which the
+// optimiser proves in range, and the comb states are scalars kept in registers.
+processor Freeverb {
+    input stream in1;
+    output stream out1;
+    input parameter float room = 0.84 [[ min: 0.0, max: 0.99 ]];
+    input parameter float damp = 0.2 [[ min: 0.0, max: 1.0 ]];
+
+    state float cb0[1116];
+    state int ci0;
+    state float cb1[1188];
+    state int ci1;
+    state float cb2[1277];
+    state int ci2;
+    state float cb3[1356];
+    state int ci3;
+    state float cb4[1422];
+    state int ci4;
+    state float cb5[1491];
+    state int ci5;
+    state float cb6[1557];
+    state int ci6;
+    state float cb7[1617];
+    state int ci7;
+    state float ab0[556];
+    state int ai0;
+    state float ab1[441];
+    state int ai1;
+    state float ab2[341];
+    state int ai2;
+    state float ab3[225];
+    state int ai3;
+    state float s0, s1, s2, s3, s4, s5, s6, s7;
+
+    process {
+        let x = in1 * 0.1;
+        let y0 = cb0[ci0];
+        cb0[ci0] = x + room * s0;
+        s0 = (1.0 - damp) * y0 + damp * s0;
+        ci0 += 1; if (ci0 >= 1116) { ci0 = 0; }
+        let y1 = cb1[ci1];
+        cb1[ci1] = x + room * s1;
+        s1 = (1.0 - damp) * y1 + damp * s1;
+        ci1 += 1; if (ci1 >= 1188) { ci1 = 0; }
+        let y2 = cb2[ci2];
+        cb2[ci2] = x + room * s2;
+        s2 = (1.0 - damp) * y2 + damp * s2;
+        ci2 += 1; if (ci2 >= 1277) { ci2 = 0; }
+        let y3 = cb3[ci3];
+        cb3[ci3] = x + room * s3;
+        s3 = (1.0 - damp) * y3 + damp * s3;
+        ci3 += 1; if (ci3 >= 1356) { ci3 = 0; }
+        let y4 = cb4[ci4];
+        cb4[ci4] = x + room * s4;
+        s4 = (1.0 - damp) * y4 + damp * s4;
+        ci4 += 1; if (ci4 >= 1422) { ci4 = 0; }
+        let y5 = cb5[ci5];
+        cb5[ci5] = x + room * s5;
+        s5 = (1.0 - damp) * y5 + damp * s5;
+        ci5 += 1; if (ci5 >= 1491) { ci5 = 0; }
+        let y6 = cb6[ci6];
+        cb6[ci6] = x + room * s6;
+        s6 = (1.0 - damp) * y6 + damp * s6;
+        ci6 += 1; if (ci6 >= 1557) { ci6 = 0; }
+        let y7 = cb7[ci7];
+        cb7[ci7] = x + room * s7;
+        s7 = (1.0 - damp) * y7 + damp * s7;
+        ci7 += 1; if (ci7 >= 1617) { ci7 = 0; }
+        float z = y0 + y1 + y2 + y3 + y4 + y5 + y6 + y7;
+        let b0 = ab0[ai0];
+        ab0[ai0] = z + 0.5 * b0;
+        ai0 += 1; if (ai0 >= 556) { ai0 = 0; }
+        z = b0 - z;
+        let b1 = ab1[ai1];
+        ab1[ai1] = z + 0.5 * b1;
+        ai1 += 1; if (ai1 >= 441) { ai1 = 0; }
+        z = b1 - z;
+        let b2 = ab2[ai2];
+        ab2[ai2] = z + 0.5 * b2;
+        ai2 += 1; if (ai2 >= 341) { ai2 = 0; }
+        z = b2 - z;
+        let b3 = ab3[ai3];
+        ab3[ai3] = z + 0.5 * b3;
+        ai3 += 1; if (ai3 >= 225) { ai3 = 0; }
+        z = b3 - z;
+        out1 = z;
+    }
+}
+
+graph Main {
+    input stream in1;
+    output stream out1;
+    node p = Freeverb;
+    connection { in1 -> p.in1; p.out1 -> out1; }
+}

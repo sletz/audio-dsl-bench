@@ -1,0 +1,63 @@
+// 32 Schroeder allpass combs in series (as fi.allpass_comb), alternating +-0.6.
+graph Diffuser32 [[ main ]]
+{
+    input stream float in1;
+    output stream float out1;
+
+    node ap0 = Allpass (113, 0.6f);
+    node ap1 = Allpass (127, -0.6f);
+    node ap2 = Allpass (137, 0.6f);
+    node ap3 = Allpass (149, -0.6f);
+    node ap4 = Allpass (157, 0.6f);
+    node ap5 = Allpass (173, -0.6f);
+    node ap6 = Allpass (191, 0.6f);
+    node ap7 = Allpass (211, -0.6f);
+    node ap8 = Allpass (223, 0.6f);
+    node ap9 = Allpass (239, -0.6f);
+    node ap10 = Allpass (263, 0.6f);
+    node ap11 = Allpass (283, -0.6f);
+    node ap12 = Allpass (307, 0.6f);
+    node ap13 = Allpass (337, -0.6f);
+    node ap14 = Allpass (367, 0.6f);
+    node ap15 = Allpass (397, -0.6f);
+    node ap16 = Allpass (431, 0.6f);
+    node ap17 = Allpass (467, -0.6f);
+    node ap18 = Allpass (509, 0.6f);
+    node ap19 = Allpass (557, -0.6f);
+    node ap20 = Allpass (599, 0.6f);
+    node ap21 = Allpass (653, -0.6f);
+    node ap22 = Allpass (709, 0.6f);
+    node ap23 = Allpass (769, -0.6f);
+    node ap24 = Allpass (839, 0.6f);
+    node ap25 = Allpass (911, -0.6f);
+    node ap26 = Allpass (991, 0.6f);
+    node ap27 = Allpass (1087, -0.6f);
+    node ap28 = Allpass (1171, 0.6f);
+    node ap29 = Allpass (1277, -0.6f);
+    node ap30 = Allpass (1381, 0.6f);
+    node ap31 = Allpass (1499, -0.6f);
+
+    connection in1 -> ap0 -> ap1 -> ap2 -> ap3 -> ap4 -> ap5 -> ap6 -> ap7 -> ap8 -> ap9 -> ap10 -> ap11 -> ap12 -> ap13 -> ap14 -> ap15 -> ap16 -> ap17 -> ap18 -> ap19 -> ap20 -> ap21 -> ap22 -> ap23 -> ap24 -> ap25 -> ap26 -> ap27 -> ap28 -> ap29 -> ap30 -> ap31 -> out1;
+}
+
+processor Allpass (int size, float a)
+{
+    input stream float in;
+    output stream float out;
+
+    float[size] buf;
+    wrap<size> idx;
+
+    void main()
+    {
+        loop
+        {
+            let r = buf[idx];
+            let u = in - a * r;
+            buf[idx] = u;
+            idx++;
+            out <- r + a * u;
+            advance();
+        }
+    }
+}

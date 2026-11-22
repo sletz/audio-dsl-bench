@@ -1,0 +1,124 @@
+// Port of re.zita_rev1_stereo(60, f1, f2, t60dc, t60m, fsmax) from faustlibraries, after
+// dsp/zita_rev.onda: delay lengths computed for 48 kHz exactly as reverbs.lib does (floor(0.5 + SR*t)).
+processor ZitaRev
+{
+    input stream float in1, in2;
+    output stream float out1, out2;
+    input event float f1    [[ min: 50.0f,   max: 1000.0f,  init: 200.0f ]];
+    input event float f2    [[ min: 1500.0f, max: 23520.0f, init: 6000.0f ]];
+    input event float t60dc [[ min: 1.0f,    max: 8.0f,     init: 3.0f ]];
+    input event float t60m  [[ min: 1.0f,    max: 8.0f,     init: 2.0f ]];
+
+    let tdel = float[8] (7350.0f, 10099.0f, 6136.0f, 12331.0f, 8386.0f, 9231.0f, 6000.0f, 10560.0f);
+
+    float f1V = 200.0f, f2V = 6000.0f, t60dcV = 3.0f, t60mV = 2.0f;
+    float gk, gk2, t1, inv;
+    float[8] shelf, gm, pole;   // decay filters, from the parameters
+    float[8] hp;                // Hadamard outputs of the previous sample
+    float[8] s1;                // one-pole TPT lowpass states (low shelf)
+    float[8] e, xp;             // si.smooth error states and previous inputs
+    float[1920] dl, dr;         // input delay rdel - 20 = 40 ms
+    wrap<1920> dli, dri;
+    float[977] ap0;  wrap<977> api0;  // allpass
+    float[1172] ap1;  wrap<1172> api1;  // allpass
+    float[1517] ap2;  wrap<1517> api2;  // allpass
+    float[1312] ap3;  wrap<1312> api3;  // allpass
+    float[1099] ap4;  wrap<1099> api4;  // allpass
+    float[1406] ap5;  wrap<1406> api5;  // allpass
+    float[646] ap6;  wrap<646> api6;  // allpass
+    float[918] ap7;  wrap<918> api7;  // allpass
+    float[6372] fb0;  wrap<6372> fbi0;  // feedback delay
+    float[8926] fb1;  wrap<8926> fbi1;  // feedback delay
+    float[4618] fb2;  wrap<4618> fbi2;  // feedback delay
+    float[11018] fb3;  wrap<11018> fbi3;  // feedback delay
+    float[7286] fb4;  wrap<7286> fbi4;  // feedback delay
+    float[7824] fb5;  wrap<7824> fbi5;  // feedback delay
+    float[5353] fb6;  wrap<5353> fbi6;  // feedback delay
+    float[9641] fb7;  wrap<9641> fbi7;  // feedback delay
+
+    event f1 (float v)    { f1V = v; update(); }
+    event f2 (float v)    { f2V = v; update(); }
+    event t60dc (float v) { t60dcV = v; update(); }
+    event t60m (float v)  { t60mV = v; update(); }
+
+    void update()
+    {
+        let sr = float (processor.frequency);
+        let g1 = tan (max (0.0f, min (float (pi) * f1V / sr, 0.499f * float (pi))));
+        gk = g1 * (1.0f / (g1 + 1.0f));
+        gk2 = 2.0f * gk;
+        var c = cos (float (twoPi) * f2V / sr);
+        if (f2V > 0.49f * sr)
+            c = -1.0f;
+        for (wrap<8> i)
+        {
+            let g0 = exp (-6.9077554f * tdel[i] / (t60dcV * sr));
+            let gM = exp (-6.9077554f * tdel[i] / (t60mV * sr));
+            shelf[i] = g0 / gM - 1.0f;
+            gm[i] = gM;
+            let gs = gM * gM;
+            let mbo2 = (1.0f - gs * c) / (1.0f - gs);
+            pole[i] = mbo2 - sqrt (max (0.0f, mbo2 * mbo2 - 1.0f));
+        }
+        t1 = 0.525f / sqrt (t60mV);
+        inv = 1.0f / sqrt (8.0f);
+    }
+
+    void init() { update(); }
+
+    void main()
+    {
+        loop
+        {
+            // damping filters on the delayed Hadamard outputs
+            float[8] z;
+            for (wrap<8> i)
+            {
+                let x = hp[i];
+                let d = x - s1[i];
+                let v = s1[i] + gk * d;
+                s1[i] = s1[i] + gk2 * d;
+                let sh = gm[i] * (x + shelf[i] * v);
+                e[i] = pole[i] * (e[i] + (xp[i] - sh));
+                xp[i] = sh;
+                z[i] = inv * (sh + e[i]) + 1.0e-20f;
+            }
+            let xl = 0.3f * dl[dli];  dl[dli] = in1;  dli++;
+            let xr = 0.3f * dr[dri];  dr[dri] = in2;  dri++;
+            let f0 = fb0[fbi0];  fb0[fbi0] = z[0];  fbi0++;
+            let r0 = ap0[api0];  let u0 = (f0 + xl) - (0.6f) * r0;  ap0[api0] = u0;  api0++;
+            let q0 = r0 + (0.6f) * u0;
+            let f1 = fb1[fbi1];  fb1[fbi1] = z[1];  fbi1++;
+            let r1 = ap1[api1];  let u1 = (f1 + xl) - (-0.6f) * r1;  ap1[api1] = u1;  api1++;
+            let q1 = r1 + (-0.6f) * u1;
+            let f2 = fb2[fbi2];  fb2[fbi2] = z[2];  fbi2++;
+            let r2 = ap2[api2];  let u2 = (f2 - xl) - (0.6f) * r2;  ap2[api2] = u2;  api2++;
+            let q2 = r2 + (0.6f) * u2;
+            let f3 = fb3[fbi3];  fb3[fbi3] = z[3];  fbi3++;
+            let r3 = ap3[api3];  let u3 = (f3 - xl) - (-0.6f) * r3;  ap3[api3] = u3;  api3++;
+            let q3 = r3 + (-0.6f) * u3;
+            let f4 = fb4[fbi4];  fb4[fbi4] = z[4];  fbi4++;
+            let r4 = ap4[api4];  let u4 = (f4 + xr) - (0.6f) * r4;  ap4[api4] = u4;  api4++;
+            let q4 = r4 + (0.6f) * u4;
+            let f5 = fb5[fbi5];  fb5[fbi5] = z[5];  fbi5++;
+            let r5 = ap5[api5];  let u5 = (f5 + xr) - (-0.6f) * r5;  ap5[api5] = u5;  api5++;
+            let q5 = r5 + (-0.6f) * u5;
+            let f6 = fb6[fbi6];  fb6[fbi6] = z[6];  fbi6++;
+            let r6 = ap6[api6];  let u6 = (f6 - xr) - (0.6f) * r6;  ap6[api6] = u6;  api6++;
+            let q6 = r6 + (0.6f) * u6;
+            let f7 = fb7[fbi7];  fb7[fbi7] = z[7];  fbi7++;
+            let r7 = ap7[api7];  let u7 = (f7 - xr) - (-0.6f) * r7;  ap7[api7] = u7;  api7++;
+            let q7 = r7 + (-0.6f) * u7;
+            // ro.hadamard(8): butterfly(8), then hadamard(4) on each half
+            let b0 = q0 + q4;  let b1 = q1 + q5;  let b2 = q2 + q6;  let b3 = q3 + q7;
+            let b4 = q0 - q4;  let b5 = q1 - q5;  let b6 = q2 - q6;  let b7 = q3 - q7;
+            let c0 = b0 + b2;  let c1 = b1 + b3;  let c2 = b0 - b2;  let c3 = b1 - b3;
+            let c4 = b4 + b6;  let c5 = b5 + b7;  let c6 = b4 - b6;  let c7 = b5 - b7;
+            hp[0] = c0 + c1;  hp[1] = c0 - c1;  hp[2] = c2 + c3;  hp[3] = c2 - c3;
+            hp[4] = c4 + c5;  hp[5] = c4 - c5;  hp[6] = c6 + c7;  hp[7] = c6 - c7;
+            out1 <- (hp[1] + hp[2]) * t1;
+            out2 <- (hp[1] - hp[2]) * t1;
+            advance();
+        }
+    }
+}

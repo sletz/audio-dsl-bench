@@ -1,0 +1,27 @@
+// Two detuned 2-operator FM voices through a tanh shaper: cheap phase recursions,
+// heavy recursion-free math (4 sin + 2 tanh per sample).
+processor FmPad {
+    output stream out1;
+    input parameter float freq   = 220.0 [[ min: 20.0, max: 2000.0 ]];
+    input parameter float ratio  = 1.5   [[ min: 0.25, max: 8.0 ]];
+    input parameter float index  = 3.0   [[ min: 0.0,  max: 10.0 ]];
+    input parameter float drive  = 2.0   [[ min: 1.0,  max: 10.0 ]];
+    input parameter float detune = 1.003 [[ min: 1.0,  max: 1.02 ]];
+    state float pc1, pm1, pc2, pm2;
+
+    process {
+        pc1 += freq / sampleRate;                   pc1 -= floor (pc1);
+        pm1 += freq * ratio / sampleRate;           pm1 -= floor (pm1);
+        pc2 += freq * detune / sampleRate;          pc2 -= floor (pc2);
+        pm2 += freq * detune * ratio / sampleRate;  pm2 -= floor (pm2);
+        let v1 = tanh (drive * sin (2.0 * pi * pc1 + index * sin (2.0 * pi * pm1)));
+        let v2 = tanh (drive * sin (2.0 * pi * pc2 + index * sin (2.0 * pi * pm2)));
+        out1 = (v1 + v2) * 0.25;
+    }
+}
+
+graph Main {
+    output stream out1;
+    node p = FmPad;
+    connection { p.out1 -> out1; }
+}

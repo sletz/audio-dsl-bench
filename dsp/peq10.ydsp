@@ -1,0 +1,54 @@
+// 10-band parametric EQ (RBJ peaking, octave bands from 31.25 Hz, Q = 1.41), direct form I.
+// Block mode: the coefficients are computed once per block, then the sample loop runs.
+processor Peq10 {
+    input stream in1;
+    output stream out1;
+    input parameter float g0 = 3.0 [[ min: -12.0, max: 12.0 ]];
+    input parameter float g1 = -2.0 [[ min: -12.0, max: 12.0 ]];
+    input parameter float g2 = 4.0 [[ min: -12.0, max: 12.0 ]];
+    input parameter float g3 = -3.0 [[ min: -12.0, max: 12.0 ]];
+    input parameter float g4 = 2.0 [[ min: -12.0, max: 12.0 ]];
+    input parameter float g5 = -4.0 [[ min: -12.0, max: 12.0 ]];
+    input parameter float g6 = 3.0 [[ min: -12.0, max: 12.0 ]];
+    input parameter float g7 = -2.0 [[ min: -12.0, max: 12.0 ]];
+    input parameter float g8 = 1.0 [[ min: -12.0, max: 12.0 ]];
+    input parameter float g9 = -1.0 [[ min: -12.0, max: 12.0 ]];
+    state float gains[10];
+    state float b0[10], b1[10], b2[10], a1[10], a2[10];
+    state float x1[10], x2[10], y1[10], y2[10];
+
+    process block {
+        gains[0] = g0; gains[1] = g1; gains[2] = g2; gains[3] = g3; gains[4] = g4; gains[5] = g5; gains[6] = g6; gains[7] = g7; gains[8] = g8; gains[9] = g9;
+        for k in 0..10 {
+            let A = pow (10.0, gains[k] / 40.0);
+            let w0 = 2.0 * pi * (31.25 * pow (2.0, float (k))) / sampleRate;
+            let al = sin (w0) / (2.0 * 1.41);
+            let cw = cos (w0);
+            let a0 = 1.0 + al / A;
+            b0[k] = (1.0 + al * A) / a0;
+            b1[k] = -2.0 * cw / a0;
+            b2[k] = (1.0 - al * A) / a0;
+            a1[k] = -2.0 * cw / a0;
+            a2[k] = (1.0 - al / A) / a0;
+        }
+        for i in 0..blockSize {
+            float x = in1[i];
+            for k in 0..10 {
+                let y = b0[k] * x + b1[k] * x1[k] + b2[k] * x2[k] + (-a1[k] * y1[k] - a2[k] * y2[k]);
+                x2[k] = x1[k];
+                x1[k] = x;
+                y2[k] = y1[k];
+                y1[k] = y;
+                x = y;
+            }
+            out1[i] = x;
+        }
+    }
+}
+
+graph Main {
+    input stream in1;
+    output stream out1;
+    node p = Peq10;
+    connection { in1 -> p.in1; p.out1 -> out1; }
+}
