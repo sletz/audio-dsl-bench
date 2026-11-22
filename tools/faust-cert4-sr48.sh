@@ -3,4 +3,4 @@
 # sr48/ is a copy of the faustlibraries .lib files where platform.lib says SR = 48000.0
 # (faust resolves platform.lib next to maths.lib first, so the whole set is copied).
 H="$(cd "$(dirname "$0")/.." && pwd)"
-exec "$H/tools/faust-cert4" "$@" -I "$H/sr48"
+exec "$H/tools/${CERT_BIN:-faust-cert4}" "$@" -I "$H/sr48"

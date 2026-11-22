@@ -10,7 +10,7 @@ CMAJ="${CMAJ:-cmaj}"
 YUP_ROOT="${YUP_ROOT:-/Users/letz/Developpements/yup}"
 N=$1
 # generated prerequisites (not versioned)
-[ -x "$HERE/tools/faust-cert4" ] || { echo "build.sh: tools/faust-cert4 missing, run tools/build-faust-cert4.sh" >&2; exit 1; }
+[ -x "$HERE/tools/${CERT_BIN:-faust-cert4}" ] || { echo "build.sh: tools/${CERT_BIN:-faust-cert4} missing, run tools/build-faust-cert4.sh" >&2; exit 1; }
 [ -f "$HERE/sr48/platform.lib" ] || "$HERE/tools/make-sr48.sh"
 # program-independent engines, built once: the YDSP JIT library (YUP, CMake) and the Cmajor JIT wrapper
 # (SKIP_COMMON=1 when several builds run at once and these are already built)
@@ -83,7 +83,8 @@ $CXX -O3 -ffast-math -fveclib=Accelerate -c $cls.cpp -o $cls.o
 # faust of the master-dev-certification-4 branch: -lang ocpp, and the options elected by fcautotool
 FAUST_CERT4="$HERE/tools/faust-cert4.sh"
 BEST=""
-[ -f "$HERE/results/autotool/$N.txt" ] && BEST=$(sed -n 's/^fcautotool: winner .* -- \(.*\)  \[.*$/\1/p' "$HERE/results/autotool/$N.txt" | head -1)
+AUTOTOOL_DIR="${AUTOTOOL_DIR:-$HERE/results/autotool}"
+[ -f "$AUTOTOOL_DIR/$N.txt" ] && BEST=$(sed -n 's/^fcautotool: winner .* -- \(.*\)  \[.*$/\1/p' "$AUTOTOOL_DIR/$N.txt" | head -1)
 [ -n "$BEST" ] || BEST="-lang ocpp"
 echo "$BEST" > best_options.txt
 gen_cert4() {  # $1 = class, $2 = make function, $3 = c++ flags, rest = faust options ($FC = faust wrapper)

@@ -8,7 +8,8 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"; cd "$HERE"
 KERNELS=${KERNELS:-"sine fm_pad additive64 noise tanh_drive biquad8 peq10 svf_mod fir32c fir32 hoa_decoder_x hoa_decoder mixer16_x mixer16 freeverb fdn8 diffuser32 zita_rev clarinet violin frenchbell frenchbell_x crybaby moog_vcf compressor distortion phaser flanger pitch_shifter dattorro karplus bubble virtual_analog diode_ladder filter_bank noise_gate exciter autopan greyhole tapiir hoa_octo flute"}
 ROUNDS=${ROUNDS:-21}
-mkdir -p results
+RD=${RESULTS_DIR:-results}   # another directory (e.g. a cert-7 comparison run) skips the report
+mkdir -p "$RD"
 run_pass() {  # $1 = output file, $2 = extra flags for the strict C++ variants
   : > "$1"
   for n in $KERNELS; do
@@ -16,8 +17,9 @@ run_pass() {  # $1 = output file, $2 = extra flags for the strict C++ variants
     (cd "build/$n" && ./bench "$HERE/dsp/$n.dsp" "$n" "$ROUNDS" 2>/dev/null) | tee -a "$1"
   done
 }
-run_pass results/results.tsv ""
-run_pass results/results_nocontract.tsv "-ffp-contract=off"
+run_pass "$RD/results.tsv" ""
+run_pass "$RD/results_nocontract.tsv" "-ffp-contract=off"
+[ "$RD" = results ] || { echo "results in $RD"; exit 0; }
 python3 report/gen.py "$HERE"
 python3 report/readme_chart.py "$HERE"
 echo "report: $HERE/report/audio-dsl-bench.html"
