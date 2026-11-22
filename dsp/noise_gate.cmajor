@@ -1,0 +1,63 @@
+// dm.gate_demo (ef.gate_stereo of Faust's misceffects.lib, examples/dynamic/noiseGate.dsp), after
+// dsp/noise_gate.onda, without the bypass and the gate-gain meter like noise_gate.dsp. The level
+// |x| + |y| goes through a fast one-pole follower (pole of min(attack, release)); the raw gate is that
+// level above the threshold; a counter holds the gate open for `hold` after the raw gate falls; the
+// gate signal goes through the attack/release one-pole (an.amp_follower_ar) and multiplies both channels.
+processor NoiseGate
+{
+    input stream float in1, in2;
+    output stream float out1, out2;
+    input event float threshold [[ min: -120.0f, max: 0.0f,     init: -30.0f ]];
+    input event float attack    [[ min: 10.0f,   max: 10000.0f, init: 10.0f ]];
+    input event float hold      [[ min: 1.0f,    max: 1000.0f,  init: 200.0f ]];
+    input event float release   [[ min: 1.0f,    max: 1000.0f,  init: 100.0f ]];
+
+    float thresholdV = -30.0f, attackV = 10.0f, holdV = 200.0f, releaseV = 100.0f;
+    float poleMin, oneMinusPoleMin, thr, poleRel, poleAtt;
+    int holdSamps;
+    float lev;          // inlevel follower state
+    int rawPrev;        // raw gate, previous sample
+    int cnt;            // hold counter
+    float env;          // gate gain follower state
+
+    event threshold (float v) { thresholdV = v; update(); }
+    event attack (float v)    { attackV = v; update(); }
+    event hold (float v)      { holdV = v; update(); }
+    event release (float v)   { releaseV = v; update(); }
+
+    void update()
+    {
+        let sr = float (processor.frequency);
+        let t = 1.0f / sr;
+        let att = max (t, 0.000001f * attackV);           // attack in s, at least one sample
+        let rel = max (t, 0.001f * releaseV);
+        poleMin = exp (-(t / min (att, rel)));            // ba.tau2pole(min(att, rel))
+        oneMinusPoleMin = 1.0f - poleMin;
+        thr = pow (10.0f, 0.05f * thresholdV);            // ba.db2linear
+        holdSamps = int (sr * max (t, 0.001f * holdV));
+        poleRel = exp (-(t / rel));
+        poleAtt = exp (-(t / att));
+    }
+
+    void init() { update(); }
+
+    void main()
+    {
+        loop
+        {
+            let x1 = in1;
+            let x2 = in2;
+            lev = oneMinusPoleMin * abs (abs (x1) + abs (x2)) + poleMin * lev;
+            let raw = lev > thr ? 1 : 0;
+            let reset = raw < rawPrev ? 1 : 0;              // the raw gate falls: restart the hold counter
+            rawPrev = raw;
+            cnt = max (holdSamps * reset, cnt - 1);
+            let gsig = abs (max (float (raw), cnt > 0 ? 1.0f : 0.0f));
+            let c = gsig > env ? poleAtt : poleRel;
+            env = gsig * (1.0f - c) + env * c;
+            out1 <- x1 * env;
+            out2 <- x2 * env;
+            advance();
+        }
+    }
+}

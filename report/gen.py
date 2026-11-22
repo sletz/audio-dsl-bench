@@ -19,25 +19,47 @@ for n, r in load(f"{B}/results/results_nocontract.tsv").items():
     for k in ('cpp-scal', 'cpp-vec', 'ocpp', 'ocpp48', 'cmaj-cpp'):
         if k in r:
             R[n][k + '-ieee'] = r[k]
+# builds whose output is wrong on a program (relative RMS 0.88 against every other engine) are left out
+# of the comparisons: the fast-math builds of the certification-4 faust on virtual_analog
+WRONG = {'virtual_analog': ('ocpp-fm', 'best-fm', 'best48-fm')}
+for _n, _ks in WRONG.items():
+    for _k in _ks:
+        R.get(_n, {}).pop(_k, None)
 json.dump(R, open(f"{B}/results/results.json", 'w'), indent=1)
 
 # programs by DSP category; variants (other ways of writing the same program in onda) stay out of the means
 CATS = [
     ('Oscillators and sources', [('sine', 'phasor + sin'), ('fm_pad', '2 FM voices + tanh'), ('additive64', '64 sine partials'),
-                                 ('noise', 'LCG + one-pole lowpass')]),
-    ('Nonlinearities', [('tanh_drive', 'tanh saturation')]),
+                                 ('noise', 'LCG + one-pole lowpass'), ('bubble', 'gameaudio/bubble: one drop + freeverb'),
+                                 ('virtual_analog', 'generator/virtualAnalog: VA oscillators')]),
+    ('Nonlinearities and dynamics', [('tanh_drive', 'tanh saturation'), ('distortion', 'dynamic/distortion: ef.cubicnl_nodc'),
+                                     ('compressor', 'dynamic/compressor: co.compressor_stereo'),
+                                     ('noise_gate', 'dynamic/noiseGate: stereo gate'),
+                                     ('exciter', 'psychoacoustic/harmonicExciter')]),
     ('Filters', [('biquad8', '8 RBJ biquads in series'), ('peq10', '10-band parametric EQ'),
                  ('svf_mod', 'TPT SVF, cutoff modulated per sample'), ('fir32c', '32-tap FIR (const def)'),
-                 ('fir32', 'variant: taps computed at init')]),
-    ('Matrices and mixing', [('hoa_decoder_x', '2D HOA decoder, order 3, 7→8'),
+                 ('fir32', 'variant: taps computed at init'), ('crybaby', 'filtering/cryBaby: ve.crybaby wah'),
+                 ('moog_vcf', 'filtering/moogVCF: ve.moog_vcf'),
+                 ('diode_ladder', 'filtering/diodeLadder: ve.diodeLadder on a saw'),
+                 ('filter_bank', 'filtering/filterBank: octave filter bank')]),
+    ('Modulation and pitch', [('phaser', 'phasing/phaser: pf.phaser2_stereo'), ('flanger', 'phasing/flanger: pf.flanger_stereo'),
+                              ('pitch_shifter', 'pitchShifting/pitchShifter: ef.transpose'),
+                              ('autopan', 'misc/autopan: LFO stereo panner')]),
+    ('Spatialization and mixing', [('hoa_decoder_x', '2D HOA decoder, order 3, 7→8'),
                             ('hoa_decoder', 'variant: dynamic ins/outs views'),
                             ('mixer16_x', '16-channel mixer, dB gain + pan'),
-                            ('mixer16', 'variant: all in sample, ins view')]),
+                            ('mixer16', 'variant: all in sample, ins view'),
+                            ('hoa_octo', 'ambisonics/fourSourcesToOcto: 4 sources, order 3, 8 speakers')]),
     ('Delays and reverbs', [('freeverb', '8 combs + 4 allpasses'), ('fdn8', '8-line FDN, dense Hadamard'),
-                                  ('diffuser32', '32 allpasses in series'), ('zita_rev', 're.zita_rev1_stereo')]),
+                                  ('diffuser32', '32 allpasses in series'), ('zita_rev', 're.zita_rev1_stereo'),
+                                  ('dattorro', 'reverb/dattorro: re.dattorro_rev'),
+                                  ('greyhole', 'reverb/greyhole: re.greyhole'),
+                                  ('tapiir', 'delayEcho/tapiir: 6-tap feedback delay matrix')]),
     ('Physical models', [('clarinet', 'pm.clarinet_ui_MIDI, gate held'), ('violin', 'pm.violin_ui_MIDI, gate held'),
                          ('frenchbell', 'pm.frenchBell_ui, 50 modes, struck once'),
-                         ('frenchbell_x', 'variant: mode sum in 4 partial sums')]),
+                         ('frenchbell_x', 'variant: mode sum in 4 partial sums'),
+                         ('karplus', 'physicalModeling/karplus: pm.ks_ui_MIDI, plucked once'),
+                         ('flute', 'physicalModeling/flute: pm.flute_ui, gate held')]),
 ]
 VARIANTS = {'fir32', 'hoa_decoder', 'mixer16', 'frenchbell_x'}
 cols = [('onda', 'onda'), ('onda-fm', 'onda --fast-math'),
@@ -154,7 +176,7 @@ sub = {'ROWS': '\n'.join(rows), 'HEAD': ''.join(f'<th scope="col">{html.escape(t
 out = open(f"{B}/report/template.html").read()
 for k, v in sub.items():
     out = out.replace(f'%%{k}%%', v)
-assert '%%' not in out, re.findall(r'%%\w+%%', out)
+assert not re.findall(r'%%[A-Z]+%%', out), re.findall(r'%%[A-Z]+%%', out)
 open(f"{B}/report/audio-dsl-bench.html", 'w').write(out)
 print(f'{len(stats)} programs: strict {gs:.3f} fast {gf:.3f} | vs 2.95.1 strict {gso:.3f} fast {gfo:.3f} | '
       f'strict W/T/L {wins}/{ties}/{losses} fast {fwins}/{fties}/{flosses} | ocpp/cpp {ocpp_gain:.2f} best/cppfm {best_gain:.2f}')

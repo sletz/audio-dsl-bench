@@ -1,0 +1,67 @@
+// ve.crybaby of Faust's vaeffects.lib (dm.crybaby_demo, examples/filtering/cryBaby.dsp), after
+// dsp/crybaby.onda, without the bypass checkbox like crybaby.dsp. A biquad bandpass whose pole radius
+// and angle follow the wah pedal, written on its state w and its output v = w - w'. The coefficients
+// f2 = 1 + a1 + a2, fq = 1 - a2 and the gain go through si.smooth (error form), and f2 and fq get the
+// correction e = s^(n+1) (ma.FTZ applied) that makes smooth(1) start from 1.
+processor CryBaby
+{
+    input stream float in1;
+    output stream float out1;
+    input event float wah [[ min: 0.0f, max: 1.0f, init: 0.8f ]];
+
+    float wahV = 0.8f;
+    // control-rate values, recomputed by update()
+    float g, f2, fq;
+    float s;                        // smoothing pole
+    float imp = 1.0f;               // 1 - 1': 1 on the first sample, then 0
+    float ei;                       // (+ : *(s)) ~ _ of the impulse: s^(n+1)
+    float gE, gXp, f2E, f2Xp, fqE, fqXp;   // si.smooth states (error and previous input)
+    float w;                        // direct form II state
+    float v;                        // output, v = w - w'
+
+    event wah (float x) { wahV = x; update(); }
+
+    void update()
+    {
+        let sr = float (processor.frequency);
+        let wc = max (0.0f, min (1.0f, wahV));
+        let Q = pow (2.0f, 2.0f * (1.0f - wc) + 1.0f);     // resonance quality factor
+        let fr = 450.0f * pow (2.0f, 2.3f * wc);           // resonance tuning
+        g = 0.1f * pow (4.0f, wc) * 44100.0f / sr;         // gain, peak referred to 44.1 kHz
+        let frn = fr / sr;
+        let d = float (pi) * frn / Q;
+        let sn = sin (float (pi) * frn);
+        f2 = d * d + 4.0f * (1.0f - d) * (sn * sn);        // 1 + a1 + a2 = |1 - pole|^2
+        fq = d * (2.0f - d);                               // 1 - a2 = 1 - R^2
+    }
+
+    void init()
+    {
+        s = pow (0.999f, 44100.0f / float (processor.frequency));
+        update();
+    }
+
+    void main()
+    {
+        loop
+        {
+            ei = (imp + ei) * s;
+            imp = 0.0f;
+            let e = abs (ei) > 1.1754944e-38f ? ei : 0.0f;     // ma.FTZ
+            gE = s * (gE + (gXp - g));
+            gXp = g;
+            let gs = g + gE;
+            f2E = s * (f2E + (f2Xp - f2));
+            f2Xp = f2;
+            let f2s = f2 + f2E + e;
+            fqE = s * (fqE + (fqXp - fq));
+            fqXp = fq;
+            let fqs = fq + fqE + e;
+            let vn = v + (gs * in1 - f2s * w - fqs * v);
+            w = w + vn;
+            v = vn;
+            out1 <- vn;
+            advance();
+        }
+    }
+}

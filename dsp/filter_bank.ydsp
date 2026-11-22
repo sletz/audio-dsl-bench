@@ -1,0 +1,674 @@
+// dm.filterbank_demo = dm.mth_octave_filterbank_demo(1) (examples/filtering/filterBank.dsp), after
+// filter_bank.dsp: fi.mth_octave_filterbank_default(1, 10000, 10), each band through its fader
+// (dB, si.smoo), summed; no bypass. Analyzer (an.mth_octave_analyzer_tpt_df): a dyadic tree of
+// 5th-order Butterworth highpass/lowpass splits at 10000 * 2^(n-9) Hz, n = 9 ... 1, each a
+// first-order section and two second-order ones (a1 = 1.618034, 0.618034); as in single-precision
+// Faust (fi.tpt_df_fmin = 2304 Hz) the splits below 2304 Hz are trapezoidal (tf1s, svf.lp/hp) and
+// the others direct form (tf1s_df, tf2s_df). Delay equalizer: band i goes through the allpasses
+// fi.highpass_plus_lowpass(5, fc(j)) (tf2s(1,-1.618,1,1.618,1) or its direct form), j = 1 ... 8-i.
+// The filter state is scalar and the network is written out in full; the faders are a loop.
+// The coefficients depend on the sample rate only and are hoisted out of the sample loop.
+processor FilterBank {
+    input stream in1;
+    output stream out1;
+    input parameter float band1 = -10.0 [[ min: -70.0, max: 10.0 ]];
+    input parameter float band2 = -10.0 [[ min: -70.0, max: 10.0 ]];
+    input parameter float band3 = -10.0 [[ min: -70.0, max: 10.0 ]];
+    input parameter float band4 = -10.0 [[ min: -70.0, max: 10.0 ]];
+    input parameter float band5 = -10.0 [[ min: -70.0, max: 10.0 ]];
+    input parameter float band6 = -10.0 [[ min: -70.0, max: 10.0 ]];
+    input parameter float band7 = -10.0 [[ min: -70.0, max: 10.0 ]];
+    input parameter float band8 = -10.0 [[ min: -70.0, max: 10.0 ]];
+    input parameter float band9 = -10.0 [[ min: -70.0, max: 10.0 ]];
+    input parameter float band10 = -10.0 [[ min: -70.0, max: 10.0 ]];
+    state float xp9;  // previous input of hp9 and lp9 (tf1s_df)
+    state float hp9y1, hp9a1, hp9a2, hp9b1, hp9b2;  // hp(10000 Hz), direct form: tf1 output, two biquad states
+    state float lp9y1, lp9a1, lp9a2, lp9b1, lp9b2;  // lp(10000 Hz), direct form: tf1 output, two biquad states
+    state float xp8;  // previous input of hp8 and lp8 (tf1s_df)
+    state float hp8y1, hp8a1, hp8a2, hp8b1, hp8b2;  // hp(5000 Hz), direct form: tf1 output, two biquad states
+    state float lp8y1, lp8a1, lp8a2, lp8b1, lp8b2;  // lp(5000 Hz), direct form: tf1 output, two biquad states
+    state float xp7;  // previous input of hp7 and lp7 (tf1s_df)
+    state float hp7y1, hp7a1, hp7a2, hp7b1, hp7b2;  // hp(2500 Hz), direct form: tf1 output, two biquad states
+    state float lp7y1, lp7a1, lp7a2, lp7b1, lp7b2;  // lp(2500 Hz), direct form: tf1 output, two biquad states
+    state float hp6s, hp6a1, hp6a2, hp6b1, hp6b2;  // hp(1250 Hz), TPT: tf1s state, two svf states
+    state float lp6s, lp6a1, lp6a2, lp6b1, lp6b2;  // lp(1250 Hz), TPT: tf1s state, two svf states
+    state float hp5s, hp5a1, hp5a2, hp5b1, hp5b2;  // hp(625 Hz), TPT: tf1s state, two svf states
+    state float lp5s, lp5a1, lp5a2, lp5b1, lp5b2;  // lp(625 Hz), TPT: tf1s state, two svf states
+    state float hp4s, hp4a1, hp4a2, hp4b1, hp4b2;  // hp(312.5 Hz), TPT: tf1s state, two svf states
+    state float lp4s, lp4a1, lp4a2, lp4b1, lp4b2;  // lp(312.5 Hz), TPT: tf1s state, two svf states
+    state float hp3s, hp3a1, hp3a2, hp3b1, hp3b2;  // hp(156.25 Hz), TPT: tf1s state, two svf states
+    state float lp3s, lp3a1, lp3a2, lp3b1, lp3b2;  // lp(156.25 Hz), TPT: tf1s state, two svf states
+    state float hp2s, hp2a1, hp2a2, hp2b1, hp2b2;  // hp(78.125 Hz), TPT: tf1s state, two svf states
+    state float lp2s, lp2a1, lp2a2, lp2b1, lp2b2;  // lp(78.125 Hz), TPT: tf1s state, two svf states
+    state float hp1s, hp1a1, hp1a2, hp1b1, hp1b2;  // hp(39.0625 Hz), TPT: tf1s state, two svf states
+    state float lp1s, lp1a1, lp1a2, lp1b1, lp1b2;  // lp(39.0625 Hz), TPT: tf1s state, two svf states
+    state float p0_1s1, p0_1s0;  // band 0 allpass at 39.0625 Hz, TPT (tf2s states)
+    state float p0_2s1, p0_2s0;  // band 0 allpass at 78.125 Hz, TPT (tf2s states)
+    state float p0_3s1, p0_3s0;  // band 0 allpass at 156.25 Hz, TPT (tf2s states)
+    state float p0_4s1, p0_4s0;  // band 0 allpass at 312.5 Hz, TPT (tf2s states)
+    state float p0_5s1, p0_5s0;  // band 0 allpass at 625 Hz, TPT (tf2s states)
+    state float p0_6s1, p0_6s0;  // band 0 allpass at 1250 Hz, TPT (tf2s states)
+    state float p0_7w1, p0_7w2;  // band 0 allpass at 2500 Hz, direct form
+    state float p0_8w1, p0_8w2;  // band 0 allpass at 5000 Hz, direct form
+    state float p1_1s1, p1_1s0;  // band 1 allpass at 39.0625 Hz, TPT (tf2s states)
+    state float p1_2s1, p1_2s0;  // band 1 allpass at 78.125 Hz, TPT (tf2s states)
+    state float p1_3s1, p1_3s0;  // band 1 allpass at 156.25 Hz, TPT (tf2s states)
+    state float p1_4s1, p1_4s0;  // band 1 allpass at 312.5 Hz, TPT (tf2s states)
+    state float p1_5s1, p1_5s0;  // band 1 allpass at 625 Hz, TPT (tf2s states)
+    state float p1_6s1, p1_6s0;  // band 1 allpass at 1250 Hz, TPT (tf2s states)
+    state float p1_7w1, p1_7w2;  // band 1 allpass at 2500 Hz, direct form
+    state float p2_1s1, p2_1s0;  // band 2 allpass at 39.0625 Hz, TPT (tf2s states)
+    state float p2_2s1, p2_2s0;  // band 2 allpass at 78.125 Hz, TPT (tf2s states)
+    state float p2_3s1, p2_3s0;  // band 2 allpass at 156.25 Hz, TPT (tf2s states)
+    state float p2_4s1, p2_4s0;  // band 2 allpass at 312.5 Hz, TPT (tf2s states)
+    state float p2_5s1, p2_5s0;  // band 2 allpass at 625 Hz, TPT (tf2s states)
+    state float p2_6s1, p2_6s0;  // band 2 allpass at 1250 Hz, TPT (tf2s states)
+    state float p3_1s1, p3_1s0;  // band 3 allpass at 39.0625 Hz, TPT (tf2s states)
+    state float p3_2s1, p3_2s0;  // band 3 allpass at 78.125 Hz, TPT (tf2s states)
+    state float p3_3s1, p3_3s0;  // band 3 allpass at 156.25 Hz, TPT (tf2s states)
+    state float p3_4s1, p3_4s0;  // band 3 allpass at 312.5 Hz, TPT (tf2s states)
+    state float p3_5s1, p3_5s0;  // band 3 allpass at 625 Hz, TPT (tf2s states)
+    state float p4_1s1, p4_1s0;  // band 4 allpass at 39.0625 Hz, TPT (tf2s states)
+    state float p4_2s1, p4_2s0;  // band 4 allpass at 78.125 Hz, TPT (tf2s states)
+    state float p4_3s1, p4_3s0;  // band 4 allpass at 156.25 Hz, TPT (tf2s states)
+    state float p4_4s1, p4_4s0;  // band 4 allpass at 312.5 Hz, TPT (tf2s states)
+    state float p5_1s1, p5_1s0;  // band 5 allpass at 39.0625 Hz, TPT (tf2s states)
+    state float p5_2s1, p5_2s0;  // band 5 allpass at 78.125 Hz, TPT (tf2s states)
+    state float p5_3s1, p5_3s0;  // band 5 allpass at 156.25 Hz, TPT (tf2s states)
+    state float p6_1s1, p6_1s0;  // band 6 allpass at 39.0625 Hz, TPT (tf2s states)
+    state float p6_2s1, p6_2s0;  // band 6 allpass at 78.125 Hz, TPT (tf2s states)
+    state float p7_1s1, p7_1s0;  // band 7 allpass at 39.0625 Hz, TPT (tf2s states)
+
+    state float pv[10], fe[10], fxq[10], fg[10];  // faders: slider, si.smoo error and previous input, gain
+
+    process {
+        let t1 = tan (max (0.0, min (122.71846 / sampleRate, 1.5676547)));  // tan(PI*fc/SR), fc = 39.0625 Hz
+        let r1 = min (3.4028235e38, 1.0 / (1.0 + t1));
+        let gkA1 = t1 + 1.618034;
+        let rA1 = min (3.4028235e38, 1.0 / (1.0 + t1 * gkA1));
+        let gkB1 = t1 + 0.618034;
+        let rB1 = min (3.4028235e38, 1.0 / (1.0 + t1 * gkB1));
+        let ga1 = 1.618034 * t1;
+        let ra1 = min (3.4028235e38, 1.0 / (1.0 + ga1 * (1.0 + ga1 * 0.38196602)));
+        let t2 = tan (max (0.0, min (245.43693 / sampleRate, 1.5676547)));  // tan(PI*fc/SR), fc = 78.125 Hz
+        let r2 = min (3.4028235e38, 1.0 / (1.0 + t2));
+        let gkA2 = t2 + 1.618034;
+        let rA2 = min (3.4028235e38, 1.0 / (1.0 + t2 * gkA2));
+        let gkB2 = t2 + 0.618034;
+        let rB2 = min (3.4028235e38, 1.0 / (1.0 + t2 * gkB2));
+        let ga2 = 1.618034 * t2;
+        let ra2 = min (3.4028235e38, 1.0 / (1.0 + ga2 * (1.0 + ga2 * 0.38196602)));
+        let t3 = tan (max (0.0, min (490.87385 / sampleRate, 1.5676547)));  // tan(PI*fc/SR), fc = 156.25 Hz
+        let r3 = min (3.4028235e38, 1.0 / (1.0 + t3));
+        let gkA3 = t3 + 1.618034;
+        let rA3 = min (3.4028235e38, 1.0 / (1.0 + t3 * gkA3));
+        let gkB3 = t3 + 0.618034;
+        let rB3 = min (3.4028235e38, 1.0 / (1.0 + t3 * gkB3));
+        let ga3 = 1.618034 * t3;
+        let ra3 = min (3.4028235e38, 1.0 / (1.0 + ga3 * (1.0 + ga3 * 0.38196602)));
+        let t4 = tan (max (0.0, min (981.7477 / sampleRate, 1.5676547)));  // tan(PI*fc/SR), fc = 312.5 Hz
+        let r4 = min (3.4028235e38, 1.0 / (1.0 + t4));
+        let gkA4 = t4 + 1.618034;
+        let rA4 = min (3.4028235e38, 1.0 / (1.0 + t4 * gkA4));
+        let gkB4 = t4 + 0.618034;
+        let rB4 = min (3.4028235e38, 1.0 / (1.0 + t4 * gkB4));
+        let ga4 = 1.618034 * t4;
+        let ra4 = min (3.4028235e38, 1.0 / (1.0 + ga4 * (1.0 + ga4 * 0.38196602)));
+        let t5 = tan (max (0.0, min (1963.4954 / sampleRate, 1.5676547)));  // tan(PI*fc/SR), fc = 625 Hz
+        let r5 = min (3.4028235e38, 1.0 / (1.0 + t5));
+        let gkA5 = t5 + 1.618034;
+        let rA5 = min (3.4028235e38, 1.0 / (1.0 + t5 * gkA5));
+        let gkB5 = t5 + 0.618034;
+        let rB5 = min (3.4028235e38, 1.0 / (1.0 + t5 * gkB5));
+        let ga5 = 1.618034 * t5;
+        let ra5 = min (3.4028235e38, 1.0 / (1.0 + ga5 * (1.0 + ga5 * 0.38196602)));
+        let t6 = tan (max (0.0, min (3926.9908 / sampleRate, 1.5676547)));  // tan(PI*fc/SR), fc = 1250 Hz
+        let r6 = min (3.4028235e38, 1.0 / (1.0 + t6));
+        let gkA6 = t6 + 1.618034;
+        let rA6 = min (3.4028235e38, 1.0 / (1.0 + t6 * gkA6));
+        let gkB6 = t6 + 0.618034;
+        let rB6 = min (3.4028235e38, 1.0 / (1.0 + t6 * gkB6));
+        let ga6 = 1.618034 * t6;
+        let ra6 = min (3.4028235e38, 1.0 / (1.0 + ga6 * (1.0 + ga6 * 0.38196602)));
+        let t7 = tan (max (0.0, min (7853.9816 / sampleRate, 1.5676547)));  // tan(PI*fc/SR), fc = 2500 Hz
+        let c7 = 1.0 / t7;
+        let csq7 = c7 * c7;
+        let d7 = 1.0 + c7;
+        let lp7b = 1.0 / d7;
+        let hp7b = c7 / d7;
+        let a7f = (1.0 - c7) / d7;
+        let dA7 = 1.0 + 1.618034 * c7 + csq7;
+        let a1A7 = 2.0 * (1.0 - csq7) / dA7;
+        let a2A7 = (1.0 - 1.618034 * c7 + csq7) / dA7;
+        let lpA7 = 1.0 / dA7;
+        let hpA7 = csq7 / dA7;
+        let dB7 = 1.0 + 0.618034 * c7 + csq7;
+        let a1B7 = 2.0 * (1.0 - csq7) / dB7;
+        let a2B7 = (1.0 - 0.618034 * c7 + csq7) / dB7;
+        let lpB7 = 1.0 / dB7;
+        let hpB7 = csq7 / dB7;
+        let t8 = tan (max (0.0, min (15707.963 / sampleRate, 1.5676547)));  // tan(PI*fc/SR), fc = 5000 Hz
+        let c8 = 1.0 / t8;
+        let csq8 = c8 * c8;
+        let d8 = 1.0 + c8;
+        let lp8b = 1.0 / d8;
+        let hp8b = c8 / d8;
+        let a8f = (1.0 - c8) / d8;
+        let dA8 = 1.0 + 1.618034 * c8 + csq8;
+        let a1A8 = 2.0 * (1.0 - csq8) / dA8;
+        let a2A8 = (1.0 - 1.618034 * c8 + csq8) / dA8;
+        let lpA8 = 1.0 / dA8;
+        let hpA8 = csq8 / dA8;
+        let dB8 = 1.0 + 0.618034 * c8 + csq8;
+        let a1B8 = 2.0 * (1.0 - csq8) / dB8;
+        let a2B8 = (1.0 - 0.618034 * c8 + csq8) / dB8;
+        let lpB8 = 1.0 / dB8;
+        let hpB8 = csq8 / dB8;
+        let t9 = tan (max (0.0, min (31415.927 / sampleRate, 1.5676547)));  // tan(PI*fc/SR), fc = 10000 Hz
+        let c9 = 1.0 / t9;
+        let csq9 = c9 * c9;
+        let d9 = 1.0 + c9;
+        let lp9b = 1.0 / d9;
+        let hp9b = c9 / d9;
+        let a9f = (1.0 - c9) / d9;
+        let dA9 = 1.0 + 1.618034 * c9 + csq9;
+        let a1A9 = 2.0 * (1.0 - csq9) / dA9;
+        let a2A9 = (1.0 - 1.618034 * c9 + csq9) / dA9;
+        let lpA9 = 1.0 / dA9;
+        let hpA9 = csq9 / dA9;
+        let dB9 = 1.0 + 0.618034 * c9 + csq9;
+        let a1B9 = 2.0 * (1.0 - csq9) / dB9;
+        let a2B9 = (1.0 - 0.618034 * c9 + csq9) / dB9;
+        let lpB9 = 1.0 / dB9;
+        let hpB9 = csq9 / dB9;
+        let smoo = 1.0 - 44.1 / sampleRate;  // si.smoo pole
+        // analyzer: band i is hp(9-i) of the lowpassed signal, the dc band is lp(1)
+        let x = in1;
+        // hp(10000 Hz): tf1s_df, then tf2s_df with a1 = 1.618034 and a1 = 0.618034
+        hp9y1 = hp9b * (x - xp9) - a9f * hp9y1;
+        let hp9aw = hp9y1 - (a1A9 * hp9a1 + a2A9 * hp9a2);
+        let hp9ay = hpA9 * (hp9a2 + (hp9aw - 2.0 * hp9a1));
+        hp9a2 = hp9a1;
+        hp9a1 = hp9aw;
+        let hp9bw = hp9ay - (a1B9 * hp9b1 + a2B9 * hp9b2);
+        let hp9by = hpB9 * (hp9b2 + (hp9bw - 2.0 * hp9b1));
+        hp9b2 = hp9b1;
+        hp9b1 = hp9bw;
+        // lp(10000 Hz): tf1s_df, then tf2s_df with a1 = 1.618034 and a1 = 0.618034
+        lp9y1 = lp9b * (x + xp9) - a9f * lp9y1;
+        let lp9aw = lp9y1 - (a1A9 * lp9a1 + a2A9 * lp9a2);
+        let lp9ay = lpA9 * (lp9a2 + lp9aw + 2.0 * lp9a1);
+        lp9a2 = lp9a1;
+        lp9a1 = lp9aw;
+        let lp9bw = lp9ay - (a1B9 * lp9b1 + a2B9 * lp9b2);
+        let lp9by = lpB9 * (lp9b2 + lp9bw + 2.0 * lp9b1);
+        lp9b2 = lp9b1;
+        lp9b1 = lp9bw;
+        xp9 = x;
+        // hp(5000 Hz): tf1s_df, then tf2s_df with a1 = 1.618034 and a1 = 0.618034
+        hp8y1 = hp8b * (lp9by - xp8) - a8f * hp8y1;
+        let hp8aw = hp8y1 - (a1A8 * hp8a1 + a2A8 * hp8a2);
+        let hp8ay = hpA8 * (hp8a2 + (hp8aw - 2.0 * hp8a1));
+        hp8a2 = hp8a1;
+        hp8a1 = hp8aw;
+        let hp8bw = hp8ay - (a1B8 * hp8b1 + a2B8 * hp8b2);
+        let hp8by = hpB8 * (hp8b2 + (hp8bw - 2.0 * hp8b1));
+        hp8b2 = hp8b1;
+        hp8b1 = hp8bw;
+        // lp(5000 Hz): tf1s_df, then tf2s_df with a1 = 1.618034 and a1 = 0.618034
+        lp8y1 = lp8b * (lp9by + xp8) - a8f * lp8y1;
+        let lp8aw = lp8y1 - (a1A8 * lp8a1 + a2A8 * lp8a2);
+        let lp8ay = lpA8 * (lp8a2 + lp8aw + 2.0 * lp8a1);
+        lp8a2 = lp8a1;
+        lp8a1 = lp8aw;
+        let lp8bw = lp8ay - (a1B8 * lp8b1 + a2B8 * lp8b2);
+        let lp8by = lpB8 * (lp8b2 + lp8bw + 2.0 * lp8b1);
+        lp8b2 = lp8b1;
+        lp8b1 = lp8bw;
+        xp8 = lp9by;
+        // hp(2500 Hz): tf1s_df, then tf2s_df with a1 = 1.618034 and a1 = 0.618034
+        hp7y1 = hp7b * (lp8by - xp7) - a7f * hp7y1;
+        let hp7aw = hp7y1 - (a1A7 * hp7a1 + a2A7 * hp7a2);
+        let hp7ay = hpA7 * (hp7a2 + (hp7aw - 2.0 * hp7a1));
+        hp7a2 = hp7a1;
+        hp7a1 = hp7aw;
+        let hp7bw = hp7ay - (a1B7 * hp7b1 + a2B7 * hp7b2);
+        let hp7by = hpB7 * (hp7b2 + (hp7bw - 2.0 * hp7b1));
+        hp7b2 = hp7b1;
+        hp7b1 = hp7bw;
+        // lp(2500 Hz): tf1s_df, then tf2s_df with a1 = 1.618034 and a1 = 0.618034
+        lp7y1 = lp7b * (lp8by + xp7) - a7f * lp7y1;
+        let lp7aw = lp7y1 - (a1A7 * lp7a1 + a2A7 * lp7a2);
+        let lp7ay = lpA7 * (lp7a2 + lp7aw + 2.0 * lp7a1);
+        lp7a2 = lp7a1;
+        lp7a1 = lp7aw;
+        let lp7bw = lp7ay - (a1B7 * lp7b1 + a2B7 * lp7b2);
+        let lp7by = lpB7 * (lp7b2 + lp7bw + 2.0 * lp7b1);
+        lp7b2 = lp7b1;
+        lp7b1 = lp7bw;
+        xp7 = lp8by;
+        // hp(1250 Hz): tf1s, then svf.hp with k = 1.618034 and k = 0.618034
+        let hp6u = (lp7by - hp6s) * r6;
+        let hp6v = t6 * hp6u + hp6s;
+        hp6s = hp6v + t6 * hp6u;
+        let hp6ah = (hp6u - gkA6 * hp6a1 - hp6a2) * rA6;
+        let hp6av1 = t6 * hp6ah + hp6a1;
+        let hp6av2 = t6 * hp6av1 + hp6a2;
+        hp6a1 = hp6av1 + t6 * hp6ah;
+        hp6a2 = hp6av2 + t6 * hp6av1;
+        let hp6ay = hp6u - 1.618034 * hp6av1 - hp6av2;
+        let hp6bh = (hp6ay - gkB6 * hp6b1 - hp6b2) * rB6;
+        let hp6bv1 = t6 * hp6bh + hp6b1;
+        let hp6bv2 = t6 * hp6bv1 + hp6b2;
+        hp6b1 = hp6bv1 + t6 * hp6bh;
+        hp6b2 = hp6bv2 + t6 * hp6bv1;
+        let hp6by = hp6ay - 0.618034 * hp6bv1 - hp6bv2;
+        // lp(1250 Hz): tf1s, then svf.lp with k = 1.618034 and k = 0.618034
+        let lp6u = (lp7by - lp6s) * r6;
+        let lp6v = t6 * lp6u + lp6s;
+        lp6s = lp6v + t6 * lp6u;
+        let lp6ah = (lp6v - gkA6 * lp6a1 - lp6a2) * rA6;
+        let lp6av1 = t6 * lp6ah + lp6a1;
+        let lp6av2 = t6 * lp6av1 + lp6a2;
+        lp6a1 = lp6av1 + t6 * lp6ah;
+        lp6a2 = lp6av2 + t6 * lp6av1;
+        let lp6bh = (lp6av2 - gkB6 * lp6b1 - lp6b2) * rB6;
+        let lp6bv1 = t6 * lp6bh + lp6b1;
+        let lp6bv2 = t6 * lp6bv1 + lp6b2;
+        lp6b1 = lp6bv1 + t6 * lp6bh;
+        lp6b2 = lp6bv2 + t6 * lp6bv1;
+        // hp(625 Hz): tf1s, then svf.hp with k = 1.618034 and k = 0.618034
+        let hp5u = (lp6bv2 - hp5s) * r5;
+        let hp5v = t5 * hp5u + hp5s;
+        hp5s = hp5v + t5 * hp5u;
+        let hp5ah = (hp5u - gkA5 * hp5a1 - hp5a2) * rA5;
+        let hp5av1 = t5 * hp5ah + hp5a1;
+        let hp5av2 = t5 * hp5av1 + hp5a2;
+        hp5a1 = hp5av1 + t5 * hp5ah;
+        hp5a2 = hp5av2 + t5 * hp5av1;
+        let hp5ay = hp5u - 1.618034 * hp5av1 - hp5av2;
+        let hp5bh = (hp5ay - gkB5 * hp5b1 - hp5b2) * rB5;
+        let hp5bv1 = t5 * hp5bh + hp5b1;
+        let hp5bv2 = t5 * hp5bv1 + hp5b2;
+        hp5b1 = hp5bv1 + t5 * hp5bh;
+        hp5b2 = hp5bv2 + t5 * hp5bv1;
+        let hp5by = hp5ay - 0.618034 * hp5bv1 - hp5bv2;
+        // lp(625 Hz): tf1s, then svf.lp with k = 1.618034 and k = 0.618034
+        let lp5u = (lp6bv2 - lp5s) * r5;
+        let lp5v = t5 * lp5u + lp5s;
+        lp5s = lp5v + t5 * lp5u;
+        let lp5ah = (lp5v - gkA5 * lp5a1 - lp5a2) * rA5;
+        let lp5av1 = t5 * lp5ah + lp5a1;
+        let lp5av2 = t5 * lp5av1 + lp5a2;
+        lp5a1 = lp5av1 + t5 * lp5ah;
+        lp5a2 = lp5av2 + t5 * lp5av1;
+        let lp5bh = (lp5av2 - gkB5 * lp5b1 - lp5b2) * rB5;
+        let lp5bv1 = t5 * lp5bh + lp5b1;
+        let lp5bv2 = t5 * lp5bv1 + lp5b2;
+        lp5b1 = lp5bv1 + t5 * lp5bh;
+        lp5b2 = lp5bv2 + t5 * lp5bv1;
+        // hp(312.5 Hz): tf1s, then svf.hp with k = 1.618034 and k = 0.618034
+        let hp4u = (lp5bv2 - hp4s) * r4;
+        let hp4v = t4 * hp4u + hp4s;
+        hp4s = hp4v + t4 * hp4u;
+        let hp4ah = (hp4u - gkA4 * hp4a1 - hp4a2) * rA4;
+        let hp4av1 = t4 * hp4ah + hp4a1;
+        let hp4av2 = t4 * hp4av1 + hp4a2;
+        hp4a1 = hp4av1 + t4 * hp4ah;
+        hp4a2 = hp4av2 + t4 * hp4av1;
+        let hp4ay = hp4u - 1.618034 * hp4av1 - hp4av2;
+        let hp4bh = (hp4ay - gkB4 * hp4b1 - hp4b2) * rB4;
+        let hp4bv1 = t4 * hp4bh + hp4b1;
+        let hp4bv2 = t4 * hp4bv1 + hp4b2;
+        hp4b1 = hp4bv1 + t4 * hp4bh;
+        hp4b2 = hp4bv2 + t4 * hp4bv1;
+        let hp4by = hp4ay - 0.618034 * hp4bv1 - hp4bv2;
+        // lp(312.5 Hz): tf1s, then svf.lp with k = 1.618034 and k = 0.618034
+        let lp4u = (lp5bv2 - lp4s) * r4;
+        let lp4v = t4 * lp4u + lp4s;
+        lp4s = lp4v + t4 * lp4u;
+        let lp4ah = (lp4v - gkA4 * lp4a1 - lp4a2) * rA4;
+        let lp4av1 = t4 * lp4ah + lp4a1;
+        let lp4av2 = t4 * lp4av1 + lp4a2;
+        lp4a1 = lp4av1 + t4 * lp4ah;
+        lp4a2 = lp4av2 + t4 * lp4av1;
+        let lp4bh = (lp4av2 - gkB4 * lp4b1 - lp4b2) * rB4;
+        let lp4bv1 = t4 * lp4bh + lp4b1;
+        let lp4bv2 = t4 * lp4bv1 + lp4b2;
+        lp4b1 = lp4bv1 + t4 * lp4bh;
+        lp4b2 = lp4bv2 + t4 * lp4bv1;
+        // hp(156.25 Hz): tf1s, then svf.hp with k = 1.618034 and k = 0.618034
+        let hp3u = (lp4bv2 - hp3s) * r3;
+        let hp3v = t3 * hp3u + hp3s;
+        hp3s = hp3v + t3 * hp3u;
+        let hp3ah = (hp3u - gkA3 * hp3a1 - hp3a2) * rA3;
+        let hp3av1 = t3 * hp3ah + hp3a1;
+        let hp3av2 = t3 * hp3av1 + hp3a2;
+        hp3a1 = hp3av1 + t3 * hp3ah;
+        hp3a2 = hp3av2 + t3 * hp3av1;
+        let hp3ay = hp3u - 1.618034 * hp3av1 - hp3av2;
+        let hp3bh = (hp3ay - gkB3 * hp3b1 - hp3b2) * rB3;
+        let hp3bv1 = t3 * hp3bh + hp3b1;
+        let hp3bv2 = t3 * hp3bv1 + hp3b2;
+        hp3b1 = hp3bv1 + t3 * hp3bh;
+        hp3b2 = hp3bv2 + t3 * hp3bv1;
+        let hp3by = hp3ay - 0.618034 * hp3bv1 - hp3bv2;
+        // lp(156.25 Hz): tf1s, then svf.lp with k = 1.618034 and k = 0.618034
+        let lp3u = (lp4bv2 - lp3s) * r3;
+        let lp3v = t3 * lp3u + lp3s;
+        lp3s = lp3v + t3 * lp3u;
+        let lp3ah = (lp3v - gkA3 * lp3a1 - lp3a2) * rA3;
+        let lp3av1 = t3 * lp3ah + lp3a1;
+        let lp3av2 = t3 * lp3av1 + lp3a2;
+        lp3a1 = lp3av1 + t3 * lp3ah;
+        lp3a2 = lp3av2 + t3 * lp3av1;
+        let lp3bh = (lp3av2 - gkB3 * lp3b1 - lp3b2) * rB3;
+        let lp3bv1 = t3 * lp3bh + lp3b1;
+        let lp3bv2 = t3 * lp3bv1 + lp3b2;
+        lp3b1 = lp3bv1 + t3 * lp3bh;
+        lp3b2 = lp3bv2 + t3 * lp3bv1;
+        // hp(78.125 Hz): tf1s, then svf.hp with k = 1.618034 and k = 0.618034
+        let hp2u = (lp3bv2 - hp2s) * r2;
+        let hp2v = t2 * hp2u + hp2s;
+        hp2s = hp2v + t2 * hp2u;
+        let hp2ah = (hp2u - gkA2 * hp2a1 - hp2a2) * rA2;
+        let hp2av1 = t2 * hp2ah + hp2a1;
+        let hp2av2 = t2 * hp2av1 + hp2a2;
+        hp2a1 = hp2av1 + t2 * hp2ah;
+        hp2a2 = hp2av2 + t2 * hp2av1;
+        let hp2ay = hp2u - 1.618034 * hp2av1 - hp2av2;
+        let hp2bh = (hp2ay - gkB2 * hp2b1 - hp2b2) * rB2;
+        let hp2bv1 = t2 * hp2bh + hp2b1;
+        let hp2bv2 = t2 * hp2bv1 + hp2b2;
+        hp2b1 = hp2bv1 + t2 * hp2bh;
+        hp2b2 = hp2bv2 + t2 * hp2bv1;
+        let hp2by = hp2ay - 0.618034 * hp2bv1 - hp2bv2;
+        // lp(78.125 Hz): tf1s, then svf.lp with k = 1.618034 and k = 0.618034
+        let lp2u = (lp3bv2 - lp2s) * r2;
+        let lp2v = t2 * lp2u + lp2s;
+        lp2s = lp2v + t2 * lp2u;
+        let lp2ah = (lp2v - gkA2 * lp2a1 - lp2a2) * rA2;
+        let lp2av1 = t2 * lp2ah + lp2a1;
+        let lp2av2 = t2 * lp2av1 + lp2a2;
+        lp2a1 = lp2av1 + t2 * lp2ah;
+        lp2a2 = lp2av2 + t2 * lp2av1;
+        let lp2bh = (lp2av2 - gkB2 * lp2b1 - lp2b2) * rB2;
+        let lp2bv1 = t2 * lp2bh + lp2b1;
+        let lp2bv2 = t2 * lp2bv1 + lp2b2;
+        lp2b1 = lp2bv1 + t2 * lp2bh;
+        lp2b2 = lp2bv2 + t2 * lp2bv1;
+        // hp(39.0625 Hz): tf1s, then svf.hp with k = 1.618034 and k = 0.618034
+        let hp1u = (lp2bv2 - hp1s) * r1;
+        let hp1v = t1 * hp1u + hp1s;
+        hp1s = hp1v + t1 * hp1u;
+        let hp1ah = (hp1u - gkA1 * hp1a1 - hp1a2) * rA1;
+        let hp1av1 = t1 * hp1ah + hp1a1;
+        let hp1av2 = t1 * hp1av1 + hp1a2;
+        hp1a1 = hp1av1 + t1 * hp1ah;
+        hp1a2 = hp1av2 + t1 * hp1av1;
+        let hp1ay = hp1u - 1.618034 * hp1av1 - hp1av2;
+        let hp1bh = (hp1ay - gkB1 * hp1b1 - hp1b2) * rB1;
+        let hp1bv1 = t1 * hp1bh + hp1b1;
+        let hp1bv2 = t1 * hp1bv1 + hp1b2;
+        hp1b1 = hp1bv1 + t1 * hp1bh;
+        hp1b2 = hp1bv2 + t1 * hp1bv1;
+        let hp1by = hp1ay - 0.618034 * hp1bv1 - hp1bv2;
+        // lp(39.0625 Hz): tf1s, then svf.lp with k = 1.618034 and k = 0.618034
+        let lp1u = (lp2bv2 - lp1s) * r1;
+        let lp1v = t1 * lp1u + lp1s;
+        lp1s = lp1v + t1 * lp1u;
+        let lp1ah = (lp1v - gkA1 * lp1a1 - lp1a2) * rA1;
+        let lp1av1 = t1 * lp1ah + lp1a1;
+        let lp1av2 = t1 * lp1av1 + lp1a2;
+        lp1a1 = lp1av1 + t1 * lp1ah;
+        lp1a2 = lp1av2 + t1 * lp1av1;
+        let lp1bh = (lp1av2 - gkB1 * lp1b1 - lp1b2) * rB1;
+        let lp1bv1 = t1 * lp1bh + lp1b1;
+        let lp1bv2 = t1 * lp1bv1 + lp1b2;
+        lp1b1 = lp1bv1 + t1 * lp1bh;
+        lp1b2 = lp1bv2 + t1 * lp1bv1;
+        // band 0: delay-equalizing allpasses at fc(1) ... fc(8) (highpass_plus_lowpass, order 5)
+        let p0_1u = (hp9by - p0_1s1 - 0.38196602 * (ga1 * p0_1s1 + p0_1s0)) * ra1;
+        let p0_1v1 = ga1 * p0_1u + p0_1s1;
+        let p0_1v0 = ga1 * p0_1v1 + p0_1s0;
+        let p0_1y = p0_1u - p0_1v1 + 0.38196602 * p0_1v0;
+        p0_1s1 = 2.0 * p0_1v1 - p0_1s1;
+        p0_1s0 = 2.0 * p0_1v0 - p0_1s0;
+        let p0_2u = (p0_1y - p0_2s1 - 0.38196602 * (ga2 * p0_2s1 + p0_2s0)) * ra2;
+        let p0_2v1 = ga2 * p0_2u + p0_2s1;
+        let p0_2v0 = ga2 * p0_2v1 + p0_2s0;
+        let p0_2y = p0_2u - p0_2v1 + 0.38196602 * p0_2v0;
+        p0_2s1 = 2.0 * p0_2v1 - p0_2s1;
+        p0_2s0 = 2.0 * p0_2v0 - p0_2s0;
+        let p0_3u = (p0_2y - p0_3s1 - 0.38196602 * (ga3 * p0_3s1 + p0_3s0)) * ra3;
+        let p0_3v1 = ga3 * p0_3u + p0_3s1;
+        let p0_3v0 = ga3 * p0_3v1 + p0_3s0;
+        let p0_3y = p0_3u - p0_3v1 + 0.38196602 * p0_3v0;
+        p0_3s1 = 2.0 * p0_3v1 - p0_3s1;
+        p0_3s0 = 2.0 * p0_3v0 - p0_3s0;
+        let p0_4u = (p0_3y - p0_4s1 - 0.38196602 * (ga4 * p0_4s1 + p0_4s0)) * ra4;
+        let p0_4v1 = ga4 * p0_4u + p0_4s1;
+        let p0_4v0 = ga4 * p0_4v1 + p0_4s0;
+        let p0_4y = p0_4u - p0_4v1 + 0.38196602 * p0_4v0;
+        p0_4s1 = 2.0 * p0_4v1 - p0_4s1;
+        p0_4s0 = 2.0 * p0_4v0 - p0_4s0;
+        let p0_5u = (p0_4y - p0_5s1 - 0.38196602 * (ga5 * p0_5s1 + p0_5s0)) * ra5;
+        let p0_5v1 = ga5 * p0_5u + p0_5s1;
+        let p0_5v0 = ga5 * p0_5v1 + p0_5s0;
+        let p0_5y = p0_5u - p0_5v1 + 0.38196602 * p0_5v0;
+        p0_5s1 = 2.0 * p0_5v1 - p0_5s1;
+        p0_5s0 = 2.0 * p0_5v0 - p0_5s0;
+        let p0_6u = (p0_5y - p0_6s1 - 0.38196602 * (ga6 * p0_6s1 + p0_6s0)) * ra6;
+        let p0_6v1 = ga6 * p0_6u + p0_6s1;
+        let p0_6v0 = ga6 * p0_6v1 + p0_6s0;
+        let p0_6y = p0_6u - p0_6v1 + 0.38196602 * p0_6v0;
+        p0_6s1 = 2.0 * p0_6v1 - p0_6s1;
+        p0_6s0 = 2.0 * p0_6v0 - p0_6s0;
+        let p0_7w = p0_6y - (a1A7 * p0_7w1 + a2A7 * p0_7w2);
+        let p0_7y = p0_7w2 + (a1A7 * p0_7w1 + a2A7 * p0_7w);
+        p0_7w2 = p0_7w1;
+        p0_7w1 = p0_7w;
+        let p0_8w = p0_7y - (a1A8 * p0_8w1 + a2A8 * p0_8w2);
+        let p0_8y = p0_8w2 + (a1A8 * p0_8w1 + a2A8 * p0_8w);
+        p0_8w2 = p0_8w1;
+        p0_8w1 = p0_8w;
+        // band 1: delay-equalizing allpasses at fc(1) ... fc(7) (highpass_plus_lowpass, order 5)
+        let p1_1u = (hp8by - p1_1s1 - 0.38196602 * (ga1 * p1_1s1 + p1_1s0)) * ra1;
+        let p1_1v1 = ga1 * p1_1u + p1_1s1;
+        let p1_1v0 = ga1 * p1_1v1 + p1_1s0;
+        let p1_1y = p1_1u - p1_1v1 + 0.38196602 * p1_1v0;
+        p1_1s1 = 2.0 * p1_1v1 - p1_1s1;
+        p1_1s0 = 2.0 * p1_1v0 - p1_1s0;
+        let p1_2u = (p1_1y - p1_2s1 - 0.38196602 * (ga2 * p1_2s1 + p1_2s0)) * ra2;
+        let p1_2v1 = ga2 * p1_2u + p1_2s1;
+        let p1_2v0 = ga2 * p1_2v1 + p1_2s0;
+        let p1_2y = p1_2u - p1_2v1 + 0.38196602 * p1_2v0;
+        p1_2s1 = 2.0 * p1_2v1 - p1_2s1;
+        p1_2s0 = 2.0 * p1_2v0 - p1_2s0;
+        let p1_3u = (p1_2y - p1_3s1 - 0.38196602 * (ga3 * p1_3s1 + p1_3s0)) * ra3;
+        let p1_3v1 = ga3 * p1_3u + p1_3s1;
+        let p1_3v0 = ga3 * p1_3v1 + p1_3s0;
+        let p1_3y = p1_3u - p1_3v1 + 0.38196602 * p1_3v0;
+        p1_3s1 = 2.0 * p1_3v1 - p1_3s1;
+        p1_3s0 = 2.0 * p1_3v0 - p1_3s0;
+        let p1_4u = (p1_3y - p1_4s1 - 0.38196602 * (ga4 * p1_4s1 + p1_4s0)) * ra4;
+        let p1_4v1 = ga4 * p1_4u + p1_4s1;
+        let p1_4v0 = ga4 * p1_4v1 + p1_4s0;
+        let p1_4y = p1_4u - p1_4v1 + 0.38196602 * p1_4v0;
+        p1_4s1 = 2.0 * p1_4v1 - p1_4s1;
+        p1_4s0 = 2.0 * p1_4v0 - p1_4s0;
+        let p1_5u = (p1_4y - p1_5s1 - 0.38196602 * (ga5 * p1_5s1 + p1_5s0)) * ra5;
+        let p1_5v1 = ga5 * p1_5u + p1_5s1;
+        let p1_5v0 = ga5 * p1_5v1 + p1_5s0;
+        let p1_5y = p1_5u - p1_5v1 + 0.38196602 * p1_5v0;
+        p1_5s1 = 2.0 * p1_5v1 - p1_5s1;
+        p1_5s0 = 2.0 * p1_5v0 - p1_5s0;
+        let p1_6u = (p1_5y - p1_6s1 - 0.38196602 * (ga6 * p1_6s1 + p1_6s0)) * ra6;
+        let p1_6v1 = ga6 * p1_6u + p1_6s1;
+        let p1_6v0 = ga6 * p1_6v1 + p1_6s0;
+        let p1_6y = p1_6u - p1_6v1 + 0.38196602 * p1_6v0;
+        p1_6s1 = 2.0 * p1_6v1 - p1_6s1;
+        p1_6s0 = 2.0 * p1_6v0 - p1_6s0;
+        let p1_7w = p1_6y - (a1A7 * p1_7w1 + a2A7 * p1_7w2);
+        let p1_7y = p1_7w2 + (a1A7 * p1_7w1 + a2A7 * p1_7w);
+        p1_7w2 = p1_7w1;
+        p1_7w1 = p1_7w;
+        // band 2: delay-equalizing allpasses at fc(1) ... fc(6) (highpass_plus_lowpass, order 5)
+        let p2_1u = (hp7by - p2_1s1 - 0.38196602 * (ga1 * p2_1s1 + p2_1s0)) * ra1;
+        let p2_1v1 = ga1 * p2_1u + p2_1s1;
+        let p2_1v0 = ga1 * p2_1v1 + p2_1s0;
+        let p2_1y = p2_1u - p2_1v1 + 0.38196602 * p2_1v0;
+        p2_1s1 = 2.0 * p2_1v1 - p2_1s1;
+        p2_1s0 = 2.0 * p2_1v0 - p2_1s0;
+        let p2_2u = (p2_1y - p2_2s1 - 0.38196602 * (ga2 * p2_2s1 + p2_2s0)) * ra2;
+        let p2_2v1 = ga2 * p2_2u + p2_2s1;
+        let p2_2v0 = ga2 * p2_2v1 + p2_2s0;
+        let p2_2y = p2_2u - p2_2v1 + 0.38196602 * p2_2v0;
+        p2_2s1 = 2.0 * p2_2v1 - p2_2s1;
+        p2_2s0 = 2.0 * p2_2v0 - p2_2s0;
+        let p2_3u = (p2_2y - p2_3s1 - 0.38196602 * (ga3 * p2_3s1 + p2_3s0)) * ra3;
+        let p2_3v1 = ga3 * p2_3u + p2_3s1;
+        let p2_3v0 = ga3 * p2_3v1 + p2_3s0;
+        let p2_3y = p2_3u - p2_3v1 + 0.38196602 * p2_3v0;
+        p2_3s1 = 2.0 * p2_3v1 - p2_3s1;
+        p2_3s0 = 2.0 * p2_3v0 - p2_3s0;
+        let p2_4u = (p2_3y - p2_4s1 - 0.38196602 * (ga4 * p2_4s1 + p2_4s0)) * ra4;
+        let p2_4v1 = ga4 * p2_4u + p2_4s1;
+        let p2_4v0 = ga4 * p2_4v1 + p2_4s0;
+        let p2_4y = p2_4u - p2_4v1 + 0.38196602 * p2_4v0;
+        p2_4s1 = 2.0 * p2_4v1 - p2_4s1;
+        p2_4s0 = 2.0 * p2_4v0 - p2_4s0;
+        let p2_5u = (p2_4y - p2_5s1 - 0.38196602 * (ga5 * p2_5s1 + p2_5s0)) * ra5;
+        let p2_5v1 = ga5 * p2_5u + p2_5s1;
+        let p2_5v0 = ga5 * p2_5v1 + p2_5s0;
+        let p2_5y = p2_5u - p2_5v1 + 0.38196602 * p2_5v0;
+        p2_5s1 = 2.0 * p2_5v1 - p2_5s1;
+        p2_5s0 = 2.0 * p2_5v0 - p2_5s0;
+        let p2_6u = (p2_5y - p2_6s1 - 0.38196602 * (ga6 * p2_6s1 + p2_6s0)) * ra6;
+        let p2_6v1 = ga6 * p2_6u + p2_6s1;
+        let p2_6v0 = ga6 * p2_6v1 + p2_6s0;
+        let p2_6y = p2_6u - p2_6v1 + 0.38196602 * p2_6v0;
+        p2_6s1 = 2.0 * p2_6v1 - p2_6s1;
+        p2_6s0 = 2.0 * p2_6v0 - p2_6s0;
+        // band 3: delay-equalizing allpasses at fc(1) ... fc(5) (highpass_plus_lowpass, order 5)
+        let p3_1u = (hp6by - p3_1s1 - 0.38196602 * (ga1 * p3_1s1 + p3_1s0)) * ra1;
+        let p3_1v1 = ga1 * p3_1u + p3_1s1;
+        let p3_1v0 = ga1 * p3_1v1 + p3_1s0;
+        let p3_1y = p3_1u - p3_1v1 + 0.38196602 * p3_1v0;
+        p3_1s1 = 2.0 * p3_1v1 - p3_1s1;
+        p3_1s0 = 2.0 * p3_1v0 - p3_1s0;
+        let p3_2u = (p3_1y - p3_2s1 - 0.38196602 * (ga2 * p3_2s1 + p3_2s0)) * ra2;
+        let p3_2v1 = ga2 * p3_2u + p3_2s1;
+        let p3_2v0 = ga2 * p3_2v1 + p3_2s0;
+        let p3_2y = p3_2u - p3_2v1 + 0.38196602 * p3_2v0;
+        p3_2s1 = 2.0 * p3_2v1 - p3_2s1;
+        p3_2s0 = 2.0 * p3_2v0 - p3_2s0;
+        let p3_3u = (p3_2y - p3_3s1 - 0.38196602 * (ga3 * p3_3s1 + p3_3s0)) * ra3;
+        let p3_3v1 = ga3 * p3_3u + p3_3s1;
+        let p3_3v0 = ga3 * p3_3v1 + p3_3s0;
+        let p3_3y = p3_3u - p3_3v1 + 0.38196602 * p3_3v0;
+        p3_3s1 = 2.0 * p3_3v1 - p3_3s1;
+        p3_3s0 = 2.0 * p3_3v0 - p3_3s0;
+        let p3_4u = (p3_3y - p3_4s1 - 0.38196602 * (ga4 * p3_4s1 + p3_4s0)) * ra4;
+        let p3_4v1 = ga4 * p3_4u + p3_4s1;
+        let p3_4v0 = ga4 * p3_4v1 + p3_4s0;
+        let p3_4y = p3_4u - p3_4v1 + 0.38196602 * p3_4v0;
+        p3_4s1 = 2.0 * p3_4v1 - p3_4s1;
+        p3_4s0 = 2.0 * p3_4v0 - p3_4s0;
+        let p3_5u = (p3_4y - p3_5s1 - 0.38196602 * (ga5 * p3_5s1 + p3_5s0)) * ra5;
+        let p3_5v1 = ga5 * p3_5u + p3_5s1;
+        let p3_5v0 = ga5 * p3_5v1 + p3_5s0;
+        let p3_5y = p3_5u - p3_5v1 + 0.38196602 * p3_5v0;
+        p3_5s1 = 2.0 * p3_5v1 - p3_5s1;
+        p3_5s0 = 2.0 * p3_5v0 - p3_5s0;
+        // band 4: delay-equalizing allpasses at fc(1) ... fc(4) (highpass_plus_lowpass, order 5)
+        let p4_1u = (hp5by - p4_1s1 - 0.38196602 * (ga1 * p4_1s1 + p4_1s0)) * ra1;
+        let p4_1v1 = ga1 * p4_1u + p4_1s1;
+        let p4_1v0 = ga1 * p4_1v1 + p4_1s0;
+        let p4_1y = p4_1u - p4_1v1 + 0.38196602 * p4_1v0;
+        p4_1s1 = 2.0 * p4_1v1 - p4_1s1;
+        p4_1s0 = 2.0 * p4_1v0 - p4_1s0;
+        let p4_2u = (p4_1y - p4_2s1 - 0.38196602 * (ga2 * p4_2s1 + p4_2s0)) * ra2;
+        let p4_2v1 = ga2 * p4_2u + p4_2s1;
+        let p4_2v0 = ga2 * p4_2v1 + p4_2s0;
+        let p4_2y = p4_2u - p4_2v1 + 0.38196602 * p4_2v0;
+        p4_2s1 = 2.0 * p4_2v1 - p4_2s1;
+        p4_2s0 = 2.0 * p4_2v0 - p4_2s0;
+        let p4_3u = (p4_2y - p4_3s1 - 0.38196602 * (ga3 * p4_3s1 + p4_3s0)) * ra3;
+        let p4_3v1 = ga3 * p4_3u + p4_3s1;
+        let p4_3v0 = ga3 * p4_3v1 + p4_3s0;
+        let p4_3y = p4_3u - p4_3v1 + 0.38196602 * p4_3v0;
+        p4_3s1 = 2.0 * p4_3v1 - p4_3s1;
+        p4_3s0 = 2.0 * p4_3v0 - p4_3s0;
+        let p4_4u = (p4_3y - p4_4s1 - 0.38196602 * (ga4 * p4_4s1 + p4_4s0)) * ra4;
+        let p4_4v1 = ga4 * p4_4u + p4_4s1;
+        let p4_4v0 = ga4 * p4_4v1 + p4_4s0;
+        let p4_4y = p4_4u - p4_4v1 + 0.38196602 * p4_4v0;
+        p4_4s1 = 2.0 * p4_4v1 - p4_4s1;
+        p4_4s0 = 2.0 * p4_4v0 - p4_4s0;
+        // band 5: delay-equalizing allpasses at fc(1) ... fc(3) (highpass_plus_lowpass, order 5)
+        let p5_1u = (hp4by - p5_1s1 - 0.38196602 * (ga1 * p5_1s1 + p5_1s0)) * ra1;
+        let p5_1v1 = ga1 * p5_1u + p5_1s1;
+        let p5_1v0 = ga1 * p5_1v1 + p5_1s0;
+        let p5_1y = p5_1u - p5_1v1 + 0.38196602 * p5_1v0;
+        p5_1s1 = 2.0 * p5_1v1 - p5_1s1;
+        p5_1s0 = 2.0 * p5_1v0 - p5_1s0;
+        let p5_2u = (p5_1y - p5_2s1 - 0.38196602 * (ga2 * p5_2s1 + p5_2s0)) * ra2;
+        let p5_2v1 = ga2 * p5_2u + p5_2s1;
+        let p5_2v0 = ga2 * p5_2v1 + p5_2s0;
+        let p5_2y = p5_2u - p5_2v1 + 0.38196602 * p5_2v0;
+        p5_2s1 = 2.0 * p5_2v1 - p5_2s1;
+        p5_2s0 = 2.0 * p5_2v0 - p5_2s0;
+        let p5_3u = (p5_2y - p5_3s1 - 0.38196602 * (ga3 * p5_3s1 + p5_3s0)) * ra3;
+        let p5_3v1 = ga3 * p5_3u + p5_3s1;
+        let p5_3v0 = ga3 * p5_3v1 + p5_3s0;
+        let p5_3y = p5_3u - p5_3v1 + 0.38196602 * p5_3v0;
+        p5_3s1 = 2.0 * p5_3v1 - p5_3s1;
+        p5_3s0 = 2.0 * p5_3v0 - p5_3s0;
+        // band 6: delay-equalizing allpasses at fc(1) ... fc(2) (highpass_plus_lowpass, order 5)
+        let p6_1u = (hp3by - p6_1s1 - 0.38196602 * (ga1 * p6_1s1 + p6_1s0)) * ra1;
+        let p6_1v1 = ga1 * p6_1u + p6_1s1;
+        let p6_1v0 = ga1 * p6_1v1 + p6_1s0;
+        let p6_1y = p6_1u - p6_1v1 + 0.38196602 * p6_1v0;
+        p6_1s1 = 2.0 * p6_1v1 - p6_1s1;
+        p6_1s0 = 2.0 * p6_1v0 - p6_1s0;
+        let p6_2u = (p6_1y - p6_2s1 - 0.38196602 * (ga2 * p6_2s1 + p6_2s0)) * ra2;
+        let p6_2v1 = ga2 * p6_2u + p6_2s1;
+        let p6_2v0 = ga2 * p6_2v1 + p6_2s0;
+        let p6_2y = p6_2u - p6_2v1 + 0.38196602 * p6_2v0;
+        p6_2s1 = 2.0 * p6_2v1 - p6_2s1;
+        p6_2s0 = 2.0 * p6_2v0 - p6_2s0;
+        // band 7: delay-equalizing allpasses at fc(1) ... fc(1) (highpass_plus_lowpass, order 5)
+        let p7_1u = (hp2by - p7_1s1 - 0.38196602 * (ga1 * p7_1s1 + p7_1s0)) * ra1;
+        let p7_1v1 = ga1 * p7_1u + p7_1s1;
+        let p7_1v0 = ga1 * p7_1v1 + p7_1s0;
+        let p7_1y = p7_1u - p7_1v1 + 0.38196602 * p7_1v0;
+        p7_1s1 = 2.0 * p7_1v1 - p7_1s1;
+        p7_1s0 = 2.0 * p7_1v0 - p7_1s0;
+        // faders: band i through si.smoo (error form) of Band(10-i), ba.db2linear
+        pv[0] = band10;
+        pv[1] = band9;
+        pv[2] = band8;
+        pv[3] = band7;
+        pv[4] = band6;
+        pv[5] = band5;
+        pv[6] = band4;
+        pv[7] = band3;
+        pv[8] = band2;
+        pv[9] = band1;
+        for i in 0..10 {
+            fe[i] = smoo * (fe[i] + min (3.4028235e38, fxq[i] - pv[i]));
+            fxq[i] = pv[i];
+            fg[i] = pow (10.0, 0.05 * (pv[i] + fe[i]));
+        }
+        let y = p0_8y * fg[0] + p1_7y * fg[1] + p2_6y * fg[2] + p3_5y * fg[3] + p4_4y * fg[4] + p5_3y * fg[5] + p6_2y * fg[6] + p7_1y * fg[7] + hp1by * fg[8] + lp1bv2 * fg[9];
+        out1 = y;
+    }
+}
+
+graph Main {
+    input stream in1;
+    output stream out1;
+    node p = FilterBank;
+    connection { in1 -> p.in1; p.out1 -> out1; }
+}

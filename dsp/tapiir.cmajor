@@ -1,0 +1,235 @@
+// Port of tapiir(6, 2) (examples/delayEcho/tapiir.dsp), after dsp/tapiir.dsp: 6 delay lines (de.delay,
+// dsize = 524288) in a 6x6 feedback matrix, 2 inputs, 2 output mixers. The example's defaults are all 0;
+// here tap i delays 0.05*(i+1) s (2400*(i+1) samples at 48 kHz), every tap gain is 0.1 (feedback matrix
+// loop gain 0.6, output mixers 0.1 per tap), input gains 1, gains 1. Same sums in the same order as the
+// C++ faust generates. The lines hold dsize samples (faust allocates 2^20 to reach a delay of dsize):
+// the delay is clamped to dsize - 1, which the 5 s range never reaches at 48 kHz.
+processor Tapiir
+{
+    input stream float in1, in2;
+    output stream float out1, out2;
+    input event float t0_tap0 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t0_tap1 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t0_tap2 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t0_tap3 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t0_tap4 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t0_tap5 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t0_in0 [[ min: 0.0f, max: 1.0f, init: 1.0f ]];
+    input event float t0_in1 [[ min: 0.0f, max: 1.0f, init: 1.0f ]];
+    input event float t0_gain [[ min: 0.0f, max: 1.0f, init: 1.0f ]];
+    input event float t0_delay [[ min: 0.0f, max: 5.0f, init: 0.05f ]];
+    input event float t1_tap0 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t1_tap1 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t1_tap2 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t1_tap3 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t1_tap4 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t1_tap5 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t1_in0 [[ min: 0.0f, max: 1.0f, init: 1.0f ]];
+    input event float t1_in1 [[ min: 0.0f, max: 1.0f, init: 1.0f ]];
+    input event float t1_gain [[ min: 0.0f, max: 1.0f, init: 1.0f ]];
+    input event float t1_delay [[ min: 0.0f, max: 5.0f, init: 0.1f ]];
+    input event float t2_tap0 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t2_tap1 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t2_tap2 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t2_tap3 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t2_tap4 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t2_tap5 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t2_in0 [[ min: 0.0f, max: 1.0f, init: 1.0f ]];
+    input event float t2_in1 [[ min: 0.0f, max: 1.0f, init: 1.0f ]];
+    input event float t2_gain [[ min: 0.0f, max: 1.0f, init: 1.0f ]];
+    input event float t2_delay [[ min: 0.0f, max: 5.0f, init: 0.15f ]];
+    input event float t3_tap0 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t3_tap1 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t3_tap2 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t3_tap3 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t3_tap4 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t3_tap5 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t3_in0 [[ min: 0.0f, max: 1.0f, init: 1.0f ]];
+    input event float t3_in1 [[ min: 0.0f, max: 1.0f, init: 1.0f ]];
+    input event float t3_gain [[ min: 0.0f, max: 1.0f, init: 1.0f ]];
+    input event float t3_delay [[ min: 0.0f, max: 5.0f, init: 0.2f ]];
+    input event float t4_tap0 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t4_tap1 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t4_tap2 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t4_tap3 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t4_tap4 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t4_tap5 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t4_in0 [[ min: 0.0f, max: 1.0f, init: 1.0f ]];
+    input event float t4_in1 [[ min: 0.0f, max: 1.0f, init: 1.0f ]];
+    input event float t4_gain [[ min: 0.0f, max: 1.0f, init: 1.0f ]];
+    input event float t4_delay [[ min: 0.0f, max: 5.0f, init: 0.25f ]];
+    input event float t5_tap0 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t5_tap1 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t5_tap2 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t5_tap3 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t5_tap4 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t5_tap5 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float t5_in0 [[ min: 0.0f, max: 1.0f, init: 1.0f ]];
+    input event float t5_in1 [[ min: 0.0f, max: 1.0f, init: 1.0f ]];
+    input event float t5_gain [[ min: 0.0f, max: 1.0f, init: 1.0f ]];
+    input event float t5_delay [[ min: 0.0f, max: 5.0f, init: 0.3f ]];
+    input event float o0_tap0 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float o0_tap1 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float o0_tap2 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float o0_tap3 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float o0_tap4 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float o0_tap5 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float o0_in0 [[ min: 0.0f, max: 1.0f, init: 1.0f ]];
+    input event float o0_in1 [[ min: 0.0f, max: 1.0f, init: 1.0f ]];
+    input event float o0_gain [[ min: 0.0f, max: 1.0f, init: 1.0f ]];
+    input event float o1_tap0 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float o1_tap1 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float o1_tap2 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float o1_tap3 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float o1_tap4 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float o1_tap5 [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float o1_in0 [[ min: 0.0f, max: 1.0f, init: 1.0f ]];
+    input event float o1_in1 [[ min: 0.0f, max: 1.0f, init: 1.0f ]];
+    input event float o1_gain [[ min: 0.0f, max: 1.0f, init: 1.0f ]];
+
+    float t0_tap0V = 0.1f, t0_tap1V = 0.1f, t0_tap2V = 0.1f, t0_tap3V = 0.1f, t0_tap4V = 0.1f, t0_tap5V = 0.1f;
+    float t0_in0V = 1.0f, t0_in1V = 1.0f, t0_gainV = 1.0f, t0_delayV = 0.05f, t1_tap0V = 0.1f, t1_tap1V = 0.1f;
+    float t1_tap2V = 0.1f, t1_tap3V = 0.1f, t1_tap4V = 0.1f, t1_tap5V = 0.1f, t1_in0V = 1.0f, t1_in1V = 1.0f;
+    float t1_gainV = 1.0f, t1_delayV = 0.1f, t2_tap0V = 0.1f, t2_tap1V = 0.1f, t2_tap2V = 0.1f, t2_tap3V = 0.1f;
+    float t2_tap4V = 0.1f, t2_tap5V = 0.1f, t2_in0V = 1.0f, t2_in1V = 1.0f, t2_gainV = 1.0f, t2_delayV = 0.15f;
+    float t3_tap0V = 0.1f, t3_tap1V = 0.1f, t3_tap2V = 0.1f, t3_tap3V = 0.1f, t3_tap4V = 0.1f, t3_tap5V = 0.1f;
+    float t3_in0V = 1.0f, t3_in1V = 1.0f, t3_gainV = 1.0f, t3_delayV = 0.2f, t4_tap0V = 0.1f, t4_tap1V = 0.1f;
+    float t4_tap2V = 0.1f, t4_tap3V = 0.1f, t4_tap4V = 0.1f, t4_tap5V = 0.1f, t4_in0V = 1.0f, t4_in1V = 1.0f;
+    float t4_gainV = 1.0f, t4_delayV = 0.25f, t5_tap0V = 0.1f, t5_tap1V = 0.1f, t5_tap2V = 0.1f, t5_tap3V = 0.1f;
+    float t5_tap4V = 0.1f, t5_tap5V = 0.1f, t5_in0V = 1.0f, t5_in1V = 1.0f, t5_gainV = 1.0f, t5_delayV = 0.3f;
+    float o0_tap0V = 0.1f, o0_tap1V = 0.1f, o0_tap2V = 0.1f, o0_tap3V = 0.1f, o0_tap4V = 0.1f, o0_tap5V = 0.1f;
+    float o0_in0V = 1.0f, o0_in1V = 1.0f, o0_gainV = 1.0f, o1_tap0V = 0.1f, o1_tap1V = 0.1f, o1_tap2V = 0.1f;
+    float o1_tap3V = 0.1f, o1_tap4V = 0.1f, o1_tap5V = 0.1f, o1_in0V = 1.0f, o1_in1V = 1.0f, o1_gainV = 1.0f;
+    int k0, k1, k2, k3, k4, k5;           // delays in samples
+    float[524288] b0;
+    float[524288] b1;
+    float[524288] b2;
+    float[524288] b3;
+    float[524288] b4;
+    float[524288] b5;
+    float y0, y1, y2, y3, y4, y5;         // line outputs, one sample late (the ~)
+    int w;                                // write position of every line
+
+    event t0_tap0 (float v) { t0_tap0V = v; }
+    event t0_tap1 (float v) { t0_tap1V = v; }
+    event t0_tap2 (float v) { t0_tap2V = v; }
+    event t0_tap3 (float v) { t0_tap3V = v; }
+    event t0_tap4 (float v) { t0_tap4V = v; }
+    event t0_tap5 (float v) { t0_tap5V = v; }
+    event t0_in0 (float v) { t0_in0V = v; }
+    event t0_in1 (float v) { t0_in1V = v; }
+    event t0_gain (float v) { t0_gainV = v; }
+    event t0_delay (float v) { t0_delayV = v; update(); }
+    event t1_tap0 (float v) { t1_tap0V = v; }
+    event t1_tap1 (float v) { t1_tap1V = v; }
+    event t1_tap2 (float v) { t1_tap2V = v; }
+    event t1_tap3 (float v) { t1_tap3V = v; }
+    event t1_tap4 (float v) { t1_tap4V = v; }
+    event t1_tap5 (float v) { t1_tap5V = v; }
+    event t1_in0 (float v) { t1_in0V = v; }
+    event t1_in1 (float v) { t1_in1V = v; }
+    event t1_gain (float v) { t1_gainV = v; }
+    event t1_delay (float v) { t1_delayV = v; update(); }
+    event t2_tap0 (float v) { t2_tap0V = v; }
+    event t2_tap1 (float v) { t2_tap1V = v; }
+    event t2_tap2 (float v) { t2_tap2V = v; }
+    event t2_tap3 (float v) { t2_tap3V = v; }
+    event t2_tap4 (float v) { t2_tap4V = v; }
+    event t2_tap5 (float v) { t2_tap5V = v; }
+    event t2_in0 (float v) { t2_in0V = v; }
+    event t2_in1 (float v) { t2_in1V = v; }
+    event t2_gain (float v) { t2_gainV = v; }
+    event t2_delay (float v) { t2_delayV = v; update(); }
+    event t3_tap0 (float v) { t3_tap0V = v; }
+    event t3_tap1 (float v) { t3_tap1V = v; }
+    event t3_tap2 (float v) { t3_tap2V = v; }
+    event t3_tap3 (float v) { t3_tap3V = v; }
+    event t3_tap4 (float v) { t3_tap4V = v; }
+    event t3_tap5 (float v) { t3_tap5V = v; }
+    event t3_in0 (float v) { t3_in0V = v; }
+    event t3_in1 (float v) { t3_in1V = v; }
+    event t3_gain (float v) { t3_gainV = v; }
+    event t3_delay (float v) { t3_delayV = v; update(); }
+    event t4_tap0 (float v) { t4_tap0V = v; }
+    event t4_tap1 (float v) { t4_tap1V = v; }
+    event t4_tap2 (float v) { t4_tap2V = v; }
+    event t4_tap3 (float v) { t4_tap3V = v; }
+    event t4_tap4 (float v) { t4_tap4V = v; }
+    event t4_tap5 (float v) { t4_tap5V = v; }
+    event t4_in0 (float v) { t4_in0V = v; }
+    event t4_in1 (float v) { t4_in1V = v; }
+    event t4_gain (float v) { t4_gainV = v; }
+    event t4_delay (float v) { t4_delayV = v; update(); }
+    event t5_tap0 (float v) { t5_tap0V = v; }
+    event t5_tap1 (float v) { t5_tap1V = v; }
+    event t5_tap2 (float v) { t5_tap2V = v; }
+    event t5_tap3 (float v) { t5_tap3V = v; }
+    event t5_tap4 (float v) { t5_tap4V = v; }
+    event t5_tap5 (float v) { t5_tap5V = v; }
+    event t5_in0 (float v) { t5_in0V = v; }
+    event t5_in1 (float v) { t5_in1V = v; }
+    event t5_gain (float v) { t5_gainV = v; }
+    event t5_delay (float v) { t5_delayV = v; update(); }
+    event o0_tap0 (float v) { o0_tap0V = v; }
+    event o0_tap1 (float v) { o0_tap1V = v; }
+    event o0_tap2 (float v) { o0_tap2V = v; }
+    event o0_tap3 (float v) { o0_tap3V = v; }
+    event o0_tap4 (float v) { o0_tap4V = v; }
+    event o0_tap5 (float v) { o0_tap5V = v; }
+    event o0_in0 (float v) { o0_in0V = v; }
+    event o0_in1 (float v) { o0_in1V = v; }
+    event o0_gain (float v) { o0_gainV = v; }
+    event o1_tap0 (float v) { o1_tap0V = v; }
+    event o1_tap1 (float v) { o1_tap1V = v; }
+    event o1_tap2 (float v) { o1_tap2V = v; }
+    event o1_tap3 (float v) { o1_tap3V = v; }
+    event o1_tap4 (float v) { o1_tap4V = v; }
+    event o1_tap5 (float v) { o1_tap5V = v; }
+    event o1_in0 (float v) { o1_in0V = v; }
+    event o1_in1 (float v) { o1_in1V = v; }
+    event o1_gain (float v) { o1_gainV = v; }
+
+    void update()
+    {
+        let sr = float (processor.frequency);
+        k0 = int (min (524287.0f, max (0.0f, sr * t0_delayV)));
+        k1 = int (min (524287.0f, max (0.0f, sr * t1_delayV)));
+        k2 = int (min (524287.0f, max (0.0f, sr * t2_delayV)));
+        k3 = int (min (524287.0f, max (0.0f, sr * t3_delayV)));
+        k4 = int (min (524287.0f, max (0.0f, sr * t4_delayV)));
+        k5 = int (min (524287.0f, max (0.0f, sr * t5_delayV)));
+    }
+
+    void init() { update(); }
+
+    void main()
+    {
+        loop
+        {
+            let x0 = in1;
+            let x1 = in2;
+            b0[wrap<524288> (w)] = t0_gainV * (t0_in0V * x0 + t0_in1V * x1 + t0_tap0V * y0 + t0_tap1V * y1 + t0_tap2V * y2 + t0_tap3V * y3 + t0_tap4V * y4 + t0_tap5V * y5);
+            let n0 = b0[wrap<524288> ((w - k0) & 524287)];
+            b1[wrap<524288> (w)] = t1_gainV * (t1_in0V * x0 + t1_in1V * x1 + t1_tap0V * y0 + t1_tap1V * y1 + t1_tap2V * y2 + t1_tap3V * y3 + t1_tap4V * y4 + t1_tap5V * y5);
+            let n1 = b1[wrap<524288> ((w - k1) & 524287)];
+            b2[wrap<524288> (w)] = t2_gainV * (t2_in0V * x0 + t2_in1V * x1 + t2_tap0V * y0 + t2_tap1V * y1 + t2_tap2V * y2 + t2_tap3V * y3 + t2_tap4V * y4 + t2_tap5V * y5);
+            let n2 = b2[wrap<524288> ((w - k2) & 524287)];
+            b3[wrap<524288> (w)] = t3_gainV * (t3_in0V * x0 + t3_in1V * x1 + t3_tap0V * y0 + t3_tap1V * y1 + t3_tap2V * y2 + t3_tap3V * y3 + t3_tap4V * y4 + t3_tap5V * y5);
+            let n3 = b3[wrap<524288> ((w - k3) & 524287)];
+            b4[wrap<524288> (w)] = t4_gainV * (t4_in0V * x0 + t4_in1V * x1 + t4_tap0V * y0 + t4_tap1V * y1 + t4_tap2V * y2 + t4_tap3V * y3 + t4_tap4V * y4 + t4_tap5V * y5);
+            let n4 = b4[wrap<524288> ((w - k4) & 524287)];
+            b5[wrap<524288> (w)] = t5_gainV * (t5_in0V * x0 + t5_in1V * x1 + t5_tap0V * y0 + t5_tap1V * y1 + t5_tap2V * y2 + t5_tap3V * y3 + t5_tap4V * y4 + t5_tap5V * y5);
+            let n5 = b5[wrap<524288> ((w - k5) & 524287)];
+            y0 = n0;
+            y1 = n1;
+            y2 = n2;
+            y3 = n3;
+            y4 = n4;
+            y5 = n5;
+            out1 <- o0_gainV * (o0_in0V * x0 + o0_in1V * x1 + o0_tap0V * y0 + o0_tap1V * y1 + o0_tap2V * y2 + o0_tap3V * y3 + o0_tap4V * y4 + o0_tap5V * y5);
+            out2 <- o1_gainV * (o1_in0V * x0 + o1_in1V * x1 + o1_tap0V * y0 + o1_tap1V * y1 + o1_tap2V * y2 + o1_tap3V * y3 + o1_tap4V * y4 + o1_tap5V * y5);
+            w = (w + 1) & 524287;
+            advance();
+        }
+    }
+}

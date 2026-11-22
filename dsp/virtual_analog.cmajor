@@ -1,0 +1,169 @@
+// dm.virtual_analog_oscillator_demo of Faust's demos.lib (examples/generator/virtualAnalog.dsp),
+// after dsp/virtual_analog.onda, controls at their defaults like virtual_analog.dsp: three detuned
+// voices, each a saw (os.sawN(2)), a square and a pulse train (os.pulsetrain: a difference of
+// linearly interpolated delays of a second sawN(2) at the clipped frequency) and a triangle (leaky
+// integrated square), plus pink noise and the external input, mixed by their level sliders. The
+// phases are the fixed-point phasor of oscillators.lib (_phasor_fix: whole counts of 2^-30 cycle
+// plus 2^-24 fractions), reset to 0 at the first sample. Constant factors are grouped as faust
+// groups them (SR / 12 for the saws, squares and pulses, 4 / 3 / SR for the triangles).
+processor VirtualAnalog
+{
+    input stream float in1;
+    output stream float out1;
+    input event float ssaw       [[ min: 0.0f, max: 1.0f, init: 1.0f ]];
+    input event float spt        [[ min: 0.0f, max: 1.0f, init: 0.0f ]];
+    input event float duty       [[ min: 0.0f, max: 1.0f, init: 0.5f ]];
+    input event float ssq        [[ min: 0.0f, max: 1.0f, init: 0.0f ]];
+    input event float stri       [[ min: 0.0f, max: 1.0f, init: 0.0f ]];
+    input event float spn        [[ min: 0.0f, max: 1.0f, init: 0.0f ]];
+    input event float sei        [[ min: 0.0f, max: 1.0f, init: 0.0f ]];
+    input event float mixdb      [[ min: -120.0f, max: 10.0f, init: -20.0f ]];
+    input event float freq       [[ min: 1.0f, max: 88.0f, init: 49.0f ]];
+    input event float detune1    [[ min: -10.0f, max: 10.0f, init: -0.1f ]];
+    input event float detune2    [[ min: -10.0f, max: 10.0f, init: 0.1f ]];
+    input event float portamento [[ min: 0.001f, max: 10.0f, init: 0.1f ]];
+
+    float ssawV = 1.0f, sptV = 0.0f, dutyV = 0.5f, ssqV = 0.0f, striV = 0.0f, spnV = 0.0f, seiV = 0.0f;
+    float mixdbV = -20.0f, freqV = 49.0f, detune1V = -0.1f, detune2V = 0.1f, portamentoV = 0.1f;
+    // control-rate values, recomputed by update()
+    float ampT, frT, porP, dt1, dt2, triG, ptG, dutyC;
+
+    float c1, c2, c3, c4, c5, c6, c7, sr;
+    float aE, aXp, fE, fXp, dE, dXp;        // si.smooth states (error, previous input)
+    float gate;                             // 1@1 of sawN (0 at the first sample)
+    int pm, sm;                             // phase masks, 0 at the first sample (hard reset)
+    int pa1, sa1, pa2, sa2, pa3, sa3;       // saw phasors (counts, fraction)
+    int pb1, sb1, pb2, sb2, pb3, sb3;       // square / pulse phasors (frequency clipped at 23.45 Hz)
+    float va1, va2, va3, vb1, vb2, vb3;     // previous squared ramps
+    float[16384] d1, d2, d3;
+    wrap<16384> w;
+    float tr1, tr2, tr3;                    // triangle integrators
+    int seed;                               // no.noise
+    float k1, k2, k3;                       // pink filter (fi.iir) states
+
+    event ssaw (float v)       { ssawV = v; }
+    event spt (float v)        { sptV = v; update(); }
+    event duty (float v)       { dutyV = v; update(); }
+    event ssq (float v)        { ssqV = v; }
+    event stri (float v)       { striV = v; update(); }
+    event spn (float v)        { spnV = v; }
+    event sei (float v)        { seiV = v; }
+    event mixdb (float v)      { mixdbV = v; update(); }
+    event freq (float v)       { freqV = v; update(); }
+    event detune1 (float v)    { detune1V = v; update(); }
+    event detune2 (float v)    { detune2V = v; update(); }
+    event portamento (float v) { portamentoV = v; update(); }
+
+    void update()
+    {
+        ampT = pow (10.0f, 0.05f * mixdbV);                         // ba.db2linear
+        frT = 440.0f * pow (2.0f, 0.083333336f * (freqV - 49.0f));  // ba.pianokey2hz
+        porP = exp (-(c3 / portamentoV));                           // ba.tau2pole
+        dt1 = 0.01f * detune1V + 1.0f;
+        dt2 = 0.01f * detune2V + 1.0f;
+        triG = c5 * striV;
+        ptG = c2 * sptV;
+        dutyC = 1.0f - dutyV;
+    }
+
+    void init()
+    {
+        sr = float (processor.frequency);
+        c1 = 1.0f - 44.1f / sr;             // si.smoo pole
+        c2 = 0.083333336f * sr;             // SR / 12: sawN(2) scale SR / (4 f) times amp / 3
+        c3 = 1.0f / sr;
+        c4 = 0.5f * sr;                     // square delay (1 - 0.5) SR
+        c5 = 1.3333334f / sr;               // triangle gain 4 f / SR times 1 / 3
+        c6 = 0.25f * sr;                    // sawN(2) scale SR / 4 inside the triangle integrator
+        c7 = 1.0f - 48.0f / sr;             // triangle leak
+        update();
+    }
+
+    // _phasor_fix and the square of the DPW ramp of sawN(2): returns x^2 - x'^2, x = 2 phi - 1
+    float saw2 (int& p, int& s, float& vp, float inc)
+    {
+        let xc = 1073741824.0f * (inc - float (roundToInt (inc)));   // increment in counts
+        let fl = floor (xc);
+        let t = s + int (16777216.0f * (xc - fl));                   // fraction sum, carry in bit 24
+        s = t & sm;
+        p = (p + int (fl) + (t >> 24)) & pm;
+        let x = -1.0f + 1.1920929e-07f * float (p >> 6);
+        let v = x * x;
+        let d = v - vp;
+        vp = v;
+        return d;
+    }
+
+    // pulsetrainN's diffdel: x - x@int(del) (1 - frac(del)) - x@(int(del) + 1) frac(del)
+    float diffdel (const float[16384]& buf, float x, float del)
+    {
+        let id = int (del);
+        let fl = floor (del);
+        return x - buf[wrap<16384> ((w - id) & 16383)] * (1.0f - del + fl)
+                 - (del - fl) * buf[wrap<16384> ((w - id - 1) & 16383)];
+    }
+
+    void main()
+    {
+        loop
+        {
+            aE = c1 * ((aXp - ampT) + aE);
+            aXp = ampT;
+            fE = porP * ((fXp - frT) + fE);
+            fXp = frT;
+            let f1 = frT + fE;                  // smoothed frequency, voice 1
+            let f2 = dt1 * f1;
+            let f3 = dt2 * f1;
+            // saws: sawN(2) (x^2 - x'^2) / f, scaled by SR / 4 below
+            let fa1 = max (20.0f, abs (f1));
+            let fa2 = max (20.0f, abs (f2));
+            let fa3 = max (20.0f, abs (f3));
+            let q1 = saw2 (pa1, sa1, va1, c3 * fa1);
+            let q2 = saw2 (pa2, sa2, va2, c3 * fa2);
+            let q3 = saw2 (pa3, sa3, va3, c3 * fa3);
+            // square / pulse saws at max(f, 23.45 Hz), written to their delay lines
+            let fc1 = max (f1, 23.44895f);
+            let fc2 = max (f2, 23.44895f);
+            let fc3 = max (f3, 23.44895f);
+            let fb1 = max (20.0f, abs (fc1));
+            let fb2 = max (20.0f, abs (fc2));
+            let fb3 = max (20.0f, abs (fc3));
+            let x1 = gate * saw2 (pb1, sb1, vb1, c3 * fb1) / fb1;
+            let x2 = gate * saw2 (pb2, sb2, vb2, c3 * fb2) / fb2;
+            let x3 = gate * saw2 (pb3, sb3, vb3, c3 * fb3) / fb3;
+            d1[w] = x1;
+            d2[w] = x2;
+            d3[w] = x3;
+            let sq1 = diffdel (d1, x1, max (0.0f, min (8191.0f, c4 / fc1)));
+            let sq2 = diffdel (d2, x2, max (0.0f, min (8191.0f, c4 / fc2)));
+            let sq3 = diffdel (d3, x3, max (0.0f, min (8191.0f, c4 / fc3)));
+            tr1 = c6 * sq1 + c7 * tr1;
+            tr2 = c6 * sq2 + c7 * tr2;
+            tr3 = c6 * sq3 + c7 * tr3;
+            // pulse trains: delay (1 - duty) SR / f, duty through si.smooth(0.99)
+            dE = 0.99f * ((dXp - dutyV) + dE);
+            dXp = dutyV;
+            let dd = dutyC - dE;
+            let pt1 = diffdel (d1, x1, max (0.0f, min (8191.0f, sr * (dd / fc1))));
+            let pt2 = diffdel (d2, x2, max (0.0f, min (8191.0f, sr * (dd / fc2))));
+            let pt3 = diffdel (d3, x3, max (0.0f, min (8191.0f, sr * (dd / fc3))));
+            // pink noise: no.noise through no.pink_filter
+            seed = seed * 1103515245 + 12345;
+            let k0 = 0.5221894f * k3 + 4.656613e-10f * float (seed) + 2.494956f * k1 - 2.0172658f * k2;
+            let pink = 0.049922034f * k0 + 0.0506127f * k2 - (0.095993534f * k1 + 0.004408786f * k3);
+            k3 = k2;
+            k2 = k1;
+            k1 = k0;
+            let saws = ssawV * gate * (q1 / fa1 + q2 / fa2 + q3 / fa3);
+            let sqs = ssqV * (sq1 + sq2 + sq3);
+            let tris = triG * f1 * (tr1 + dt1 * tr2 + dt2 * tr3);
+            let pts = ptG * (pt1 + pt2 + pt3);
+            out1 <- seiV * in1 + (ampT + aE) * (c2 * (saws + sqs) + tris + pts + spnV * pink);
+            gate = 1.0f;
+            pm = 1073741823;
+            sm = 16777215;
+            w++;
+            advance();
+        }
+    }
+}

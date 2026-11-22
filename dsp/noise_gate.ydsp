@@ -1,0 +1,53 @@
+// dm.gate_demo (ef.gate_stereo of Faust's misceffects.lib, examples/dynamic/noiseGate.dsp), after
+// dsp/noise_gate.onda, without the bypass and the gate-gain meter like noise_gate.dsp. The level
+// |x| + |y| goes through a fast one-pole follower (pole of min(attack, release)); the raw gate is that
+// level above the threshold; a counter holds the gate open for `hold` after the raw gate falls; the
+// gate signal goes through the attack/release one-pole (an.amp_follower_ar) and multiplies both
+// channels. The parameter-only values are hoisted out of the sample loop by the optimiser.
+processor NoiseGate {
+    input stream in1;
+    input stream in2;
+    output stream out1;
+    output stream out2;
+    input parameter float threshold = -30.0 [[ min: -120.0, max: 0.0 ]];
+    input parameter float attack = 10.0 [[ min: 10.0, max: 10000.0 ]];
+    input parameter float hold = 200.0 [[ min: 1.0, max: 1000.0 ]];
+    input parameter float release = 100.0 [[ min: 1.0, max: 1000.0 ]];
+    state float lev;        // inlevel follower state
+    state int rawPrev;      // raw gate, previous sample
+    state int cnt;          // hold counter (saturating integers: it stops at INT_MIN, still <= 0)
+    state float env;        // gate gain follower state
+
+    process {
+        let t = 1.0 / sampleRate;
+        let att = max (t, 0.000001 * attack);                 // attack in s, at least one sample
+        let rel = max (t, 0.001 * release);
+        let poleMin = exp (-(t / min (att, rel)));            // ba.tau2pole(min(att, rel))
+        let oneMinusPoleMin = 1.0 - poleMin;
+        let thr = pow (10.0, 0.05 * threshold);               // ba.db2linear
+        let holdSamps = int (sampleRate * max (t, 0.001 * hold));
+        let poleRel = exp (-(t / rel));
+        let poleAtt = exp (-(t / att));
+        let x1 = in1;
+        let x2 = in2;
+        lev = oneMinusPoleMin * abs (abs (x1) + abs (x2)) + poleMin * lev;
+        let raw = select (lev > thr, 1, 0);
+        let reset = select (raw < rawPrev, 1, 0);           // the raw gate falls: restart the hold counter
+        rawPrev = raw;
+        cnt = max (holdSamps * reset, cnt - 1);
+        let gsig = abs (max (float (raw), select (cnt > 0, 1.0, 0.0)));
+        let c = select (gsig > env, poleAtt, poleRel);
+        env = gsig * (1.0 - c) + env * c;
+        out1 = x1 * env;
+        out2 = x2 * env;
+    }
+}
+
+graph Main {
+    input stream in1;
+    input stream in2;
+    output stream out1;
+    output stream out2;
+    node p = NoiseGate;
+    connection { in1 -> p.in1; in2 -> p.in2; p.out1 -> out1; p.out2 -> out2; }
+}

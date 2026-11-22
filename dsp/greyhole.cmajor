@@ -1,0 +1,526 @@
+// Port of dm.greyhole_demo (examples/reverb/greyhole.dsp): re.greyhole(dt, damp, size, early_diff,
+// feedback, mod_depth, mod_freq) of reverbs.lib with the demo's default controls, after dsp/greyhole.onda
+// (itself after the C++ faust generates: same expressions, same operation order). 3 nested diffusers
+// of 4 levels (24 rotations feeding de.fdelay1a allpasses whose lengths are primes chosen by size and
+// smoothed by smooth_init), si.smooth(damp), and a feedback path made of de.fdelay4 modulated by a
+// coupled-form oscillator, de.sdelay(65536, 22050, dt*SR) and the feedback gain. Every control goes
+// through linear_interp(x) = (x + x')/2, per sample as in faust. Constants for SR = 48 kHz like faust's
+// (0.00056689343*SR, PI/SR). The rotator of angle PI/2 is (-b, a), as faust simplifies it. The prime
+// table (ma.primes) is cut to its first 400 entries: size <= 3 reads at most index 321. The allpasses
+// are written out with scalar state, each one right after the line computing its input, their outputs
+// committed at the end of the sample. Each of their 16384-sample lines is padded with 16 floats (one
+// cache line): 64 KB apart, the 24 lines would all fall in the same L1 cache sets.
+processor Greyhole
+{
+    input stream float in1, in2;
+    output stream float out1, out2;
+    input event float delayTime [[ min: 0.001f, max: 1.45f, init: 0.2f ]];
+    input event float damping [[ min: 0.0f, max: 0.99f, init: 0.0f ]];
+    input event float size [[ min: 0.5f, max: 3.0f, init: 1.0f ]];
+    input event float diffusion [[ min: 0.0f, max: 0.99f, init: 0.5f ]];
+    input event float feedback [[ min: 0.0f, max: 1.0f, init: 0.9f ]];
+    input event float modDepth [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+    input event float modFreq [[ min: 0.0f, max: 10.0f, init: 2.0f ]];
+
+    let primes = float[400] (
+        2.0f, 3.0f, 5.0f, 7.0f, 11.0f, 13.0f, 17.0f, 19.0f, 23.0f, 29.0f, 31.0f, 37.0f,
+        41.0f, 43.0f, 47.0f, 53.0f, 59.0f, 61.0f, 67.0f, 71.0f, 73.0f, 79.0f, 83.0f, 89.0f,
+        97.0f, 101.0f, 103.0f, 107.0f, 109.0f, 113.0f, 127.0f, 131.0f, 137.0f, 139.0f, 149.0f, 151.0f,
+        157.0f, 163.0f, 167.0f, 173.0f, 179.0f, 181.0f, 191.0f, 193.0f, 197.0f, 199.0f, 211.0f, 223.0f,
+        227.0f, 229.0f, 233.0f, 239.0f, 241.0f, 251.0f, 257.0f, 263.0f, 269.0f, 271.0f, 277.0f, 281.0f,
+        283.0f, 293.0f, 307.0f, 311.0f, 313.0f, 317.0f, 331.0f, 337.0f, 347.0f, 349.0f, 353.0f, 359.0f,
+        367.0f, 373.0f, 379.0f, 383.0f, 389.0f, 397.0f, 401.0f, 409.0f, 419.0f, 421.0f, 431.0f, 433.0f,
+        439.0f, 443.0f, 449.0f, 457.0f, 461.0f, 463.0f, 467.0f, 479.0f, 487.0f, 491.0f, 499.0f, 503.0f,
+        509.0f, 521.0f, 523.0f, 541.0f, 547.0f, 557.0f, 563.0f, 569.0f, 571.0f, 577.0f, 587.0f, 593.0f,
+        599.0f, 601.0f, 607.0f, 613.0f, 617.0f, 619.0f, 631.0f, 641.0f, 643.0f, 647.0f, 653.0f, 659.0f,
+        661.0f, 673.0f, 677.0f, 683.0f, 691.0f, 701.0f, 709.0f, 719.0f, 727.0f, 733.0f, 739.0f, 743.0f,
+        751.0f, 757.0f, 761.0f, 769.0f, 773.0f, 787.0f, 797.0f, 809.0f, 811.0f, 821.0f, 823.0f, 827.0f,
+        829.0f, 839.0f, 853.0f, 857.0f, 859.0f, 863.0f, 877.0f, 881.0f, 883.0f, 887.0f, 907.0f, 911.0f,
+        919.0f, 929.0f, 937.0f, 941.0f, 947.0f, 953.0f, 967.0f, 971.0f, 977.0f, 983.0f, 991.0f, 997.0f,
+        1009.0f, 1013.0f, 1019.0f, 1021.0f, 1031.0f, 1033.0f, 1039.0f, 1049.0f, 1051.0f, 1061.0f, 1063.0f, 1069.0f,
+        1087.0f, 1091.0f, 1093.0f, 1097.0f, 1103.0f, 1109.0f, 1117.0f, 1123.0f, 1129.0f, 1151.0f, 1153.0f, 1163.0f,
+        1171.0f, 1181.0f, 1187.0f, 1193.0f, 1201.0f, 1213.0f, 1217.0f, 1223.0f, 1229.0f, 1231.0f, 1237.0f, 1249.0f,
+        1259.0f, 1277.0f, 1279.0f, 1283.0f, 1289.0f, 1291.0f, 1297.0f, 1301.0f, 1303.0f, 1307.0f, 1319.0f, 1321.0f,
+        1327.0f, 1361.0f, 1367.0f, 1373.0f, 1381.0f, 1399.0f, 1409.0f, 1423.0f, 1427.0f, 1429.0f, 1433.0f, 1439.0f,
+        1447.0f, 1451.0f, 1453.0f, 1459.0f, 1471.0f, 1481.0f, 1483.0f, 1487.0f, 1489.0f, 1493.0f, 1499.0f, 1511.0f,
+        1523.0f, 1531.0f, 1543.0f, 1549.0f, 1553.0f, 1559.0f, 1567.0f, 1571.0f, 1579.0f, 1583.0f, 1597.0f, 1601.0f,
+        1607.0f, 1609.0f, 1613.0f, 1619.0f, 1621.0f, 1627.0f, 1637.0f, 1657.0f, 1663.0f, 1667.0f, 1669.0f, 1693.0f,
+        1697.0f, 1699.0f, 1709.0f, 1721.0f, 1723.0f, 1733.0f, 1741.0f, 1747.0f, 1753.0f, 1759.0f, 1777.0f, 1783.0f,
+        1787.0f, 1789.0f, 1801.0f, 1811.0f, 1823.0f, 1831.0f, 1847.0f, 1861.0f, 1867.0f, 1871.0f, 1873.0f, 1877.0f,
+        1879.0f, 1889.0f, 1901.0f, 1907.0f, 1913.0f, 1931.0f, 1933.0f, 1949.0f, 1951.0f, 1973.0f, 1979.0f, 1987.0f,
+        1993.0f, 1997.0f, 1999.0f, 2003.0f, 2011.0f, 2017.0f, 2027.0f, 2029.0f, 2039.0f, 2053.0f, 2063.0f, 2069.0f,
+        2081.0f, 2083.0f, 2087.0f, 2089.0f, 2099.0f, 2111.0f, 2113.0f, 2129.0f, 2131.0f, 2137.0f, 2141.0f, 2143.0f,
+        2153.0f, 2161.0f, 2179.0f, 2203.0f, 2207.0f, 2213.0f, 2221.0f, 2237.0f, 2239.0f, 2243.0f, 2251.0f, 2267.0f,
+        2269.0f, 2273.0f, 2281.0f, 2287.0f, 2293.0f, 2297.0f, 2309.0f, 2311.0f, 2333.0f, 2339.0f, 2341.0f, 2347.0f,
+        2351.0f, 2357.0f, 2371.0f, 2377.0f, 2381.0f, 2383.0f, 2389.0f, 2393.0f, 2399.0f, 2411.0f, 2417.0f, 2423.0f,
+        2437.0f, 2441.0f, 2447.0f, 2459.0f, 2467.0f, 2473.0f, 2477.0f, 2503.0f, 2521.0f, 2531.0f, 2539.0f, 2543.0f,
+        2549.0f, 2551.0f, 2557.0f, 2579.0f, 2591.0f, 2593.0f, 2609.0f, 2617.0f, 2621.0f, 2633.0f, 2647.0f, 2657.0f,
+        2659.0f, 2663.0f, 2671.0f, 2677.0f, 2683.0f, 2687.0f, 2689.0f, 2693.0f, 2699.0f, 2707.0f, 2711.0f, 2713.0f,
+        2719.0f, 2729.0f, 2731.0f, 2741.0f);
+
+    float delayTimeV = 0.2f, dampingV = 0.0f, sizeV = 1.0f, diffusionV = 0.5f;
+    float feedbackV = 0.9f, modDepthV = 0.1f, modFreqV = 2.0f;
+    float c1, c2, dts;                    // 0.00056689343*SR, PI/SR, floor(min(65533, SR*dt))
+    float p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23;   // primes
+    float sl0, sl1, sl2, sl3, sl4, sl5, sl6, sl7, sl8, sl9, sl10, sl11, sl12, sl13, sl14, sl15, sl16, sl17, sl18, sl19, sl20, sl21, sl22, sl23;   // 0.0001*prime
+    float diffPrev, freqPrev, depthPrev, fbPrev, dampPrev;   // x' of linear_interp
+    float imp = 1.0f;                     // impulse: 1 at the first sample
+    float oscS, oscC;                     // fi.nlf2 oscillator
+    float sdv, sdi, sd0, sd1;             // de.sdelay control: step, crossfade, delays
+    float smL, spL, smR, spR;             // si.smooth error and previous input
+    float[1024] lineL, lineR;             // outputs, read back by de.fdelay4
+    float[65536] sdL, sdR;                // de.sdelay lines
+    int w;                                // write position of every line
+    float[16400] ap0;  float y0, xp0, r0;   // allpass 0
+    float[16400] ap1;  float y1, xp1, r1;   // allpass 1
+    float[16400] ap2;  float y2, xp2, r2;   // allpass 2
+    float[16400] ap3;  float y3, xp3, r3;   // allpass 3
+    float[16400] ap4;  float y4, xp4, r4;   // allpass 4
+    float[16400] ap5;  float y5, xp5, r5;   // allpass 5
+    float[16400] ap6;  float y6, xp6, r6;   // allpass 6
+    float[16400] ap7;  float y7, xp7, r7;   // allpass 7
+    float[16400] ap8;  float y8, xp8, r8;   // allpass 8
+    float[16400] ap9;  float y9, xp9, r9;   // allpass 9
+    float[16400] ap10;  float y10, xp10, r10;   // allpass 10
+    float[16400] ap11;  float y11, xp11, r11;   // allpass 11
+    float[16400] ap12;  float y12, xp12, r12;   // allpass 12
+    float[16400] ap13;  float y13, xp13, r13;   // allpass 13
+    float[16400] ap14;  float y14, xp14, r14;   // allpass 14
+    float[16400] ap15;  float y15, xp15, r15;   // allpass 15
+    float[16400] ap16;  float y16, xp16, r16;   // allpass 16
+    float[16400] ap17;  float y17, xp17, r17;   // allpass 17
+    float[16400] ap18;  float y18, xp18, r18;   // allpass 18
+    float[16400] ap19;  float y19, xp19, r19;   // allpass 19
+    float[16400] ap20;  float y20, xp20, r20;   // allpass 20
+    float[16400] ap21;  float y21, xp21, r21;   // allpass 21
+    float[16400] ap22;  float y22, xp22, r22;   // allpass 22
+    float[16400] ap23;  float y23, xp23, r23;   // allpass 23
+
+    event delayTime (float v) { delayTimeV = v; update(); }
+    event damping (float v) { dampingV = v; update(); }
+    event size (float v) { sizeV = v; update(); }
+    event diffusion (float v) { diffusionV = v; update(); }
+    event feedback (float v) { feedbackV = v; update(); }
+    event modDepth (float v) { modDepthV = v; update(); }
+    event modFreq (float v) { modFreqV = v; update(); }
+
+    void update()
+    {
+        let sr = float (processor.frequency);
+        c1 = 0.00056689343f * sr;
+        c2 = 3.1415927f / sr;
+        dts = floor (min (65533.0f, sr * delayTimeV));
+        p0 = primes[wrap<400> (min (399, max (0, int (59.0f * sizeV))))];
+        p1 = primes[wrap<400> (min (399, max (0, int (49.0f * sizeV))))];
+        p2 = primes[wrap<400> (min (399, max (0, int (36.0f * sizeV))))];
+        p3 = primes[wrap<400> (min (399, max (0, int (46.0f * sizeV))))];
+        p4 = primes[wrap<400> (min (399, max (0, int (23.0f * sizeV))))];
+        p5 = primes[wrap<400> (min (399, max (0, int (33.0f * sizeV))))];
+        p6 = primes[wrap<400> (min (399, max (0, int (10.0f * sizeV))))];
+        p7 = primes[wrap<400> (min (399, max (0, int (20.0f * sizeV))))];
+        p8 = primes[wrap<400> (min (399, max (0, int (78.0f * sizeV))))];
+        p9 = primes[wrap<400> (min (399, max (0, int (68.0f * sizeV))))];
+        p10 = primes[wrap<400> (min (399, max (0, int (55.0f * sizeV))))];
+        p11 = primes[wrap<400> (min (399, max (0, int (65.0f * sizeV))))];
+        p12 = primes[wrap<400> (min (399, max (0, int (42.0f * sizeV))))];
+        p13 = primes[wrap<400> (min (399, max (0, int (52.0f * sizeV))))];
+        p14 = primes[wrap<400> (min (399, max (0, int (29.0f * sizeV))))];
+        p15 = primes[wrap<400> (min (399, max (0, int (39.0f * sizeV))))];
+        p16 = primes[wrap<400> (min (399, max (0, int (97.0f * sizeV))))];
+        p17 = primes[wrap<400> (min (399, max (0, int (87.0f * sizeV))))];
+        p18 = primes[wrap<400> (min (399, max (0, int (74.0f * sizeV))))];
+        p19 = primes[wrap<400> (min (399, max (0, int (84.0f * sizeV))))];
+        p20 = primes[wrap<400> (min (399, max (0, int (61.0f * sizeV))))];
+        p21 = primes[wrap<400> (min (399, max (0, int (71.0f * sizeV))))];
+        p22 = primes[wrap<400> (min (399, max (0, int (48.0f * sizeV))))];
+        p23 = primes[wrap<400> (min (399, max (0, int (58.0f * sizeV))))];
+        sl0 = 0.0001f * p0;
+        sl1 = 0.0001f * p1;
+        sl2 = 0.0001f * p2;
+        sl3 = 0.0001f * p3;
+        sl4 = 0.0001f * p4;
+        sl5 = 0.0001f * p5;
+        sl6 = 0.0001f * p6;
+        sl7 = 0.0001f * p7;
+        sl8 = 0.0001f * p8;
+        sl9 = 0.0001f * p9;
+        sl10 = 0.0001f * p10;
+        sl11 = 0.0001f * p11;
+        sl12 = 0.0001f * p12;
+        sl13 = 0.0001f * p13;
+        sl14 = 0.0001f * p14;
+        sl15 = 0.0001f * p15;
+        sl16 = 0.0001f * p16;
+        sl17 = 0.0001f * p17;
+        sl18 = 0.0001f * p18;
+        sl19 = 0.0001f * p19;
+        sl20 = 0.0001f * p20;
+        sl21 = 0.0001f * p21;
+        sl22 = 0.0001f * p22;
+        sl23 = 0.0001f * p23;
+    }
+
+    void init() { update(); }
+
+    void main()
+    {
+        loop
+        {
+            // linear_interp of the controls
+            let sdf = diffusionV + diffPrev;
+            diffPrev = diffusionV;
+            let th = c2 * (modFreqV + freqPrev);
+            freqPrev = modFreqV;
+            let dd = c1 * (modDepthV + depthPrev);
+            depthPrev = modDepthV;
+            let fbs = feedbackV + fbPrev;
+            fbPrev = feedbackV;
+            let dms = dampingV + dampPrev;
+            dampPrev = dampingV;
+            let c = cos (0.5f * sdf);
+            let s = sin (0.5f * sdf);
+            let cn = cos (-0.5f * sdf);
+            let sn = sin (-0.5f * sdf);
+            // modulation oscillator (fi.nlf2)
+            let os = sin (th);
+            let oc = cos (th);
+            let nS = oscC * os + oscS * oc;
+            let nC = imp - os * oscS + oscC * oc;
+            oscS = nS;
+            oscC = nC;
+            // feedback path: de.fdelay4 read of the output lines, then de.sdelay
+            let t8L = dd * (1.0f + oscC);
+            let t9L = 8.500005f + t8L;
+            let t10L = floor (t9L);
+            let t11L = 7.0f - t10L + t8L;
+            let t12L = 8.0f - t10L + t8L;
+            let i13L = int (min (516.0f, max (-4.0f, t9L)));
+            let t14L = 9.0f - t10L + t8L;
+            let t15L = 10.0f - t10L + t8L;
+            let t16L = t15L * t14L;
+            let t17L = t16L * t12L;
+            let x0L = lineL[wrap<1024> ((w - (1 + min (516, max (0, i13L)))) & 1023)];
+            let x1L = lineL[wrap<1024> ((w - (1 + min (516, max (0, i13L + 1)))) & 1023)];
+            let x2L = lineL[wrap<1024> ((w - (1 + min (516, max (0, i13L + 2)))) & 1023)];
+            let x3L = lineL[wrap<1024> ((w - (1 + min (516, max (0, i13L + 3)))) & 1023)];
+            let x4L = lineL[wrap<1024> ((w - (1 + min (516, max (0, i13L + 4)))) & 1023)];
+            let fdL = (6.0f - t10L + t8L) * (t11L * (t12L * (0.041666668f * x0L * t14L - 0.16666667f * t15L * x1L) + 0.25f * t16L * x2L) - 0.16666667f * t17L * x3L) + 0.041666668f * t17L * t11L * x4L;
+            let t8R = dd * (1.0f + oscS);
+            let t9R = 8.500005f + t8R;
+            let t10R = floor (t9R);
+            let t11R = 7.0f - t10R + t8R;
+            let t12R = 8.0f - t10R + t8R;
+            let i13R = int (min (516.0f, max (-4.0f, t9R)));
+            let t14R = 9.0f - t10R + t8R;
+            let t15R = 10.0f - t10R + t8R;
+            let t16R = t15R * t14R;
+            let t17R = t16R * t12R;
+            let x0R = lineR[wrap<1024> ((w - (1 + min (516, max (0, i13R)))) & 1023)];
+            let x1R = lineR[wrap<1024> ((w - (1 + min (516, max (0, i13R + 1)))) & 1023)];
+            let x2R = lineR[wrap<1024> ((w - (1 + min (516, max (0, i13R + 2)))) & 1023)];
+            let x3R = lineR[wrap<1024> ((w - (1 + min (516, max (0, i13R + 3)))) & 1023)];
+            let x4R = lineR[wrap<1024> ((w - (1 + min (516, max (0, i13R + 4)))) & 1023)];
+            let fdR = (6.0f - t10R + t8R) * (t11R * (t12R * (0.041666668f * x0R * t14R - 0.16666667f * t15R * x1R) + 0.25f * t16R * x2R) - 0.16666667f * t17R * x3R) + 0.041666668f * t17R * t11R * x4R;
+            sdL[wrap<65536> (w)] = fdL;
+            sdR[wrap<65536> (w)] = fdR;
+            var v = 0.0f;
+            if (sdv != 0.0f)
+            {
+                if (sdi > 0.0f && sdi < 1.0f) v = sdv;
+            }
+            else if (sdi == 0.0f && dts != sd0) v = 0.000045351473f;
+            else if (sdi == 1.0f && dts != sd1) v = -0.000045351473f;
+            var ni = max (0.0f, min (1.0f, sdi + v));
+            var n0 = sd0;
+            if (sdi >= 1.0f && sd1 != dts) n0 = dts;
+            var n1 = sd1;
+            if (sdi <= 0.0f && sd0 != dts) n1 = dts;
+            sdv = v;
+            sdi = ni;
+            sd0 = n0;
+            sd1 = n1;
+            let k0 = int (min (65536.0f, max (0.0f, sd0)));
+            let k1 = int (min (65536.0f, max (0.0f, sd1)));
+            let aL = sdL[wrap<65536> ((w - k0) & 65535)];
+            let x1 = in1 + 0.5f * (aL + sdi * (sdL[wrap<65536> ((w - k1) & 65535)] - aL)) * fbs;
+            let aR = sdR[wrap<65536> ((w - k0) & 65535)];
+            let x2 = in2 + 0.5f * fbs * (aR + sdi * (sdR[wrap<65536> ((w - k1) & 65535)] - aR));
+            // diffuser 1 (angle diff)
+            let a1 = x1 * c - s * r6;
+            let a2 = c * a1 - s * r4;
+            let a3 = c * a2 - s * r2;
+            let b1 = c * x2 - s * r7;
+            let b2 = c * b1 - s * r5;
+            let b3 = c * b2 - s * r3;
+            let i0 = c * a3 - r1 * s;
+            y0 = sl0 + 0.9999f * (imp * p0 + y0);
+            let dmo0 = -1.49999f + y0;
+            ap0[wrap<16384> (w & 16383)] = i0;
+            let xd0 = ap0[wrap<16384> ((w - int (min (8192.0f, max (0.0f, dmo0)))) & 16383)];
+            let fl0 = floor (dmo0);
+            let rn0 = xp0 - (2.0f - y0 + fl0) * (r0 - xd0) / (y0 - fl0);
+            xp0 = xd0;
+            let i1 = r0 * s - c * b3;
+            y1 = sl1 + 0.9999f * (imp * p1 + y1);
+            let dmo1 = -1.49999f + y1;
+            ap1[wrap<16384> (w & 16383)] = i1;
+            let xd1 = ap1[wrap<16384> ((w - int (min (8192.0f, max (0.0f, dmo1)))) & 16383)];
+            let fl1 = floor (dmo1);
+            let rn1 = xp1 - (2.0f - y1 + fl1) * (r1 - xd1) / (y1 - fl1);
+            xp1 = xd1;
+            let i2 = r0 * c + s * b3;
+            y2 = sl2 + 0.9999f * (imp * p2 + y2);
+            let dmo2 = -1.49999f + y2;
+            ap2[wrap<16384> (w & 16383)] = i2;
+            let xd2 = ap2[wrap<16384> ((w - int (min (8192.0f, max (0.0f, dmo2)))) & 16383)];
+            let fl2 = floor (dmo2);
+            let ca2 = 2.0f - y2 + fl2;
+            let cb2 = y2 - fl2;
+            let rn2 = -(r2 * ca2 / cb2 + ca2 * xd2 / cb2 + xp2);
+            xp2 = xd2;
+            let i3 = r1 * c + s * a3;
+            y3 = sl3 + 0.9999f * (imp * p3 + y3);
+            let dmo3 = -1.49999f + y3;
+            ap3[wrap<16384> (w & 16383)] = i3;
+            let xd3 = ap3[wrap<16384> ((w - int (min (8192.0f, max (0.0f, dmo3)))) & 16383)];
+            let fl3 = floor (dmo3);
+            let rn3 = xp3 - (2.0f - y3 + fl3) * (r3 - xd3) / (y3 - fl3);
+            xp3 = xd3;
+            let i4 = c * r3 + s * b2;
+            y4 = sl4 + 0.9999f * (imp * p4 + y4);
+            let dmo4 = -1.49999f + y4;
+            ap4[wrap<16384> (w & 16383)] = i4;
+            let xd4 = ap4[wrap<16384> ((w - int (min (8192.0f, max (0.0f, dmo4)))) & 16383)];
+            let fl4 = floor (dmo4);
+            let ca4 = 2.0f - y4 + fl4;
+            let cb4 = y4 - fl4;
+            let rn4 = -(r4 * ca4 / cb4 + ca4 * xd4 / cb4 + xp4);
+            xp4 = xd4;
+            let i5 = r2 * c + s * a2;
+            y5 = sl5 + 0.9999f * (imp * p5 + y5);
+            let dmo5 = -1.49999f + y5;
+            ap5[wrap<16384> (w & 16383)] = i5;
+            let xd5 = ap5[wrap<16384> ((w - int (min (8192.0f, max (0.0f, dmo5)))) & 16383)];
+            let fl5 = floor (dmo5);
+            let rn5 = xp5 - (2.0f - y5 + fl5) * (r5 - xd5) / (y5 - fl5);
+            xp5 = xd5;
+            let i6 = c * r5 + s * b1;
+            y6 = sl6 + 0.9999f * (imp * p6 + y6);
+            let dmo6 = -1.49999f + y6;
+            ap6[wrap<16384> (w & 16383)] = i6;
+            let xd6 = ap6[wrap<16384> ((w - int (min (8192.0f, max (0.0f, dmo6)))) & 16383)];
+            let fl6 = floor (dmo6);
+            let ca6 = 2.0f - y6 + fl6;
+            let cb6 = y6 - fl6;
+            let rn6 = -(r6 * ca6 / cb6 + ca6 * xd6 / cb6 + xp6);
+            xp6 = xd6;
+            let i7 = r4 * c + s * a1;
+            y7 = sl7 + 0.9999f * (imp * p7 + y7);
+            let dmo7 = -1.49999f + y7;
+            ap7[wrap<16384> (w & 16383)] = i7;
+            let xd7 = ap7[wrap<16384> ((w - int (min (8192.0f, max (0.0f, dmo7)))) & 16383)];
+            let fl7 = floor (dmo7);
+            let rn7 = xp7 - (2.0f - y7 + fl7) * (r7 - xd7) / (y7 - fl7);
+            xp7 = xd7;
+            let l1 = r6 * c + s * x1;
+            let q1 = c * r7 + s * x2;
+            // diffuser 2 (angle -diff)
+            let d1 = l1 * cn - sn * r14;
+            let d2 = cn * d1 - sn * r12;
+            let d3 = cn * d2 - sn * r10;
+            let e1 = cn * q1 - sn * r15;
+            let e2 = cn * e1 - sn * r13;
+            let e3 = cn * e2 - sn * r11;
+            let i8 = cn * d3 - r9 * sn;
+            y8 = sl8 + 0.9999f * (imp * p8 + y8);
+            let dmo8 = -1.49999f + y8;
+            ap8[wrap<16384> (w & 16383)] = i8;
+            let xd8 = ap8[wrap<16384> ((w - int (min (8192.0f, max (0.0f, dmo8)))) & 16383)];
+            let fl8 = floor (dmo8);
+            let rn8 = xp8 - (2.0f - y8 + fl8) * (r8 - xd8) / (y8 - fl8);
+            xp8 = xd8;
+            let i9 = r8 * sn - cn * e3;
+            y9 = sl9 + 0.9999f * (imp * p9 + y9);
+            let dmo9 = -1.49999f + y9;
+            ap9[wrap<16384> (w & 16383)] = i9;
+            let xd9 = ap9[wrap<16384> ((w - int (min (8192.0f, max (0.0f, dmo9)))) & 16383)];
+            let fl9 = floor (dmo9);
+            let rn9 = xp9 - (2.0f - y9 + fl9) * (r9 - xd9) / (y9 - fl9);
+            xp9 = xd9;
+            let i10 = r8 * cn + sn * e3;
+            y10 = sl10 + 0.9999f * (imp * p10 + y10);
+            let dmo10 = -1.49999f + y10;
+            ap10[wrap<16384> (w & 16383)] = i10;
+            let xd10 = ap10[wrap<16384> ((w - int (min (8192.0f, max (0.0f, dmo10)))) & 16383)];
+            let fl10 = floor (dmo10);
+            let ca10 = 2.0f - y10 + fl10;
+            let cb10 = y10 - fl10;
+            let rn10 = -(r10 * ca10 / cb10 + ca10 * xd10 / cb10 + xp10);
+            xp10 = xd10;
+            let i11 = r9 * cn + sn * d3;
+            y11 = sl11 + 0.9999f * (imp * p11 + y11);
+            let dmo11 = -1.49999f + y11;
+            ap11[wrap<16384> (w & 16383)] = i11;
+            let xd11 = ap11[wrap<16384> ((w - int (min (8192.0f, max (0.0f, dmo11)))) & 16383)];
+            let fl11 = floor (dmo11);
+            let rn11 = xp11 - (2.0f - y11 + fl11) * (r11 - xd11) / (y11 - fl11);
+            xp11 = xd11;
+            let i12 = cn * r11 + sn * e2;
+            y12 = sl12 + 0.9999f * (imp * p12 + y12);
+            let dmo12 = -1.49999f + y12;
+            ap12[wrap<16384> (w & 16383)] = i12;
+            let xd12 = ap12[wrap<16384> ((w - int (min (8192.0f, max (0.0f, dmo12)))) & 16383)];
+            let fl12 = floor (dmo12);
+            let ca12 = 2.0f - y12 + fl12;
+            let cb12 = y12 - fl12;
+            let rn12 = -(r12 * ca12 / cb12 + ca12 * xd12 / cb12 + xp12);
+            xp12 = xd12;
+            let i13 = r10 * cn + sn * d2;
+            y13 = sl13 + 0.9999f * (imp * p13 + y13);
+            let dmo13 = -1.49999f + y13;
+            ap13[wrap<16384> (w & 16383)] = i13;
+            let xd13 = ap13[wrap<16384> ((w - int (min (8192.0f, max (0.0f, dmo13)))) & 16383)];
+            let fl13 = floor (dmo13);
+            let rn13 = xp13 - (2.0f - y13 + fl13) * (r13 - xd13) / (y13 - fl13);
+            xp13 = xd13;
+            let i14 = cn * r13 + sn * e1;
+            y14 = sl14 + 0.9999f * (imp * p14 + y14);
+            let dmo14 = -1.49999f + y14;
+            ap14[wrap<16384> (w & 16383)] = i14;
+            let xd14 = ap14[wrap<16384> ((w - int (min (8192.0f, max (0.0f, dmo14)))) & 16383)];
+            let fl14 = floor (dmo14);
+            let ca14 = 2.0f - y14 + fl14;
+            let cb14 = y14 - fl14;
+            let rn14 = -(r14 * ca14 / cb14 + ca14 * xd14 / cb14 + xp14);
+            xp14 = xd14;
+            let i15 = r12 * cn + sn * d1;
+            y15 = sl15 + 0.9999f * (imp * p15 + y15);
+            let dmo15 = -1.49999f + y15;
+            ap15[wrap<16384> (w & 16383)] = i15;
+            let xd15 = ap15[wrap<16384> ((w - int (min (8192.0f, max (0.0f, dmo15)))) & 16383)];
+            let fl15 = floor (dmo15);
+            let rn15 = xp15 - (2.0f - y15 + fl15) * (r15 - xd15) / (y15 - fl15);
+            xp15 = xd15;
+            let l2 = r14 * cn + sn * l1;
+            let q2 = cn * r15 + sn * q1;
+            // diffuser 3 (angle diff)
+            let f1 = c * l2 - s * r22;
+            let f2 = c * f1 - s * r20;
+            let f3 = c * f2 - s * r18;
+            let g1 = c * q2 - s * r23;
+            let g2 = c * g1 - s * r21;
+            let g3 = c * g2 - s * r19;
+            let i16 = c * f3 - s * r17;
+            y16 = sl16 + 0.9999f * (imp * p16 + y16);
+            let dmo16 = -1.49999f + y16;
+            ap16[wrap<16384> (w & 16383)] = i16;
+            let xd16 = ap16[wrap<16384> ((w - int (min (8192.0f, max (0.0f, dmo16)))) & 16383)];
+            let fl16 = floor (dmo16);
+            let rn16 = xp16 - (2.0f - y16 + fl16) * (r16 - xd16) / (y16 - fl16);
+            xp16 = xd16;
+            let i17 = s * r16 - c * g3;
+            y17 = sl17 + 0.9999f * (imp * p17 + y17);
+            let dmo17 = -1.49999f + y17;
+            ap17[wrap<16384> (w & 16383)] = i17;
+            let xd17 = ap17[wrap<16384> ((w - int (min (8192.0f, max (0.0f, dmo17)))) & 16383)];
+            let fl17 = floor (dmo17);
+            let rn17 = xp17 - (2.0f - y17 + fl17) * (r17 - xd17) / (y17 - fl17);
+            xp17 = xd17;
+            let i18 = c * r16 + s * g3;
+            y18 = sl18 + 0.9999f * (imp * p18 + y18);
+            let dmo18 = -1.49999f + y18;
+            ap18[wrap<16384> (w & 16383)] = i18;
+            let xd18 = ap18[wrap<16384> ((w - int (min (8192.0f, max (0.0f, dmo18)))) & 16383)];
+            let fl18 = floor (dmo18);
+            let ca18 = 2.0f - y18 + fl18;
+            let cb18 = y18 - fl18;
+            let rn18 = -(r18 * ca18 / cb18 + ca18 * xd18 / cb18 + xp18);
+            xp18 = xd18;
+            let i19 = c * r17 + s * f3;
+            y19 = sl19 + 0.9999f * (imp * p19 + y19);
+            let dmo19 = -1.49999f + y19;
+            ap19[wrap<16384> (w & 16383)] = i19;
+            let xd19 = ap19[wrap<16384> ((w - int (min (8192.0f, max (0.0f, dmo19)))) & 16383)];
+            let fl19 = floor (dmo19);
+            let rn19 = xp19 - (2.0f - y19 + fl19) * (r19 - xd19) / (y19 - fl19);
+            xp19 = xd19;
+            let i20 = c * r19 + s * g2;
+            y20 = sl20 + 0.9999f * (imp * p20 + y20);
+            let dmo20 = -1.49999f + y20;
+            ap20[wrap<16384> (w & 16383)] = i20;
+            let xd20 = ap20[wrap<16384> ((w - int (min (8192.0f, max (0.0f, dmo20)))) & 16383)];
+            let fl20 = floor (dmo20);
+            let ca20 = 2.0f - y20 + fl20;
+            let cb20 = y20 - fl20;
+            let rn20 = -(r20 * ca20 / cb20 + ca20 * xd20 / cb20 + xp20);
+            xp20 = xd20;
+            let i21 = c * r18 + s * f2;
+            y21 = sl21 + 0.9999f * (imp * p21 + y21);
+            let dmo21 = -1.49999f + y21;
+            ap21[wrap<16384> (w & 16383)] = i21;
+            let xd21 = ap21[wrap<16384> ((w - int (min (8192.0f, max (0.0f, dmo21)))) & 16383)];
+            let fl21 = floor (dmo21);
+            let rn21 = xp21 - (2.0f - y21 + fl21) * (r21 - xd21) / (y21 - fl21);
+            xp21 = xd21;
+            let i22 = c * r21 + s * g1;
+            y22 = sl22 + 0.9999f * (imp * p22 + y22);
+            let dmo22 = -1.49999f + y22;
+            ap22[wrap<16384> (w & 16383)] = i22;
+            let xd22 = ap22[wrap<16384> ((w - int (min (8192.0f, max (0.0f, dmo22)))) & 16383)];
+            let fl22 = floor (dmo22);
+            let ca22 = 2.0f - y22 + fl22;
+            let cb22 = y22 - fl22;
+            let rn22 = -(r22 * ca22 / cb22 + ca22 * xd22 / cb22 + xp22);
+            xp22 = xd22;
+            let i23 = c * r20 + s * f1;
+            y23 = sl23 + 0.9999f * (imp * p23 + y23);
+            let dmo23 = -1.49999f + y23;
+            ap23[wrap<16384> (w & 16383)] = i23;
+            let xd23 = ap23[wrap<16384> ((w - int (min (8192.0f, max (0.0f, dmo23)))) & 16383)];
+            let fl23 = floor (dmo23);
+            let rn23 = xp23 - (2.0f - y23 + fl23) * (r23 - xd23) / (y23 - fl23);
+            xp23 = xd23;
+            let yl = c * r22 + s * l2;
+            let yr = c * r23 + s * q2;
+            // allpass outputs, one sample late
+            r0 = rn0;
+            r1 = rn1;
+            r2 = rn2;
+            r3 = rn3;
+            r4 = rn4;
+            r5 = rn5;
+            r6 = rn6;
+            r7 = rn7;
+            r8 = rn8;
+            r9 = rn9;
+            r10 = rn10;
+            r11 = rn11;
+            r12 = rn12;
+            r13 = rn13;
+            r14 = rn14;
+            r15 = rn15;
+            r16 = rn16;
+            r17 = rn17;
+            r18 = rn18;
+            r19 = rn19;
+            r20 = rn20;
+            r21 = rn21;
+            r22 = rn22;
+            r23 = rn23;
+            // si.smooth(damp), the outputs and the lines read back by de.fdelay4
+            smL = 0.5f * dms * (smL + min (3.4028234663852886e38f, spL - yl));
+            spL = yl;
+            let oL = yl + smL;
+            smR = 0.5f * dms * (smR + min (3.4028234663852886e38f, spR - yr));
+            spR = yr;
+            let oR = yr + smR;
+            lineL[wrap<1024> (w & 1023)] = oL;
+            lineR[wrap<1024> (w & 1023)] = oR;
+            out1 <- oL;
+            out2 <- oR;
+            imp = 0.0f;
+            w = (w + 1) & 65535;
+            advance();
+        }
+    }
+}

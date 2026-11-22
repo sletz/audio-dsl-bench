@@ -13,6 +13,8 @@ N=$1
 [ -x "$HERE/tools/faust-cert4" ] || { echo "build.sh: tools/faust-cert4 missing, run tools/build-faust-cert4.sh" >&2; exit 1; }
 [ -f "$HERE/sr48/platform.lib" ] || "$HERE/tools/make-sr48.sh"
 # program-independent engines, built once: the YDSP JIT library (YUP, CMake) and the Cmajor JIT wrapper
+# (SKIP_COMMON=1 when several builds run at once and these are already built)
+if [ -z "${SKIP_COMMON:-}" ]; then
 if [ ! -f "$HERE/build/_ydsp/build.ninja" ]; then
   cmake -S "$HERE/tools/ydsp" -B "$HERE/build/_ydsp" -G Ninja -DCMAKE_BUILD_TYPE=Release -DYUP_ROOT="$YUP_ROOT" > /dev/null
 fi
@@ -20,6 +22,7 @@ cmake --build "$HERE/build/_ydsp" > /dev/null
 mkdir -p "$HERE/build/_common"
 if [ ! -f "$HERE/build/_common/cmaj_jit.o" ] || [ "$HERE/tools/cmaj_jit.cpp" -nt "$HERE/build/_common/cmaj_jit.o" ]; then
   clang++ -std=c++17 -O2 -mcpu=native -I/usr/local/include -c "$HERE/tools/cmaj_jit.cpp" -o "$HERE/build/_common/cmaj_jit.o"
+fi
 fi
 D="$HERE/build/$N"
 rm -rf "$D"; mkdir -p "$D"; cd "$D"

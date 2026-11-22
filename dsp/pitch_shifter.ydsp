@@ -1,0 +1,42 @@
+// ef.transpose(window, xfade, shift) of Faust's misceffects.lib, after dsp/pitch_shifter.onda
+// (shift at 5 semitones instead of 0). A phasor d runs through [0, window) (fmod); two taps of a
+// linearly interpolated delay line, at d and d + window, are crossfaded by min(d / xfade, 1).
+// The delay line index is masked with a power of two.
+processor PitchShifter {
+    input stream in1;
+    output stream out1;
+    input parameter float window = 1000.0 [[ min: 50.0, max: 10000.0 ]];
+    input parameter float xfade = 10.0 [[ min: 1.0, max: 10000.0 ]];
+    input parameter float shift = 5.0 [[ min: -12.0, max: 12.0 ]];
+
+    state float buf[32768];   // de.fdelay(65536, ...) line, sized like Faust's (d + window < 20001)
+    state int iota;
+    state float d;            // read position, in [0, window)
+
+    process {
+        let step = window + (1.0 - pow (2.0, 0.083333336 * shift));
+        let ix = 1.0 / xfade;
+        let omw = 1.0 - window;
+        buf[iota] = in1;
+        d = fmod (step + d, window);
+        let i1 = int (min (65537.0, max (-1.0, d)));
+        let f1 = floor (d);
+        let xf = min (ix * d, 1.0);
+        let d2 = window + d;
+        let i2 = int (min (65537.0, max (-1.0, d2)));
+        let f2 = floor (d2);
+        let a0 = buf[(iota - min (65537, max (0, i1))) & 32767];
+        let a1 = buf[(iota - min (65537, max (0, i1 + 1))) & 32767];
+        let b0 = buf[(iota - min (65537, max (0, i2))) & 32767];
+        let b1 = buf[(iota - min (65537, max (0, i2 + 1))) & 32767];
+        out1 = (a0 * (1.0 - d + f1) + (d - f1) * a1) * xf + (b0 * (omw - d + f2) + (window - f2 + d) * b1) * (1.0 - xf);
+        iota = (iota + 1) & 32767;
+    }
+}
+
+graph Main {
+    input stream in1;
+    output stream out1;
+    node p = PitchShifter;
+    connection { in1 -> p.in1; p.out1 -> out1; }
+}

@@ -1,0 +1,114 @@
+// examples/ambisonics/fourSourcesToOcto.dsp, after dsp/hoa_octo.onda: four mono sources encoded at
+// order 3 by ho.map (distance gain 1/max(r^2, 1), circular harmonics W, S1, C1, S2, C2, S3, C3,
+// ho.wider with the opening min(r, 1)), radius and angle smoothed by si.smooth(tau2pole(0.02)),
+// summed, then ho.optimInPhase(3) and ho.decoder(3, 8) folded in one 8 x 7 matrix of constants.
+processor HoaOcto
+{
+    input stream float in1;
+    input stream float in2;
+    input stream float in3;
+    input stream float in4;
+    output stream float out1;
+    output stream float out2;
+    output stream float out3;
+    output stream float out4;
+    output stream float out5;
+    output stream float out6;
+    output stream float out7;
+    output stream float out8;
+    input event float Radius1 [[ min: 0.0f, max: 5.0f, init: 1.0f ]];
+    input event float Angle1 [[ min: -6.2831855f, max: 6.2831855f, init: 0.0f ]];
+    input event float Radius2 [[ min: 0.0f, max: 5.0f, init: 1.0f ]];
+    input event float Angle2 [[ min: -6.2831855f, max: 6.2831855f, init: 0.0f ]];
+    input event float Radius3 [[ min: 0.0f, max: 5.0f, init: 1.0f ]];
+    input event float Angle3 [[ min: -6.2831855f, max: 6.2831855f, init: 0.0f ]];
+    input event float Radius4 [[ min: 0.0f, max: 5.0f, init: 1.0f ]];
+    input event float Angle4 [[ min: -6.2831855f, max: 6.2831855f, init: 0.0f ]];
+
+    // Speaker k at 2 pi k / 8: 0.5 * 2/8 for W, then 2/8 * inPhase weight (0.75, 0.3, 0.05) * sin/cos(n a_k)
+    let M = float[8, 7] (
+        (0.125f, 0.0f, 0.1875f, 0.0f, 0.075f, 0.0f, 0.0125f),
+        (0.125f, 0.13258252f, 0.13258252f, 0.075f, 0.0f, 0.008838835f, -0.008838835f),
+        (0.125f, 0.1875f, 0.0f, 0.0f, -0.075f, -0.0125f, 0.0f),
+        (0.125f, 0.13258252f, -0.13258252f, -0.075f, 0.0f, 0.008838835f, 0.008838835f),
+        (0.125f, 0.0f, -0.1875f, 0.0f, 0.075f, 0.0f, -0.0125f),
+        (0.125f, -0.13258252f, -0.13258252f, 0.075f, 0.0f, -0.008838835f, 0.008838835f),
+        (0.125f, -0.1875f, 0.0f, 0.0f, -0.075f, 0.0125f, 0.0f),
+        (0.125f, -0.13258252f, 0.13258252f, -0.075f, 0.0f, -0.008838835f, -0.008838835f));
+
+    float r1V = 1.0f, a1V = 0.0f, r2V = 1.0f, a2V = 0.0f, r3V = 1.0f, a3V = 0.0f, r4V = 1.0f, a4V = 0.0f;
+    float pole;
+    // si.smooth (error form) states of the radii and angles: y = x + e, e = pole * (e + x[n-1] - x)
+    float rE1, rXp1, aE1, aXp1, rE2, rXp2, aE2, aXp2, rE3, rXp3, aE3, aXp3, rE4, rXp4, aE4, aXp4;
+
+    event Radius1 (float v) { r1V = v; }
+    event Angle1 (float v) { a1V = v; }
+    event Radius2 (float v) { r2V = v; }
+    event Angle2 (float v) { a2V = v; }
+    event Radius3 (float v) { r3V = v; }
+    event Angle3 (float v) { a3V = v; }
+    event Radius4 (float v) { r4V = v; }
+    event Angle4 (float v) { a4V = v; }
+
+    void init()
+    {
+        pole = exp (-(50.0f / float (processor.frequency)));    // ba.tau2pole(0.02)
+    }
+
+    float smooth (float& e, float& xp, float x)
+    {
+        e = pole * (min (3.4028235e38f, xp - x) + e);
+        xp = x;
+        return x + e;
+    }
+
+    // ho.map(3, x, r, a) added to the 7 channels W, S1, C1, S2, C2, S3, C3
+    void encode (float[7]& ch, float x, float r, float a)
+    {
+        // distance gain and opening of ho.wider
+        let op = min (r, 1.0f);
+        let g = x * (1.0f + 1.3862944f * (1.0f - op)) / max (r * r, 1.0f);
+        // ho.wider weights of orders 1, 2, 3: ((op * log 4) - log n) / (log(n + 1) - log n), clipped to [0, 1]
+        let g1 = g * clamp (2.0f * op, 0.0f, 1.0f);
+        let g2 = g * clamp (2.4663033f * (-0.6931472f + 1.3862944f * op), 0.0f, 1.0f);
+        let g3 = g * clamp (3.4760594f * (-1.0986123f + 1.3862944f * op), 0.0f, 1.0f);
+        let a2 = 2.0f * a;
+        let a3 = 3.0f * a;
+        ch[0] += g;
+        ch[1] += g1 * sin (a);
+        ch[2] += g1 * cos (a);
+        ch[3] += g2 * sin (a2);
+        ch[4] += g2 * cos (a2);
+        ch[5] += g3 * sin (a3);
+        ch[6] += g3 * cos (a3);
+    }
+
+    void main()
+    {
+        loop
+        {
+            float[7] ch;
+            encode (ch, in1, smooth (rE1, rXp1, r1V), smooth (aE1, aXp1, a1V));
+            encode (ch, in2, smooth (rE2, rXp2, r2V), smooth (aE2, aXp2, a2V));
+            encode (ch, in3, smooth (rE3, rXp3, r3V), smooth (aE3, aXp3, a3V));
+            encode (ch, in4, smooth (rE4, rXp4, r4V), smooth (aE4, aXp4, a4V));
+            float[8] y;
+            for (wrap<8> k)
+            {
+                var acc = 0.0f;
+                for (wrap<7> j)
+                    acc += M[k, j] * ch[j];
+                y[k] = acc;
+            }
+            out1 <- y[0];
+            out2 <- y[1];
+            out3 <- y[2];
+            out4 <- y[3];
+            out5 <- y[4];
+            out6 <- y[5];
+            out7 <- y[6];
+            out8 <- y[7];
+            advance();
+        }
+    }
+}

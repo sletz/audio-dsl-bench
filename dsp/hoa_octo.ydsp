@@ -1,0 +1,139 @@
+// examples/ambisonics/fourSourcesToOcto.dsp, after dsp/hoa_octo.onda: four mono sources encoded at
+// order 3 by ho.map (distance gain 1/max(r^2, 1), circular harmonics W, S1, C1, S2, C2, S3, C3,
+// ho.wider with the opening min(r, 1)), radius and angle smoothed by si.smooth(tau2pole(0.02)),
+// summed, then ho.optimInPhase(3) and ho.decoder(3, 8) folded in one 8 x 7 matrix of constants.
+// YDSP streams are scalars in a sample body and cannot be gathered in an array: the four sources and
+// the eight dot products are written out.
+
+// ho.wider weights of orders 1, 2, 3: ((op * log 4) - log n) / (log(n + 1) - log n), clipped to [0, 1]
+func wider1 (op: float): float { return clamp (2.0 * op, 0.0, 1.0); }
+func wider2 (op: float): float { return clamp (2.4663033 * (-0.6931472 + 1.3862944 * op), 0.0, 1.0); }
+func wider3 (op: float): float { return clamp (3.4760594 * (-1.0986123 + 1.3862944 * op), 0.0, 1.0); }
+
+processor HoaOcto {
+    input stream in1;
+    input stream in2;
+    input stream in3;
+    input stream in4;
+    output stream out1;
+    output stream out2;
+    output stream out3;
+    output stream out4;
+    output stream out5;
+    output stream out6;
+    output stream out7;
+    output stream out8;
+    input parameter float Radius1 = 1.0 [[ min: 0.0, max: 5.0 ]];
+    input parameter float Angle1 = 0.0 [[ min: -6.2831855, max: 6.2831855 ]];
+    input parameter float Radius2 = 1.0 [[ min: 0.0, max: 5.0 ]];
+    input parameter float Angle2 = 0.0 [[ min: -6.2831855, max: 6.2831855 ]];
+    input parameter float Radius3 = 1.0 [[ min: 0.0, max: 5.0 ]];
+    input parameter float Angle3 = 0.0 [[ min: -6.2831855, max: 6.2831855 ]];
+    input parameter float Radius4 = 1.0 [[ min: 0.0, max: 5.0 ]];
+    input parameter float Angle4 = 0.0 [[ min: -6.2831855, max: 6.2831855 ]];
+    // speaker k at 2 pi k / 8: 0.5 * 2/8 for W, then 2/8 * inPhase weight (0.75, 0.3, 0.05) * sin/cos(n a_k)
+    state float m[] = {
+        0.125, 0.0, 0.1875, 0.0, 0.075, 0.0, 0.0125,
+        0.125, 0.13258252, 0.13258252, 0.075, 0.0, 0.008838835, -0.008838835,
+        0.125, 0.1875, 0.0, 0.0, -0.075, -0.0125, 0.0,
+        0.125, 0.13258252, -0.13258252, -0.075, 0.0, 0.008838835, 0.008838835,
+        0.125, 0.0, -0.1875, 0.0, 0.075, 0.0, -0.0125,
+        0.125, -0.13258252, -0.13258252, 0.075, 0.0, -0.008838835, 0.008838835,
+        0.125, -0.1875, 0.0, 0.0, -0.075, 0.0125, 0.0,
+        0.125, -0.13258252, 0.13258252, -0.075, 0.0, -0.008838835, -0.008838835
+    };
+    // si.smooth (error form) states of the radii and angles: y = x + e, e = pole * (e + x[n-1] - x)
+    state float rE1, rXp1, aE1, aXp1, rE2, rXp2, aE2, aXp2, rE3, rXp3, aE3, aXp3, rE4, rXp4, aE4, aXp4;
+    state float pole;
+
+    init {
+        pole = exp (-(50.0 / sampleRate));     // ba.tau2pole(0.02)
+    }
+
+    process {
+        // source 1: smoothed radius and angle, ho.map distance gain, ho.wider weights
+        rE1 = pole * (min (3.4028235e38, rXp1 - Radius1) + rE1);
+        rXp1 = Radius1;
+        let r1 = Radius1 + rE1;
+        aE1 = pole * (min (3.4028235e38, aXp1 - Angle1) + aE1);
+        aXp1 = Angle1;
+        let an1 = Angle1 + aE1;
+        let op1 = min (r1, 1.0);
+        let g1 = in1 * (1.0 + 1.3862944 * (1.0 - op1)) / max (r1 * r1, 1.0);
+        let g1a = g1 * wider1 (op1);
+        let g1b = g1 * wider2 (op1);
+        let g1c = g1 * wider3 (op1);
+        // source 2: smoothed radius and angle, ho.map distance gain, ho.wider weights
+        rE2 = pole * (min (3.4028235e38, rXp2 - Radius2) + rE2);
+        rXp2 = Radius2;
+        let r2 = Radius2 + rE2;
+        aE2 = pole * (min (3.4028235e38, aXp2 - Angle2) + aE2);
+        aXp2 = Angle2;
+        let an2 = Angle2 + aE2;
+        let op2 = min (r2, 1.0);
+        let g2 = in2 * (1.0 + 1.3862944 * (1.0 - op2)) / max (r2 * r2, 1.0);
+        let g2a = g2 * wider1 (op2);
+        let g2b = g2 * wider2 (op2);
+        let g2c = g2 * wider3 (op2);
+        // source 3: smoothed radius and angle, ho.map distance gain, ho.wider weights
+        rE3 = pole * (min (3.4028235e38, rXp3 - Radius3) + rE3);
+        rXp3 = Radius3;
+        let r3 = Radius3 + rE3;
+        aE3 = pole * (min (3.4028235e38, aXp3 - Angle3) + aE3);
+        aXp3 = Angle3;
+        let an3 = Angle3 + aE3;
+        let op3 = min (r3, 1.0);
+        let g3 = in3 * (1.0 + 1.3862944 * (1.0 - op3)) / max (r3 * r3, 1.0);
+        let g3a = g3 * wider1 (op3);
+        let g3b = g3 * wider2 (op3);
+        let g3c = g3 * wider3 (op3);
+        // source 4: smoothed radius and angle, ho.map distance gain, ho.wider weights
+        rE4 = pole * (min (3.4028235e38, rXp4 - Radius4) + rE4);
+        rXp4 = Radius4;
+        let r4 = Radius4 + rE4;
+        aE4 = pole * (min (3.4028235e38, aXp4 - Angle4) + aE4);
+        aXp4 = Angle4;
+        let an4 = Angle4 + aE4;
+        let op4 = min (r4, 1.0);
+        let g4 = in4 * (1.0 + 1.3862944 * (1.0 - op4)) / max (r4 * r4, 1.0);
+        let g4a = g4 * wider1 (op4);
+        let g4b = g4 * wider2 (op4);
+        let g4c = g4 * wider3 (op4);
+        // ho.encoder(3) of the four sources, summed: W, S1, C1, S2, C2, S3, C3
+        let w = g1 + g2 + g3 + g4;
+        let s1 = g1a * sin (an1) + g2a * sin (an2) + g3a * sin (an3) + g4a * sin (an4);
+        let c1 = g1a * cos (an1) + g2a * cos (an2) + g3a * cos (an3) + g4a * cos (an4);
+        let s2 = g1b * sin (2.0 * an1) + g2b * sin (2.0 * an2) + g3b * sin (2.0 * an3) + g4b * sin (2.0 * an4);
+        let c2 = g1b * cos (2.0 * an1) + g2b * cos (2.0 * an2) + g3b * cos (2.0 * an3) + g4b * cos (2.0 * an4);
+        let s3 = g1c * sin (3.0 * an1) + g2c * sin (3.0 * an2) + g3c * sin (3.0 * an3) + g4c * sin (3.0 * an4);
+        let c3 = g1c * cos (3.0 * an1) + g2c * cos (3.0 * an2) + g3c * cos (3.0 * an3) + g4c * cos (3.0 * an4);
+        out1 = m[0] * w + m[1] * s1 + m[2] * c1 + m[3] * s2 + m[4] * c2 + m[5] * s3 + m[6] * c3;
+        out2 = m[7] * w + m[8] * s1 + m[9] * c1 + m[10] * s2 + m[11] * c2 + m[12] * s3 + m[13] * c3;
+        out3 = m[14] * w + m[15] * s1 + m[16] * c1 + m[17] * s2 + m[18] * c2 + m[19] * s3 + m[20] * c3;
+        out4 = m[21] * w + m[22] * s1 + m[23] * c1 + m[24] * s2 + m[25] * c2 + m[26] * s3 + m[27] * c3;
+        out5 = m[28] * w + m[29] * s1 + m[30] * c1 + m[31] * s2 + m[32] * c2 + m[33] * s3 + m[34] * c3;
+        out6 = m[35] * w + m[36] * s1 + m[37] * c1 + m[38] * s2 + m[39] * c2 + m[40] * s3 + m[41] * c3;
+        out7 = m[42] * w + m[43] * s1 + m[44] * c1 + m[45] * s2 + m[46] * c2 + m[47] * s3 + m[48] * c3;
+        out8 = m[49] * w + m[50] * s1 + m[51] * c1 + m[52] * s2 + m[53] * c2 + m[54] * s3 + m[55] * c3;
+    }
+}
+
+graph Main {
+    input stream in1;
+    input stream in2;
+    input stream in3;
+    input stream in4;
+    output stream out1;
+    output stream out2;
+    output stream out3;
+    output stream out4;
+    output stream out5;
+    output stream out6;
+    output stream out7;
+    output stream out8;
+    node p = HoaOcto;
+    connection {
+        in1 -> p.in1; in2 -> p.in2; in3 -> p.in3; in4 -> p.in4;
+        p.out1 -> out1; p.out2 -> out2; p.out3 -> out3; p.out4 -> out4; p.out5 -> out5; p.out6 -> out6; p.out7 -> out7; p.out8 -> out8;
+    }
+}

@@ -1,0 +1,123 @@
+// dm.phaser2_demo of Faust's demos.lib (examples/phasing/phaser.dsp), after dsp/phaser.onda:
+// pf.phaser2_stereo with 4 notches, invert and vibrato mode off, no bypass. Each channel: a
+// feedback loop around 4 second-order allpass sections (TPT state-variable filter in allpass form,
+// x - bp(2k*x)) whose pole angles follow an LFO (fixed-point phasor, os.lf_sawpos; sine on the
+// left, cosine on the right), then the dry input mixed with the allpass chain. The equations are
+// written as the Faust compiler simplifies them (om = 1 - R from ma.expm1).
+processor Phaser
+{
+    input stream float in1, in2;
+    output stream float out1, out2;
+    input event float speed  [[ min: 0.0f,    max: 10.0f,    init: 0.5f ]];
+    input event float depth  [[ min: 0.0f,    max: 1.0f,     init: 1.0f ]];
+    input event float fb     [[ min: -0.999f, max: 0.999f,   init: 0.0f ]];
+    input event float width  [[ min: 10.0f,   max: 5000.0f,  init: 1000.0f ]];
+    input event float frqmin [[ min: 20.0f,   max: 5000.0f,  init: 100.0f ]];
+    input event float frqmax [[ min: 20.0f,   max: 10000.0f, init: 800.0f ]];
+    input event float fratio [[ min: 1.1f,    max: 4.0f,     init: 1.5f ]];
+    input event float level  [[ min: -60.0f,  max: 10.0f,    init: 0.0f ]];
+
+    let BIG = 3.4028235e38f;    // ma.MAX
+
+    float speedV = 0.5f, depthV = 1.0f, fbV = 0.0f, widthV = 1000.0f, frqminV = 100.0f, frqmaxV = 800.0f,
+          fratioV = 1.5f, levelV = 0.0f;
+    // control-rate values, recomputed by the event handlers
+    float lvl, g1, g2, om2q, omc, kq, uq, th0, thr, r0, r1, r2, r3;
+    int incInt, incFrac;
+
+    int phase, phaseFrac;       // os.lf_sawpos phasor: 30-bit integer part and 24-bit fraction
+    // allpass section states (s1, s2), left and right
+    float l0s1, l0s2, l1s1, l1s2, l2s1, l2s2, l3s1, l3s2;
+    float r0s1, r0s2, r1s1, r1s2, r2s1, r2s2, r3s1, r3s2;
+    float yl, yr;               // chain outputs, fed back through fb
+
+    event speed (float v)  { speedV = v; update(); }
+    event depth (float v)  { depthV = v; update(); }
+    event fb (float v)     { fbV = v; }
+    event width (float v)  { widthV = v; update(); }
+    event frqmin (float v) { frqminV = v; update(); }
+    event frqmax (float v) { frqmaxV = v; update(); }
+    event fratio (float v) { fratioV = v; update(); }
+    event level (float v)  { levelV = v; update(); }
+
+    // One second-order allpass section (pf.vibrato2_mono's ap2p) at half pole angle h, with
+    // om2q = om^2/4, omc = 1 - om, kq = -2 fq, uq = -4 fq (fq = 1 - R^2): returns the bandpass
+    // output bp, the section's output being x - bp.
+    float ap2 (float& s1, float& s2, float x, float h)
+    {
+        let c = cos (h);
+        let s = sin (h);
+        let sq = om2q + omc * (c * c);      // S/4 (S = A(-1)), also the SVF's d
+        let pq = om2q + omc * (s * s);      // P/4 (P = A(1))
+        let iS = min (BIG, 0.25f / sq);
+        let g = sqrt (4.0f * pq * iS);
+        let t = sq * g * (iS * min (BIG, 1.0f / g) * ((4.0f * pq - kq) * s1 + uq * x) + s2);   // -g*hp
+        let bp = s1 - t;
+        s1 = s1 - 2.0f * t;
+        s2 = s2 + 2.0f * g * bp;
+        return bp;
+    }
+
+    void update()
+    {
+        let sr = float (processor.frequency);
+        lvl = pow (10.0f, 0.05f * levelV);          // ba.db2linear
+        g2 = 0.5f * depthV;
+        g1 = lvl * (1.0f - g2);
+        let hy = 0.5f * max (-(float (pi) / sr * widthV), -80.0f);
+        let ex = exp (hy);
+        let sh = sinh (hy);                         // om = -ma.expm1(-pi*width/SR) = -2*ex*sh
+        om2q = (ex * ex) * (sh * sh);
+        omc = 2.0f * ex * sh + 1.0f;
+        let fqq = sh * (ex * sh + 1.0f);            // fq = -4*ex*fqq
+        kq = 8.0f * ex * fqq;
+        uq = 16.0f * ex * fqq;
+        th0 = float (twoPi) * frqminV;              // SR * (pole angle of the first notch), from frqmin ...
+        thr = float (pi) * (frqminV - max (frqminV, frqmaxV));     // ... and frqmax
+        r0 = 1.0f / sr;                             // notch i at fratio^i times the first one
+        r1 = (1.0f / sr) * fratioV;
+        r2 = (1.0f / sr) * (fratioV * fratioV);
+        r3 = (1.0f / sr) * (fratioV * fratioV * fratioV);
+        let inc = 1073741824.0f * (1.0f / sr) * speedV;   // 2^30 * f / SR
+        incInt = int (floor (inc));
+        incFrac = int (16777216.0f * (inc - floor (inc)));
+    }
+
+    void init() { update(); }
+
+    void main()
+    {
+        loop
+        {
+            let ph = 0.00000037450704f * float (phase >> 6);    // 2 pi * os.lf_sawpos(speed)
+            phaseFrac += incFrac;
+            phase = (incInt + phase + (phaseFrac >> 24)) & 1073741823;
+            phaseFrac &= 16777215;
+            // left channel, LFO phase 0 (sine)
+            let xl = lvl * in1;
+            let fl = fbV * yl;
+            let bl = th0 - thr * (1.0f - sin (ph));
+            let l0 = ap2 (l0s1, l0s2, xl + fl, 0.5f * min (2.984513f, r0 * bl));
+            let l1 = ap2 (l1s1, l1s2, xl - l0 + fl, 0.5f * min (2.984513f, r1 * bl));
+            let l01 = l0 + l1;
+            let l2 = ap2 (l2s1, l2s2, xl - l01 + fl, 0.5f * min (2.984513f, r2 * bl));
+            let l012 = l01 + l2;
+            let l3 = ap2 (l3s1, l3s2, xl - l012 + fl, 0.5f * min (2.984513f, r3 * bl));
+            yl = xl - (l012 + l3) + fl;
+            out1 <- g1 * in1 + g2 * yl;
+            // right channel, LFO phase 1 (cosine)
+            let xr = lvl * in2;
+            let fr = fbV * yr;
+            let br = th0 - thr * (1.0f - cos (ph));
+            let q0 = ap2 (r0s1, r0s2, xr + fr, 0.5f * min (2.984513f, r0 * br));
+            let q1 = ap2 (r1s1, r1s2, xr - q0 + fr, 0.5f * min (2.984513f, r1 * br));
+            let q01 = q0 + q1;
+            let q2 = ap2 (r2s1, r2s2, xr - q01 + fr, 0.5f * min (2.984513f, r2 * br));
+            let q012 = q01 + q2;
+            let q3 = ap2 (r3s1, r3s2, xr - q012 + fr, 0.5f * min (2.984513f, r3 * br));
+            yr = xr - (q012 + q3) + fr;
+            out2 <- g1 * in2 + g2 * yr;
+            advance();
+        }
+    }
+}

@@ -1,0 +1,73 @@
+// dm.flanger_demo of Faust's demos.lib (examples/phasing/flanger.dsp), after dsp/flanger.onda:
+// pf.flanger_stereo with dmax = 8192, invert off, no bypass. Each channel: a feedback comb
+// (x + fb*y into a fractional delay line, de.fdelay: linear interpolation) whose delay follows a
+// recursive quadrature LFO (fi.nlf2 driven by an impulse: os.oscrs on the left, os.oscrc on the
+// right); the output is half the sum of the input and the delayed signal one sample late. The
+// delay is written as the Faust compiler simplifies it. The parameter-only values are hoisted out
+// of the sample loop by the optimiser.
+
+processor Flanger {
+    input stream in1;
+    input stream in2;
+    output stream out1;
+    output stream out2;
+    input parameter float flangeDelay = 10.0 [[ min: 0.0, max: 20.0 ]];
+    input parameter float delayOffset = 1.0 [[ min: 0.0, max: 20.0 ]];
+    input parameter float speed = 0.5 [[ min: 0.0, max: 10.0 ]];
+    input parameter float depth = 1.0 [[ min: 0.0, max: 1.0 ]];
+    input parameter float fb = 0.0 [[ min: -0.999, max: 0.999 ]];
+    input parameter float level = 0.0 [[ min: -60.0, max: 10.0 ]];
+
+    state float bufL[16384];            // de.fdelay(8192, d) lines
+    state float bufR[16384];
+    state int w;                        // write index, shared by both lines
+    state float oscS, oscC;             // fi.nlf2 states: sine (os.oscrs) and cosine (os.oscrc)
+    state float imp = 1.0;              // impulse driving fi.nlf2 (1 - 1')
+    state float yl, yr;                 // delay line outputs, previous sample
+
+    process {
+        let lvl = pow (10.0, 0.05 * level);        // ba.db2linear
+        let off = 0.001 * delayOffset;              // delay in seconds: off + half * (1 + lfo)
+        let half = 0.0005 * flangeDelay;
+        let wf = 2.0 * pi / sampleRate * speed;
+        let sw = sin (wf);
+        let cw = cos (wf);
+
+        let s = sw * oscC + cw * oscS;
+        let c = imp - sw * oscS + cw * oscC;
+        oscS = s;
+        oscC = c;
+        imp = 0.0;
+        // left channel: de.fdelay(dmax, curdel - 1), read after the write at w, linear
+        // interpolation between the taps int(d) and int(d) + 1
+        let xl = lvl * in1;
+        bufL[w] = xl + fb * yl;
+        let dl = max (0.0, -1.0 + sampleRate * (off + half * (1.0 + s)));
+        let il = int (min (8193.0, max (-1.0, dl)));
+        let fll = floor (dl);
+        let nl = bufL[(w - min (8193, max (0, il))) & 16383] * (1.0 - dl + fll)
+               + (dl - fll) * bufL[(w - min (8193, max (0, il + 1))) & 16383];
+        out1 = 0.5 * (xl + depth * yl);
+        yl = nl;
+        // right channel
+        let xr = lvl * in2;
+        bufR[w] = xr + fb * yr;
+        let dr = max (0.0, -1.0 + sampleRate * (off + half * (1.0 + c)));
+        let ir = int (min (8193.0, max (-1.0, dr)));
+        let flr = floor (dr);
+        let nr = bufR[(w - min (8193, max (0, ir))) & 16383] * (1.0 - dr + flr)
+               + (dr - flr) * bufR[(w - min (8193, max (0, ir + 1))) & 16383];
+        out2 = 0.5 * (xr + depth * yr);
+        yr = nr;
+        w = (w + 1) & 16383;
+    }
+}
+
+graph Main {
+    input stream in1;
+    input stream in2;
+    output stream out1;
+    output stream out2;
+    node p = Flanger;
+    connection { in1 -> p.in1; in2 -> p.in2; p.out1 -> out1; p.out2 -> out2; }
+}

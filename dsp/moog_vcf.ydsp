@@ -1,0 +1,48 @@
+// dm.moog_vcf_demo of Faust's demos.lib (examples/filtering/moogVCF.dsp), after dsp/moog_vcf.onda,
+// default branch only like moog_vcf.dsp: ve.moog_vcf(res^4, freq), four one-poles with (1 - p) at
+// the input of each and a global feedback mk = -4 res^4, then the output gain. The corner frequency
+// (piano keys to Hz) and the gain (dB to linear) go through si.smoo (si.smooth, error form). The
+// parameter-only values are hoisted out of the sample loop by the optimiser.
+processor MoogVcf {
+    input stream in1;
+    output stream out1;
+    input parameter float freq = 25.0 [[ min: 1.0, max: 88.0 ]];
+    input parameter float res = 0.9 [[ min: 0.0, max: 1.0 ]];
+    input parameter float outgain = 5.0 [[ min: -60.0, max: 20.0 ]];
+    state float c1, sp;                     // 2 pi / SR, si.smoo pole
+    state float frE, frXp, gE, gXp;         // si.smooth states (error and previous input)
+    state float y1, y2, y3, y4;             // the four one-pole states
+
+    init {
+        c1 = 2.0 * pi / sampleRate;
+        sp = 1.0 - 44.1 / sampleRate;
+    }
+
+    process {
+        let frT = 440.0 * pow (2.0, 0.083333336 * (freq - 49.0));    // ba.pianokey2hz
+        let r4 = res * res * res * res;
+        let mk = -4.0 * max (0.0, min (r4, 0.999999));               // need mk > -4 for stability
+        let gT = pow (10.0, 0.05 * outgain);                         // ba.db2linear
+
+        frE = sp * (frE + (frXp - frT));
+        frXp = frT;
+        let fr = frT + frE;
+        // p = 1 - fr 2 pi / SR; 1 - p written fr 2 pi / SR, as faust simplifies it
+        let a = c1 * fr;
+        let p = 1.0 - a;
+        y1 = p * y1 + a * (in1 + mk * y4);
+        y2 = p * y2 + a * y1;
+        y3 = p * y3 + a * y2;
+        y4 = p * y4 + a * y3;
+        gE = sp * (gE + (gXp - gT));
+        gXp = gT;
+        out1 = y4 * (gT + gE);
+    }
+}
+
+graph Main {
+    input stream in1;
+    output stream out1;
+    node p = MoogVcf;
+    connection { in1 -> p.in1; p.out1 -> out1; }
+}

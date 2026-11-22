@@ -1,0 +1,210 @@
+// dm.virtual_analog_oscillator_demo of Faust's demos.lib (examples/generator/virtualAnalog.dsp),
+// after dsp/virtual_analog.onda, controls at their defaults like virtual_analog.dsp: three detuned
+// voices, each a saw (os.sawN(2)), a square and a pulse train (os.pulsetrain: a difference of
+// linearly interpolated delays of a second sawN(2) at the clipped frequency) and a triangle (leaky
+// integrated square), plus pink noise and the external input, mixed by their level sliders. The
+// phases are the fixed-point phasor of oscillators.lib (_phasor_fix: whole counts of 2^-30 cycle
+// plus 2^-24 fractions), reset to 0 at the first sample. Constant factors are grouped as faust
+// groups them (SR / 12 for the saws, squares and pulses, 4 / 3 / SR for the triangles). The
+// parameter-only values are hoisted out of the sample loop by the optimiser. YDSP integer
+// arithmetic saturates: the phase sums stay below 2^31, the noise product is computed in int64.
+
+processor VirtualAnalog {
+    input stream in1;
+    output stream out1;
+    input parameter float ssaw = 1.0 [[ min: 0.0, max: 1.0 ]];
+    input parameter float spt = 0.0 [[ min: 0.0, max: 1.0 ]];
+    input parameter float duty = 0.5 [[ min: 0.0, max: 1.0 ]];
+    input parameter float ssq = 0.0 [[ min: 0.0, max: 1.0 ]];
+    input parameter float stri = 0.0 [[ min: 0.0, max: 1.0 ]];
+    input parameter float spn = 0.0 [[ min: 0.0, max: 1.0 ]];
+    input parameter float sei = 0.0 [[ min: 0.0, max: 1.0 ]];
+    input parameter float mixdb = -20.0 [[ min: -120.0, max: 10.0 ]];
+    input parameter float freq = 49.0 [[ min: 1.0, max: 88.0 ]];
+    input parameter float detune1 = -0.1 [[ min: -10.0, max: 10.0 ]];
+    input parameter float detune2 = 0.1 [[ min: -10.0, max: 10.0 ]];
+    input parameter float portamento = 0.1 [[ min: 0.001, max: 10.0 ]];
+
+    state float c1, c2, c3, c4, c5, c6, c7;
+    state float aE, aXp, fE, fXp, dE, dXp;      // si.smooth states (error, previous input)
+    state float gate;                           // 1@1 of sawN (0 at the first sample)
+    state int pm, sm;                           // phase masks, 0 at the first sample (hard reset)
+    state int pa1, sa1, pa2, sa2, pa3, sa3;     // saw phasors (counts, fraction)
+    state int pb1, sb1, pb2, sb2, pb3, sb3;     // square / pulse phasors (frequency clipped at 23.45 Hz)
+    state float va1, va2, va3, vb1, vb2, vb3;   // previous squared ramps
+    state float d1[16384], d2[16384], d3[16384];
+    state int w;
+    state float tr1, tr2, tr3;                  // triangle integrators
+    state int seed;                             // no.noise
+    state float k1, k2, k3;                     // pink filter (fi.iir) states
+
+    init {
+        c1 = 1.0 - 44.1 / sampleRate;           // si.smoo pole
+        c2 = 0.083333336 * sampleRate;          // SR / 12: sawN(2) scale SR / (4 f) times amp / 3
+        c3 = 1.0 / sampleRate;
+        c4 = 0.5 * sampleRate;                  // square delay (1 - 0.5) SR
+        c5 = 1.3333334 / sampleRate;            // triangle gain 4 f / SR times 1 / 3
+        c6 = 0.25 * sampleRate;                 // sawN(2) scale SR / 4 inside the triangle integrator
+        c7 = 1.0 - 48.0 / sampleRate;           // triangle leak
+    }
+
+    process {
+        let ampT = pow (10.0, 0.05 * mixdb);                        // ba.db2linear
+        let frT = 440.0 * pow (2.0, 0.083333336 * (freq - 49.0));   // ba.pianokey2hz
+        let porP = exp (-(c3 / portamento));                        // ba.tau2pole
+        let dt1 = 0.01 * detune1 + 1.0;
+        let dt2 = 0.01 * detune2 + 1.0;
+        let triG = c5 * stri;
+        let ptG = c2 * spt;
+        let dutyC = 1.0 - duty;
+
+        aE = c1 * ((aXp - ampT) + aE);
+        aXp = ampT;
+        fE = porP * ((fXp - frT) + fE);
+        fXp = frT;
+        let f1 = frT + fE;                      // smoothed frequency, voice 1
+        let f2 = dt1 * f1;
+        let f3 = dt2 * f1;
+
+        // saws: _phasor_fix, then sawN(2) (x^2 - x'^2) / f, scaled by SR / 4 below
+        let fa1 = max (20.0, abs (f1));
+        let ia1 = c3 * fa1;
+        let xa1 = 1073741824.0 * (ia1 - rint (ia1));
+        let la1 = floor (xa1);
+        let ta1 = sa1 + int (16777216.0 * (xa1 - la1));
+        sa1 = ta1 & sm;
+        pa1 = (pa1 + int (la1) + (ta1 >> 24)) & pm;
+        let ra1 = -1.0 + 1.1920929e-07 * float (pa1 >> 6);
+        let ua1 = ra1 * ra1;
+        let q1 = ua1 - va1;
+        va1 = ua1;
+
+        let fa2 = max (20.0, abs (f2));
+        let ia2 = c3 * fa2;
+        let xa2 = 1073741824.0 * (ia2 - rint (ia2));
+        let la2 = floor (xa2);
+        let ta2 = sa2 + int (16777216.0 * (xa2 - la2));
+        sa2 = ta2 & sm;
+        pa2 = (pa2 + int (la2) + (ta2 >> 24)) & pm;
+        let ra2 = -1.0 + 1.1920929e-07 * float (pa2 >> 6);
+        let ua2 = ra2 * ra2;
+        let q2 = ua2 - va2;
+        va2 = ua2;
+
+        let fa3 = max (20.0, abs (f3));
+        let ia3 = c3 * fa3;
+        let xa3 = 1073741824.0 * (ia3 - rint (ia3));
+        let la3 = floor (xa3);
+        let ta3 = sa3 + int (16777216.0 * (xa3 - la3));
+        sa3 = ta3 & sm;
+        pa3 = (pa3 + int (la3) + (ta3 >> 24)) & pm;
+        let ra3 = -1.0 + 1.1920929e-07 * float (pa3 >> 6);
+        let ua3 = ra3 * ra3;
+        let q3 = ua3 - va3;
+        va3 = ua3;
+
+        // square / pulse saws at max(f, 23.45 Hz), written to their delay lines
+        let fc1 = max (f1, 23.44895);
+        let fb1 = max (20.0, abs (fc1));
+        let ib1 = c3 * fb1;
+        let xb1 = 1073741824.0 * (ib1 - rint (ib1));
+        let lb1 = floor (xb1);
+        let tb1 = sb1 + int (16777216.0 * (xb1 - lb1));
+        sb1 = tb1 & sm;
+        pb1 = (pb1 + int (lb1) + (tb1 >> 24)) & pm;
+        let rb1 = -1.0 + 1.1920929e-07 * float (pb1 >> 6);
+        let ub1 = rb1 * rb1;
+        let x1 = gate * (ub1 - vb1) / fb1;
+        vb1 = ub1;
+
+        let fc2 = max (f2, 23.44895);
+        let fb2 = max (20.0, abs (fc2));
+        let ib2 = c3 * fb2;
+        let xb2 = 1073741824.0 * (ib2 - rint (ib2));
+        let lb2 = floor (xb2);
+        let tb2 = sb2 + int (16777216.0 * (xb2 - lb2));
+        sb2 = tb2 & sm;
+        pb2 = (pb2 + int (lb2) + (tb2 >> 24)) & pm;
+        let rb2 = -1.0 + 1.1920929e-07 * float (pb2 >> 6);
+        let ub2 = rb2 * rb2;
+        let x2 = gate * (ub2 - vb2) / fb2;
+        vb2 = ub2;
+
+        let fc3 = max (f3, 23.44895);
+        let fb3 = max (20.0, abs (fc3));
+        let ib3 = c3 * fb3;
+        let xb3 = 1073741824.0 * (ib3 - rint (ib3));
+        let lb3 = floor (xb3);
+        let tb3 = sb3 + int (16777216.0 * (xb3 - lb3));
+        sb3 = tb3 & sm;
+        pb3 = (pb3 + int (lb3) + (tb3 >> 24)) & pm;
+        let rb3 = -1.0 + 1.1920929e-07 * float (pb3 >> 6);
+        let ub3 = rb3 * rb3;
+        let x3 = gate * (ub3 - vb3) / fb3;
+        vb3 = ub3;
+
+        d1[w] = x1;
+        d2[w] = x2;
+        d3[w] = x3;
+
+        // squares: pulsetrainN's diffdel, x - x@int(del) (1 - frac(del)) - x@(int(del) + 1) frac(del)
+        let e1 = max (0.0, min (8191.0, c4 / fc1));
+        let j1 = int (e1);
+        let g1 = floor (e1);
+        let sq1 = x1 - d1[(w - j1) & 16383] * (1.0 - e1 + g1) - (e1 - g1) * d1[(w - j1 - 1) & 16383];
+        let e2 = max (0.0, min (8191.0, c4 / fc2));
+        let j2 = int (e2);
+        let g2 = floor (e2);
+        let sq2 = x2 - d2[(w - j2) & 16383] * (1.0 - e2 + g2) - (e2 - g2) * d2[(w - j2 - 1) & 16383];
+        let e3 = max (0.0, min (8191.0, c4 / fc3));
+        let j3 = int (e3);
+        let g3 = floor (e3);
+        let sq3 = x3 - d3[(w - j3) & 16383] * (1.0 - e3 + g3) - (e3 - g3) * d3[(w - j3 - 1) & 16383];
+        tr1 = c6 * sq1 + c7 * tr1;
+        tr2 = c6 * sq2 + c7 * tr2;
+        tr3 = c6 * sq3 + c7 * tr3;
+
+        // pulse trains: delay (1 - duty) SR / f, duty through si.smooth(0.99)
+        dE = 0.99 * ((dXp - duty) + dE);
+        dXp = duty;
+        let dd = dutyC - dE;
+        let h1 = max (0.0, min (8191.0, sampleRate * (dd / fc1)));
+        let m1 = int (h1);
+        let n1 = floor (h1);
+        let pt1 = x1 - d1[(w - m1) & 16383] * (1.0 - h1 + n1) - (h1 - n1) * d1[(w - m1 - 1) & 16383];
+        let h2 = max (0.0, min (8191.0, sampleRate * (dd / fc2)));
+        let m2 = int (h2);
+        let n2 = floor (h2);
+        let pt2 = x2 - d2[(w - m2) & 16383] * (1.0 - h2 + n2) - (h2 - n2) * d2[(w - m2 - 1) & 16383];
+        let h3 = max (0.0, min (8191.0, sampleRate * (dd / fc3)));
+        let m3 = int (h3);
+        let n3 = floor (h3);
+        let pt3 = x3 - d3[(w - m3) & 16383] * (1.0 - h3 + n3) - (h3 - n3) * d3[(w - m3 - 1) & 16383];
+
+        // pink noise: no.noise through no.pink_filter
+        seed = int32 (int64 (seed) * 1103515245 + 12345);
+        let k0 = 0.5221894 * k3 + 4.656613e-10 * float (seed) + 2.494956 * k1 - 2.0172658 * k2;
+        let pink = 0.049922034 * k0 + 0.0506127 * k2 - (0.095993534 * k1 + 0.004408786 * k3);
+        k3 = k2;
+        k2 = k1;
+        k1 = k0;
+
+        let saws = ssaw * gate * (q1 / fa1 + q2 / fa2 + q3 / fa3);
+        let sqs = ssq * (sq1 + sq2 + sq3);
+        let tris = triG * f1 * (tr1 + dt1 * tr2 + dt2 * tr3);
+        let pts = ptG * (pt1 + pt2 + pt3);
+        out1 = sei * in1 + (ampT + aE) * (c2 * (saws + sqs) + tris + pts + spn * pink);
+        gate = 1.0;
+        pm = 1073741823;
+        sm = 16777215;
+        w += 1;
+        if (w >= 16384) { w = 0; }
+    }
+}
+
+graph Main {
+    input stream in1;
+    output stream out1;
+    node p = VirtualAnalog;
+    connection { in1 -> p.in1; p.out1 -> out1; }
+}

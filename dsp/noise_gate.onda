@@ -1,0 +1,46 @@
+# dm.gate_demo (ef.gate_stereo of Faust's misceffects.lib, examples/dynamic/noiseGate.dsp) ported to
+# onda, without the bypass and the gate-gain meter like noise_gate.dsp. The level |x| + |y| goes
+# through a fast one-pole follower (pole of min(attack, release)); the raw gate is that level above
+# the threshold; a counter holds the gate open for `hold` after the raw gate falls; the gate signal
+# goes through the attack/release one-pole (an.amp_follower_ar) and multiplies both channels.
+# Operations in the order of Faust's generated C++.
+ins 2
+outs 2
+
+params:
+  threshold = -30.0 {-120.0, 0.0}
+  attack = 10.0 {10.0, 10000.0}         # microseconds
+  hold = 200.0 {1.0, 1000.0}            # milliseconds
+  release = 100.0 {1.0, 1000.0}         # milliseconds
+
+init:
+  lev = 0.0                             # inlevel follower state
+  rawPrev = 0                           # raw gate, previous sample
+  cnt = 0                               # hold counter
+  env = 0.0                             # gate gain follower state
+
+block:
+  t = 1.0 / SR
+  att = max(t, 0.000001 * attack)
+  rel = max(t, 0.001 * release)
+  poleMin = exp(-(t / min(att, rel)))   # ba.tau2pole(min(att, rel))
+  oneMinusPoleMin = 1.0 - poleMin
+  thr = pow(10.0, 0.05 * threshold)     # ba.db2linear
+  holdSamps = i32(SR * max(t, 0.001 * hold))
+  poleRel = exp(-(t / rel))
+  poleAtt = exp(-(t / att))
+  sample:
+    x1 = in1
+    x2 = in2
+    lev = oneMinusPoleMin * abs(abs(x1) + abs(x2)) + poleMin * lev
+    raw = i32(lev > thr)
+    reset = i32(raw < rawPrev)          # the raw gate falls: restart the hold counter
+    rawPrev = raw
+    cnt = max(holdSamps * reset, cnt - 1)
+    gsig = abs(max(f32(raw), f32(cnt > 0)))
+    c = poleRel
+    if gsig > env:
+      c = poleAtt
+    env = gsig * (1.0 - c) + env * c
+    out1 = x1 * env
+    out2 = x2 * env

@@ -1,0 +1,109 @@
+// pm.ks_ui_MIDI of Faust's physmodels.lib (examples/physicalModeling/karplus.dsp), after
+// dsp/karplus.onda, gate held at 1 like karplus.dsp: the string is plucked once, at the first
+// sample. Karplus-Strong string: impulse excitation injected into both directions of a waveguide
+// made of two fractional delay lines read by 4th-order Lagrange interpolation (de.fdelay4), closed
+// by a rigid termination on one side and by the averaging reflection filter (pm.ksReflexionFilter)
+// scaled by the damping on the other. The parameter-only values are hoisted out of the sample
+// loop by the optimiser.
+
+processor Karplus {
+    output stream out1;
+    output stream out2;
+    input parameter float freq = 440.0 [[ min: 50.0, max: 1000.0 ]];
+    input parameter float bend = 0.0 [[ min: -2.0, max: 2.0 ]];
+    input parameter float gain = 0.800000012 [[ min: 0.0, max: 1.0 ]];
+    input parameter float sustain = 0.0 [[ min: 0.0, max: 1.0 ]];
+    input parameter float damping = 0.00999999978 [[ min: 0.0, max: 1.0 ]];
+    input parameter float gate = 1.0 [[ min: 0.0, max: 1.0 ]];
+
+    state float toEnd[2048];            // wave going to the reflection filter
+    state float toStart[2048];          // wave coming back from it
+    state int w;                        // write position of both lines
+    state float bendE, bendXp, dampE, dampXp;   // si.smooth states (error form)
+    state float gatePrev;
+    state float r2;                     // toEnd output, one sample late
+    state float r3a, r3b;               // excitation + r2, one and two samples late
+    state float r4a, r4b;               // toStart output, one and two samples late
+    state float c1, c2, c4, smoo;
+    state int nmax;                     // int(c4): the integer taps clamped by c4
+
+    init {
+        c1 = 0.0014705883 * sampleRate;         // SR / (2 * pm.speedOfSound): half of pm.l2s
+        c2 = 2210.0 / sampleRate;               // 6.5 samples of loop delay, in meters
+        c4 = 0.00882353 * sampleRate + 4.0;     // the de.fdelay4 bound: l2s(pm.maxLength) + 4
+        smoo = 1.0 - 44.1 / sampleRate;         // si.smoo
+        nmax = int (c4);
+    }
+
+    process {
+        let len = 340.0 / freq;                 // pm.f2l
+        let ratio = pow (2.0, 0.083333336 * bend);
+        let gt = min (1.0, gate + sustain);
+        let dampC = 1.0 - damping;
+
+        w = (w + 1) & 2047;
+        // pitch bend (si.polySmooth)
+        let hold = select (gt == gatePrev || gt == 0.0, 0.999, 0.0);
+        bendE = hold * (bendE + (bendXp - ratio));
+        bendXp = ratio;
+        let bendRatio = ratio + bendE;
+        // delay of each line, de.fdelay4 fractional part and Lagrange products
+        let d = c1 * (len / bendRatio - c2);
+        let dmo = d - 1.499995;
+        let fl = floor (dmo);
+        let t3 = d - fl;
+        let t4 = -1.0 - fl + d;
+        let t5 = t3 * t4;
+        let t6 = -2.0 - fl + d;
+        let t7 = t5 * t6;
+        let t8 = -3.0 - fl + d;
+        let t9 = t7 * t8;
+        // excitation: pm.impulseExcitation(gate) * gain
+        let dg = gt - gatePrev;
+        gatePrev = gt;
+        let exc = select (dg > 0.0, gain * dg, 0.0);
+        // reflection: pm.ksReflexionFilter * ((1 - damping) * 0.2 + 0.8)
+        dampE = smoo * (dampE + (dampXp - damping));
+        dampXp = damping;
+        let t12 = 0.5 * (r4a + r4b) * (0.8 + 0.2 * (dampC - dampE));
+        toEnd[w] = t12;
+        let t13 = -4.0 - fl + d;
+        let id = int (min (c4, max (-4.0, dmo)));
+        let k0 = 1 + min (nmax, max (0, id));
+        let k1 = 1 + min (nmax, max (0, id + 1));
+        let k2 = 1 + min (nmax, max (0, id + 2));
+        let k3 = 1 + min (nmax, max (0, id + 3));
+        let k4 = 1 + min (nmax, max (0, id + 4));
+        let x0 = toEnd[(w - k0) & 2047];
+        let x1 = toEnd[(w - k1) & 2047];
+        let x2 = toEnd[(w - k2) & 2047];
+        let x3 = toEnd[(w - k3) & 2047];
+        let x4 = toEnd[(w - k4) & 2047];
+        let r2n = t13 * (t8 * (t6 * (0.041666668 * x0 * t4 - 0.16666667 * t3 * x1) + 0.25 * t5 * x2) - 0.16666667 * t7 * x3) + 0.041666668 * t9 * x4;
+        // rigid termination: the excitation enters both directions
+        let r3n = exc + r2;
+        toStart[w] = exc + r3b;
+        let y0 = toStart[(w - k0) & 2047];
+        let y1 = toStart[(w - k1) & 2047];
+        let y2 = toStart[(w - k2) & 2047];
+        let y3 = toStart[(w - k3) & 2047];
+        let y4 = toStart[(w - k4) & 2047];
+        let t21 = t13 * (t8 * (t6 * (0.041666668 * t4 * y0 - 0.16666667 * t3 * y1) + 0.25 * t5 * y2) - 0.16666667 * t7 * y3);
+        let t22 = 0.041666668 * t9 * y4;
+        let o = t22 + t12 + t21;
+        out1 = o;
+        out2 = o;
+        r2 = r2n;
+        r3b = r3a;
+        r3a = r3n;
+        r4b = r4a;
+        r4a = t21 + t22;
+    }
+}
+
+graph Main {
+    output stream out1;
+    output stream out2;
+    node p = Karplus;
+    connection { p.out1 -> out1; p.out2 -> out2; }
+}

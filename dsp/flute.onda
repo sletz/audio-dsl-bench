@@ -1,0 +1,182 @@
+# pm.flute_ui of Faust's physmodels.lib (examples/physicalModeling/flute.dsp) ported to Onda,
+# like flute.dsp. Blower: smoothed pressure + vibrato (os.osc: 65536-point sine table, fixed-point
+# phasor) + low-passed breath noise. Tube: head and foot segments, each a pair of fractional delay
+# lines read by 4th-order Lagrange interpolation (de.fdelay4), split at the embouchure (jet
+# table); head reflection *0.95, foot reflection *0.95 through a one-pole smoother (si.smooth);
+# output from the foot through fi.dcblocker. The order of operations is the one of the C++ that
+# faust generates for flute.dsp.
+outs 2
+
+params:
+  pressure = 0.9 {0.0, 1.0}
+  breathGain = 0.1 {0.0, 1.0}
+  breathCutoff = 2000.0 {20.0, 20000.0}
+  vibratoFreq = 5.0 {0.1, 10.0}
+  vibratoGain = 0.25 {0.0, 1.0}
+  tubeLength = 0.8 {0.01, 3.0}
+  mouthPosition = 0.5 {0.0, 1.0}
+  outGain = 0.5 {0.0, 1.0}
+
+const NMAX: i32 = 568                  # int(l2s(maxTubeLength = 4) + 4), the de.fdelay4 bound at 48 kHz
+
+const def sine_table() -> f32[65536]:  # os.osc's table, sin(2 pi i / 65536)
+  t: f32[65536]
+  for i in 0..65536:
+    t[i] = sin(f32(i) * TWO_PI / 65536.0)
+  return t
+
+const SINE: f32[65536] = sine_table()
+
+# si.smooth (error form): y = x + e, e = pole * (e + x[n-1] - x); min(MAX), a no-op, keeps
+# x[n-1] - x computed first under fast math, as in signals.lib
+struct Smooth:
+  e = 0.0
+  xp = 0.0
+
+  def tick(self, x: f32, pole: f32):
+    self.e = pole * (min(340282350000000000000000000000000000000.0, self.xp - x) + self.e)
+    self.xp = x
+    return x + self.e
+
+# One travelling wave on a tube segment: a delay line read by 4th-order Lagrange interpolation
+# (de.fdelay4). read4 and read4b differ only by the order of one product, as in faust's C++.
+struct Line:
+  buf: f32[1024]
+  w = 0 {1024, wrap}
+
+  def write(self, x: f32):
+    self.w += 1
+    self.buf[self.w] = x
+
+  def read4(self, taps: i32[5], d: f32, fl: f32):
+    fd = d - fl
+    a = (-1.0 - fl) + d
+    b = (-2.0 - fl) + d
+    c = (-3.0 - fl) + d
+    e = (-4.0 - fl) + d
+    p1 = fd * a
+    p2 = p1 * b
+    p3 = p2 * c
+    x0 = self.buf[(self.w - taps[0]) & 1023]
+    x1 = self.buf[(self.w - taps[1]) & 1023]
+    x2 = self.buf[(self.w - taps[2]) & 1023]
+    x3 = self.buf[(self.w - taps[3]) & 1023]
+    x4 = self.buf[(self.w - taps[4]) & 1023]
+    return e * (c * (b * (0.041666668 * x0 * a - 0.16666667 * fd * x1) + 0.25 * p1 * x2) - 0.16666667 * p2 * x3) + 0.041666668 * p3 * x4
+
+  def read4b(self, taps: i32[5], d: f32, fl: f32):
+    fd = d - fl
+    a = (-1.0 - fl) + d
+    b = (-2.0 - fl) + d
+    c = (-3.0 - fl) + d
+    e = (-4.0 - fl) + d
+    p1 = fd * a
+    p2 = p1 * b
+    p3 = p2 * c
+    x0 = self.buf[(self.w - taps[0]) & 1023]
+    x1 = self.buf[(self.w - taps[1]) & 1023]
+    x2 = self.buf[(self.w - taps[2]) & 1023]
+    x3 = self.buf[(self.w - taps[3]) & 1023]
+    x4 = self.buf[(self.w - taps[4]) & 1023]
+    return e * (c * (b * (0.041666668 * a * x0 - 0.16666667 * fd * x1) + 0.25 * p1 * x2) - 0.16666667 * p2 * x3) + 0.041666668 * p3 * x4
+
+# de.fdelay4 taps (5 integer delays) for a delay of d samples; returns floor(d - 1.499995)
+def lagrange_taps(d: f32, taps: i32[5]):
+  dmo = d - 1.499995
+  id = i32(min(f32(NMAX), max(-4.0, dmo)))
+  for i in 0..5:
+    taps[i] = 1 + min(NMAX, max(0, id + i))
+  return floor(dmo)
+
+init:
+  tubeSmooth = Smooth()                # si.smoo of tubeLength
+  mouthSmooth = Smooth()               # si.smoo of mouthPosition
+  pressSmooth = Smooth()               # si.smoo of pressure
+  footE = 0.0                          # foot lowpass (si.smooth) error state
+  footUp = Line()                      # foot segment, wave going up from the foot to the embouchure
+  headUp = Line()                      # head segment, wave going up from the embouchure to the head
+  headDown = Line()                    # head segment, wave going down from the head to the embouchure
+  footDown = Line()                    # foot segment, wave going down from the embouchure to the foot
+  upIn = 0.0                           # footUp output, one sample late (reaches the embouchure)
+  headTop = 0.0                        # headUp output, one sample late ...
+  headTop2 = 0.0                       # ... and two samples late (reflected at the head)
+  downIn = 0.0                         # headDown output, one sample late (reaches the embouchure)
+  footOut = 0.0                        # footDown output, one sample late
+  foot1 = 0.0                          # wave at the foot, previous sample
+  foot2 = 0.0                          # wave at the foot, two samples back
+  dc = 0.0                             # fi.dcblocker state
+  phase = 0                            # os.osc phasor: 30-bit integer part ...
+  phaseFrac = 0                        # ... and 24-bit fraction
+  seed: i32 = 0                        # no.noise
+  s1 = 0.0                             # breath lowpass (fi.lowpass(2, breathCutoff), TPT SVF)
+  s2 = 0.0
+  footPole = pow(0.7, 44100.0 / SR)    # fluteFoot dispersion lowpass
+  dcPole = pow(0.995, 44100.0 / SR)    # fi.dcblocker
+  smoo = 1.0 - 44.1 / SR               # si.smoo pole
+  wk = 2136.283 / SR                   # 2 pi c / SR
+
+block:
+  vg = 0.03 * vibratoGain
+  inc = 1073741824.0 * (1.0 / SR) * vibratoFreq            # 2^30 * f / SR
+  incInt = i32(floor(inc))
+  incFrac = i32(16777216.0 * (inc - floor(inc)))
+  bg = 0.05 * breathGain
+  g = tan(max(0.0, min(PI / SR * breathCutoff, 1.5676547)))
+  gk = g + 1.4142135
+  c1 = g * min(340282350000000000000000000000000000000.0, 1.0 / (g * gk + 1.0))
+  mp = mouthPosition - 0.5
+  sample:
+    # foot: the wave reaching the foot is reflected (*0.95) through the dispersion lowpass
+    footE = footPole * (footE + min(340282350000000000000000000000000000000.0, -(0.95 * (foot1 - foot2))))
+    footUp.write(0.95 * foot1 + footE)
+    # tube length in samples from the period wanted (pm.fluteModel's fit)
+    tl = tubeSmooth.tick(tubeLength, smoo)
+    w = wk / tl
+    num = -6.418 + SR * (0.000037619047 + 0.0029411765 * tl - 0.0006464499 * tl * atan2(footPole * sin(w), 1.0 - footPole * cos(w)))
+    mouthSmooth.tick(mouthPosition, smoo)
+    em = 0.4 * (mp + mouthSmooth.e)    # 0.4 * (smoothed mouthPosition - 0.5), as faust reorders it
+    epos = 0.27 + em                   # embouchure position on the tube
+    den = 1.0 - 0.5 * epos
+    # foot segment: embouchure to foot distance, in samples
+    footTaps: i32[5]
+    footD = 0.6287726 * (num * (0.73 - em) / den)
+    footFl = lagrange_taps(footD, footTaps)
+    up = footUp.read4(footTaps, footD, footFl)
+    headUp.write(upIn)
+    # head segment: head to embouchure distance, in samples
+    headTaps: i32[5]
+    headD = 0.6287726 * (num * epos / den)
+    headFl = lagrange_taps(headD, headTaps)
+    top = headUp.read4(headTaps, headD, headFl)
+    headDown.write(0.95 * headTop2)
+    down = headDown.read4b(headTaps, headD, headFl)
+    # blower: pressure + vibrato + breath noise
+    pressSmooth.tick(pressure, smoo)
+    pe = pressSmooth.e                 # smoothed pressure = pressure + pe
+    vib = SINE[(phase >> 6) >> 8]
+    phaseFrac += incFrac
+    phase = (incInt + phase + (phaseFrac >> 24)) & 1073741823
+    phaseFrac &= 16777215
+    seed = 12345 + 1103515245 * seed
+    t = 0.0000000004656613 * f32(seed) - (gk * s1 + s2)
+    v1 = s1 + c1 * t
+    lp = s2 + g * v1
+    s1 += 2.0 * c1 * t
+    s2 += 2.0 * g * v1
+    # embouchure: jet table on the blow minus half the wave coming down from the head
+    x = pressure - 0.5 * downIn + pe + vg * vib + bg * (pressure + pe) * lp
+    footDown.write(0.5 * upIn + clamp(x * (-1.0 + x * x), -1.0, 1.0))
+    foot = footDown.read4b(footTaps, footD, footFl)
+    # one-sample delays of the chain
+    upIn = up
+    headTop2 = headTop
+    headTop = top
+    downIn = down
+    foot2 = foot1
+    foot1 = footOut
+    footOut = foot
+    # fi.dcblocker on the wave at the foot
+    dc = dcPole * dc + foot1 - foot2
+    out = outGain * dc
+    out1 = out
+    out2 = out

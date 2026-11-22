@@ -1,0 +1,15 @@
+fcautotool: faust = /Users/letz/Developpements/audio-dsl-bench/tools/faust-cert4.sh
+fcautotool: c++ = /usr/bin/clang++ (Apple clang version 21.0.0 (clang-2100.4.1.1)) -O3 -ffast-math -fbracket-depth=1024 -mcpu=native
+fcautotool: timed in single precision  (--double to elect for a double build)
+fcautotool: jury = 19/28 candidates supported: ['al', 'cs2', 'cs2b', 'df', 'fu', 'gq', 'gqlz', 'gqsn', 'h2', 'h32', 'lb', 'ls', 'lz', 'lzh', 'rp', 'sn', 't1fu', 't4', 't4fu']
+fcautotool: shortlist by signature: 5/19 of the supported jury (--full races them all): ['df', 'lb', 'fu', 'al', 'h32']
+  cppmcd0    4.9990 ns  (-lang cpp -mcd 0)
+  cpp        5.0900 ns  (-lang cpp)
+  lb         5.3580 ns  (-lang ocpp -lsum)
+  df         5.3600 ns  (-lang ocpp)
+  cppvec     6.6770 ns  (-lang cpp -vec)
+  fu         6.7780 ns  (-lang ocpp -ls-fuse -ls-sched model)
+  al         7.0660 ns  (-lang ocpp -ss 8)
+  h32        7.0750 ns  (-lang ocpp -ss 9 -ls-R 32 -ls-U 4)
+  -- 8 timed of 8 raced (0 build failures, 0 without a timing)
+fcautotool: winner cppmcd0 (4.9990 ns/frame, single precision) -- -lang cpp -mcd 0  [21.1 s]

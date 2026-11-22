@@ -1,0 +1,63 @@
+// dm.exciter (examples/psychoacoustic/harmonicExciter.dsp), after dsp/exciter.onda, without the
+// compressor bypass and the gain meter like exciter.dsp. Wet path: fi.highpass(2, fc) (TPT SVF),
+// co.compressor_mono (one-pole attack/release detector, in dB, gain computer, knee smoother, back
+// to linear), pregain, asymmetric cubic harmonic creator, postgain; mixed with the dry input. The
+// parameter-only values are hoisted out of the sample loop by the optimiser.
+processor Exciter {
+    input stream in1;
+    output stream out1;
+    input parameter float ratio = 5.0 [[ min: 1.0, max: 20.0 ]];
+    input parameter float threshold = -30.0 [[ min: -100.0, max: 10.0 ]];
+    input parameter float attack = 50.0 [[ min: 0.0, max: 500.0 ]];
+    input parameter float release = 500.0 [[ min: 0.0, max: 1000.0 ]];
+    input parameter float cutoff = 5000.0 [[ min: 1000.0, max: 10000.0 ]];
+    input parameter float harmonics = 20.0 [[ min: 0.0000001192092896, max: 200.0 ]];
+    input parameter float mix = 0.5 [[ min: 0.0, max: 1.0 ]];
+    state float s1, s2, env, gdbPrev, err;
+
+    process {
+        let t = 1.0 / sampleRate;
+        let dryGain = 1.0 - mix;
+        let wetGain = 100.0 * (mix / harmonics);                    // postgain 1/ph, times the mix
+        let pre = 0.01 * harmonics;                                 // pregain ph
+        let g = tan (max (0.0, min (pi / sampleRate * cutoff, 1.5676547)));   // highpass SVF
+        let gk = g + 1.4142135;
+        let c1 = g * min (3.4028235e38, 1.0 / (g * gk + 1.0));
+        let c2 = 2.0 * c1;
+        let g2 = 2.0 * g;
+        let slope = 1.0 / max (0.0000001192092896, ratio) + -1.0;   // 1/max(ma.EPSILON, ratio) - 1
+        let poleRel = exp (-(t / max (t, 0.001 * release)));       // ba.tau2pole(rel)
+        let att = max (t, 0.001 * attack);                          // attack in s, at least one sample
+        let poleAtt = exp (-(t / att));                             // ba.tau2pole(att)
+        let poleKnee = exp (-(t / (0.5 * att)));                    // ba.tau2pole(att/2)
+        let x = in1;
+        // fi.highpass(2, fc)
+        let v = x - (gk * s1 + s2);
+        let s1n = s1 + c2 * v;
+        let bp = s1 + c1 * v;
+        let s2n = s2 + g2 * bp;
+        let hp = x - (s2 + g * bp + 1.4142135 * bp);
+        s1 = s1n;
+        s2 = s2n;
+        // co.compressor_mono
+        let a = abs (hp);
+        let c = select (a > env, poleAtt, poleRel);
+        env = a * (1.0 - c) + env * c;
+        // ba.linear2db: 20*log10(max(ma.MIN, env)), log10 written log * 1/ln(10) like the Onda port
+        let gdb = slope * max (20.0 * (log (max (1.175494351e-38, env)) * 0.4342944819) - threshold, 0.0);
+        err = poleKnee * (err + min (3.4028235e38, gdbPrev - gdb));
+        gdbPrev = gdb;
+        let comp = hp * pow (10.0, 0.05 * (gdb + err));
+        // pregain and harmonic creator: x for x < 0, x - x^3/3 on [0, 1], 2/3 above 1
+        let p = pre * comp;
+        let h = select (p < 0.0, p, select (p <= 1.0, p - 0.33333334 * (p * p * p), 0.33333334 * 2.0));
+        out1 = dryGain * x + wetGain * h;
+    }
+}
+
+graph Main {
+    input stream in1;
+    output stream out1;
+    node p = Exciter;
+    connection { in1 -> p.in1; p.out1 -> out1; }
+}

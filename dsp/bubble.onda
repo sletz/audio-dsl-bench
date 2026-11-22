@@ -1,0 +1,165 @@
+# examples/gameaudio/bubble.dsp of Faust ported to Onda, drop held at 1 like bubble.dsp: one bubble
+# dropped at the first sample. Bubble: os.osc (65536-point sine table, fixed-point phasor) whose
+# frequency rises linearly with time, under an exponential decay smoothed by si.smooth(0.99).
+# Then dm.freeverb_demo: re.stereo_freeverb (8 lowpass-feedback combs and 4 Schroeder allpasses
+# per channel, the right one detuned by the stereo spread) mixed with the dry signal. The delay
+# lengths are the ones reverbs.lib computes for 48 kHz (adaptSR, spread int(0.5*46*48000/44100)).
+outs 2
+
+params:
+  drop = 1.0 {0.0, 1.0}
+  freq = 600.0 {150.0, 2000.0}
+  damp = 0.5 {0.0, 1.0}
+  roomSize = 0.5 {0.0, 1.0}
+  wet = 0.3333 {0.0, 1.0}
+
+const def sine_table() -> f32[65536]:  # os.osc's table, sin(2 pi i / 65536)
+  t: f32[65536]
+  for i in 0..65536:
+    t[i] = sin(f32(i) * TWO_PI / 65536.0)
+  return t
+
+const SINE: f32[65536] = sine_table()
+
+namespace fv<L = 2>:
+  # lowpass-feedback comb (lbcf of re.mono_freeverb): delay of L samples, one-pole lowpass in
+  # the feedback path; returns the delay output
+  struct Comb:
+    buf: f32[L]
+    idx: i32 {L, wrap}
+    lp = 0.0
+
+    def tick(self, x: f32, fb: f32, damp: f32, damp1: f32):
+      y = self.buf[self.idx]
+      self.lp = damp * self.lp + damp1 * y
+      self.buf[self.idx] = x + fb * self.lp
+      self.idx += 1
+      return y
+
+  # Schroeder allpass (fi.allpass_comb): delay line of L samples, read before it is written
+  struct Allpass:
+    buf: f32[L]
+    idx: i32 {L, wrap}
+
+    def read(self):
+      return self.buf[self.idx]
+
+    def write(self, s: f32):
+      self.buf[self.idx] = s
+      self.idx += 1
+
+init:
+  started = false                      # os.osc phasor reset at the first sample
+  dropPrev = 0.0
+  t = 0                                # bubble time, in samples
+  phase = 0                            # os.osc phasor: 30-bit integer part ...
+  phaseFrac = 0                        # ... and 24-bit fraction
+  ampPrev = 0.0                        # si.smooth(0.99) of the decay (error form)
+  ampE = 0.0
+  invSR = 1.0 / SR
+  etaSR = 0.075 / SR
+  dampSR = 17640.0 / SR                # scaledamp * origSR / SR
+  roomSR = 12348.0 / SR                # scaleroom * origSR / SR
+  cl0 = fv<1214>::Comb()
+  cl1 = fv<1293>::Comb()
+  cl2 = fv<1389>::Comb()
+  cl3 = fv<1475>::Comb()
+  cl4 = fv<1547>::Comb()
+  cl5 = fv<1622>::Comb()
+  cl6 = fv<1694>::Comb()
+  cl7 = fv<1760>::Comb()
+  al0 = fv<605>::Allpass()
+  al1 = fv<480>::Allpass()
+  al2 = fv<371>::Allpass()
+  al3 = fv<244>::Allpass()
+  cr0 = fv<1239>::Comb()
+  cr1 = fv<1318>::Comb()
+  cr2 = fv<1414>::Comb()
+  cr3 = fv<1500>::Comb()
+  cr4 = fv<1572>::Comb()
+  cr5 = fv<1647>::Comb()
+  cr6 = fv<1719>::Comb()
+  cr7 = fv<1785>::Comb()
+  ar0 = fv<630>::Allpass()
+  ar1 = fv<505>::Allpass()
+  ar2 = fv<396>::Allpass()
+  ar3 = fv<269>::Allpass()
+
+block:
+  dmp = dampSR * damp                  # freeverb damping
+  dmp1 = 1.0 - dmp
+  wet2 = 0.2 * wet                     # g * fixedgain, both channels summed by stereo_freeverb
+  f0 = invSR * freq
+  dc = 0.043 * freq + 0.0014 * pow(freq, 1.5)   # bubble damping
+  sigma = etaSR * dc
+  decay = invSR * dc
+  fb = roomSR * roomSize + 0.7         # comb feedback
+  dry = 1.0 - wet
+  sample:
+    # bubble time: restarts on the rising edge of drop
+    if drop > dropPrev:
+      t = 1
+    else:
+      t += 1
+    dropPrev = drop
+    ft = f32(t)
+    # os.osc at f0 * (1 + sigma * time)
+    inc = f0 * (1.0 + sigma * ft)
+    fi = 1073741824.0 * (inc - round(inc))
+    fl = floor(fi)
+    frac = phaseFrac + i32(16777216.0 * (fi - fl))
+    if started:
+      phaseFrac = frac & 16777215
+      phase = (phase + i32(fl) + (frac >> 24)) & 1073741823
+    started = true
+    # exp(-damp * time) : si.smooth(0.99)
+    a = exp(-(decay * ft))
+    ampE = 0.99 * (ampE + (ampPrev - a))
+    ampPrev = a
+    bubble = SINE[(phase >> 6) >> 8] * (a + ampE)
+    x = wet2 * bubble
+    # left freeverb
+    y7 = cl7.tick(x, fb, dmp, dmp1)
+    y6 = cl6.tick(x, fb, dmp, dmp1)
+    y5 = cl5.tick(x, fb, dmp, dmp1)
+    y4 = cl4.tick(x, fb, dmp, dmp1)
+    y3 = cl3.tick(x, fb, dmp, dmp1)
+    y2 = cl2.tick(x, fb, dmp, dmp1)
+    y1 = cl1.tick(x, fb, dmp, dmp1)
+    y0 = cl0.tick(x, fb, dmp, dmp1)
+    b0 = al0.read()
+    b1 = al1.read()
+    b2 = al2.read()
+    b3 = al3.read()
+    s0 = y7 + y6 + y5 + y4 + y3 + y2 + y1 + 0.5 * b0 + y0
+    al0.write(s0)
+    s1 = b0 + 0.5 * (b1 - s0)
+    al1.write(s1)
+    s2 = b1 + 0.5 * (b2 - s1)
+    al2.write(s2)
+    s3 = b2 + 0.5 * (b3 - s2)
+    al3.write(s3)
+    d = dry * bubble
+    out1 = b3 + d - 0.5 * s3
+    # right freeverb
+    z7 = cr7.tick(x, fb, dmp, dmp1)
+    z6 = cr6.tick(x, fb, dmp, dmp1)
+    z5 = cr5.tick(x, fb, dmp, dmp1)
+    z4 = cr4.tick(x, fb, dmp, dmp1)
+    z3 = cr3.tick(x, fb, dmp, dmp1)
+    z2 = cr2.tick(x, fb, dmp, dmp1)
+    z1 = cr1.tick(x, fb, dmp, dmp1)
+    z0 = cr0.tick(x, fb, dmp, dmp1)
+    c0 = ar0.read()
+    c1 = ar1.read()
+    c2 = ar2.read()
+    c3 = ar3.read()
+    r0 = z7 + z6 + z5 + z4 + z3 + z2 + z1 + 0.5 * c0 + z0
+    ar0.write(r0)
+    r1 = c0 + 0.5 * (c1 - r0)
+    ar1.write(r1)
+    r2 = c1 + 0.5 * (c2 - r1)
+    ar2.write(r2)
+    r3 = c2 + 0.5 * (c3 - r2)
+    ar3.write(r3)
+    out2 = d + c3 - 0.5 * r3

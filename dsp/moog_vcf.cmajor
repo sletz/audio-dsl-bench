@@ -1,0 +1,60 @@
+// dm.moog_vcf_demo of Faust's demos.lib (examples/filtering/moogVCF.dsp), after dsp/moog_vcf.onda,
+// default branch only like moog_vcf.dsp: ve.moog_vcf(res^4, freq), four one-poles with (1 - p) at
+// the input of each and a global feedback mk = -4 res^4, then the output gain. The corner frequency
+// (piano keys to Hz) and the gain (dB to linear) go through si.smoo (si.smooth, error form).
+processor MoogVcf
+{
+    input stream float in1;
+    output stream float out1;
+    input event float freq    [[ min: 1.0f,   max: 88.0f, init: 25.0f ]];
+    input event float res     [[ min: 0.0f,   max: 1.0f,  init: 0.9f ]];
+    input event float outgain [[ min: -60.0f, max: 20.0f, init: 5.0f ]];
+
+    float freqV = 25.0f, resV = 0.9f, outgainV = 5.0f;
+    // control-rate values, recomputed by update()
+    float frT, mk, gT;
+    float c1, sp;                   // 2 pi / SR, si.smoo pole
+    float frE, frXp, gE, gXp;       // si.smooth states (error and previous input)
+    float y1, y2, y3, y4;           // the four one-pole states
+
+    event freq (float x)    { freqV = x; update(); }
+    event res (float x)     { resV = x; update(); }
+    event outgain (float x) { outgainV = x; update(); }
+
+    void update()
+    {
+        frT = 440.0f * pow (2.0f, 0.083333336f * (freqV - 49.0f));    // ba.pianokey2hz
+        let r4 = resV * resV * resV * resV;
+        mk = -4.0f * max (0.0f, min (r4, 0.999999f));                 // need mk > -4 for stability
+        gT = pow (10.0f, 0.05f * outgainV);                           // ba.db2linear
+    }
+
+    void init()
+    {
+        let sr = float (processor.frequency);
+        c1 = float (twoPi) / sr;
+        sp = 1.0f - 44.1f / sr;
+        update();
+    }
+
+    void main()
+    {
+        loop
+        {
+            frE = sp * (frE + (frXp - frT));
+            frXp = frT;
+            let fr = frT + frE;
+            // p = 1 - fr 2 pi / SR; 1 - p written fr 2 pi / SR, as faust simplifies it
+            let a = c1 * fr;
+            let p = 1.0f - a;
+            y1 = p * y1 + a * (in1 + mk * y4);
+            y2 = p * y2 + a * y1;
+            y3 = p * y3 + a * y2;
+            y4 = p * y4 + a * y3;
+            gE = sp * (gE + (gXp - gT));
+            gXp = gT;
+            out1 <- y4 * (gT + gE);
+            advance();
+        }
+    }
+}

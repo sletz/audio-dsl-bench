@@ -1,0 +1,125 @@
+// dm.dattorro_rev_demo of Faust's demos.lib (examples/reverb/dattorro.dsp), after
+// dsp/dattorro.onda: re.dattorro_rev(0, ...) with every control smoothed by si.smoo, then the
+// demo's dry/wet mix and output level. Fixed delay lengths (no SR dependence); allpass_f(t, a)
+// is a line of t + 1 samples; the bandwidth filter recurses on y[n-2]. Scalar filter state; each
+// delay line has its own array and a counter wrapped at a constant.
+processor Dattorro {
+    input stream in1;
+    input stream in2;
+    output stream out1;
+    output stream out2;
+    input parameter float prefilter = 0.7 [[ min: 0.0, max: 1.0 ]];
+    input parameter float inDiffusion1 = 0.625 [[ min: 0.0, max: 1.0 ]];
+    input parameter float inDiffusion2 = 0.625 [[ min: 0.0, max: 1.0 ]];
+    input parameter float fbDiffusion1 = 0.625 [[ min: 0.0, max: 1.0 ]];
+    input parameter float fbDiffusion2 = 0.625 [[ min: 0.0, max: 1.0 ]];
+    input parameter float decay = 0.7 [[ min: 0.0, max: 1.0 ]];
+    input parameter float damping = 0.625 [[ min: 0.0, max: 1.0 ]];
+    input parameter float drywet = 0.0 [[ min: -1.0, max: 1.0 ]];
+    input parameter float level = -6.0 [[ min: -70.0, max: 40.0 ]];
+
+    // si.smoo states: error and previous input
+    state float eBw, xpBw, eId1, xpId1, eId2, xpId2, eDd1, xpDd1, eDd2, xpDd2;
+    state float eDec, xpDec, eDmp, xpDmp, eDw, xpDw, eG, xpG;
+    state float pf1, pf2;     // bandwidth filter output, one and two samples ago
+    state float lp0, lp1;     // damping lowpasses
+    state float o1p, o2p;     // tank outputs of the previous sample
+    state float ap142[143];  state int i142;      // input diffusion allpasses
+    state float ap107[108];  state int i107;
+    state float ap379[380];  state int i379;
+    state float ap277[278];  state int i277;
+    state float ap672[673];  state int i672;      // tank, block 0
+    state float dl4453[4453];  state int i4453;
+    state float ap1800[1801];  state int i1800;
+    state float dl1800[1800];  state int j1800;
+    state float ap908[909];  state int i908;      // tank, block 1
+    state float dl4217[4217];  state int i4217;
+    state float ap2656[2657];  state int i2656;
+    state float dl2656[2656];  state int j2656;
+
+    process {
+        let c = 1.0 - 44.1 / sampleRate;   // si.smoo pole
+        let dwp1 = drywet + 1.0;
+        let omdmp = 1.0 - damping;
+        let ombw = 1.0 - prefilter;
+        let gl = pow (10.0, 0.05 * level);
+
+        let x0 = in1;
+        eDw = c * ((xpDw - drywet) + eDw);  xpDw = drywet;
+        let dw = dwp1 + eDw;
+        let dry = 1.0 - 0.5 * dw;
+        eDd1 = c * ((xpDd1 - fbDiffusion1) + eDd1);  xpDd1 = fbDiffusion1;
+        let dd1 = fbDiffusion1 + eDd1;
+        // tank block 1: allpass(908, -dd1), delay 4217, damping, allpass(2656, dd2), delay 2656
+        let r1 = ap908[i908];
+        let w1 = r1 * dd1 + o2p;
+        ap908[i908] = w1;  i908 += 1;  if (i908 >= 909) { i908 = 0; }
+        eDmp = c * ((xpDmp - damping) + eDmp);  xpDmp = damping;
+        let dmp = damping + eDmp;
+        let y4217 = dl4217[i4217];  dl4217[i4217] = r1 + -(dd1 * w1);
+        i4217 += 1;  if (i4217 >= 4217) { i4217 = 0; }
+        let omd = omdmp - eDmp;
+        lp1 = lp1 * dmp + y4217 * omd;
+        eDec = c * ((xpDec - decay) + eDec);  xpDec = decay;
+        let dec = decay + eDec;
+        eDd2 = c * ((xpDd2 - fbDiffusion2) + eDd2);  xpDd2 = fbDiffusion2;
+        let dd2 = fbDiffusion2 + eDd2;
+        let r4 = ap2656[i2656];
+        let w4 = lp1 * dec - r4 * dd2;
+        ap2656[i2656] = w4;  i2656 += 1;  if (i2656 >= 2657) { i2656 = 0; }
+        eId2 = c * ((xpId2 - inDiffusion2) + eId2);  xpId2 = inDiffusion2;
+        let id2 = inDiffusion2 + eId2;
+        // input: bandwidth filter, then 4 diffusion allpasses
+        eBw = c * ((xpBw - prefilter) + eBw);  xpBw = prefilter;
+        let x1 = in2;
+        let pf = pf2 * (ombw - eBw) + 0.5 * (x0 + x1) * (prefilter + eBw);
+        pf2 = pf1;
+        pf1 = pf;
+        eId1 = c * ((xpId1 - inDiffusion1) + eId1);  xpId1 = inDiffusion1;
+        let id1 = inDiffusion1 + eId1;
+        let r20 = ap142[i142];
+        let t13 = pf - id1 * r20;
+        ap142[i142] = t13;  i142 += 1;  if (i142 >= 143) { i142 = 0; }
+        let r19 = ap107[i107];
+        let t14 = r20 - id1 * (r19 - t13);
+        ap107[i107] = t14;  i107 += 1;  if (i107 >= 108) { i107 = 0; }
+        let r18 = ap379[i379];
+        let t15 = r19 + id1 * t14 - id2 * r18;
+        ap379[i379] = t15;  i379 += 1;  if (i379 >= 380) { i379 = 0; }
+        let r24 = ap277[i277];
+        let t16 = r18 - id2 * (r24 - t15);
+        ap277[i277] = t16;  i277 += 1;  if (i277 >= 278) { i277 = 0; }
+        let t17 = id2 * t16;
+        let y2656 = dl2656[j2656];  dl2656[j2656] = r4 + dd2 * w4;
+        j2656 += 1;  if (j2656 >= 2656) { j2656 = 0; }
+        let o1 = t17 + dec * y2656 + r24;
+        // tank block 0: allpass(672, -dd1), delay 4453, damping, allpass(1800, dd2), delay 1800
+        let r7 = ap672[i672];
+        let w7 = dd1 * r7 + o1p;
+        ap672[i672] = w7;  i672 += 1;  if (i672 >= 673) { i672 = 0; }
+        let y4453 = dl4453[i4453];  dl4453[i4453] = r7 + -(dd1 * w7);
+        i4453 += 1;  if (i4453 >= 4453) { i4453 = 0; }
+        lp0 = dmp * lp0 + omd * y4453;
+        let r10 = ap1800[i1800];
+        let w10 = dec * lp0 - dd2 * r10;
+        ap1800[i1800] = w10;  i1800 += 1;  if (i1800 >= 1801) { i1800 = 0; }
+        let y1800 = dl1800[j1800];  dl1800[j1800] = r10 + dd2 * w10;
+        j1800 += 1;  if (j1800 >= 1800) { j1800 = 0; }
+        let o2 = r24 + t17 + dec * y1800;
+        eG = c * ((xpG - gl) + eG);  xpG = gl;
+        let g = gl + eG;
+        out1 = (x0 * dry + 0.5 * dw * o1) * g;
+        out2 = g * (x1 * dry + 0.5 * dw * o2);
+        o1p = o1;
+        o2p = o2;
+    }
+}
+
+graph Main {
+    input stream in1;
+    input stream in2;
+    output stream out1;
+    output stream out2;
+    node p = Dattorro;
+    connection { in1 -> p.in1; in2 -> p.in2; p.out1 -> out1; p.out2 -> out2; }
+}

@@ -1,0 +1,142 @@
+# dm.dattorro_rev_demo of Faust's demos.lib (examples/reverb/dattorro.dsp), like dattorro.dsp:
+# re.dattorro_rev(0, bw, i_diff1, i_diff2, decay, d_diff1, d_diff2, damping) with every control
+# smoothed by si.smoo, then the demo's dry/wet mix and output level. The delay lengths of
+# reverbs.lib are fixed sample counts (no SR dependence). allpass_f(t, a) is a line of t + 1
+# samples (its @(t) followed by mem); as in Faust's C++, the tank blocks read the tank outputs
+# of the previous sample (the ~ delay), and the bandwidth filter recurses on y[n-2]
+# (+~(mem : *(1-bw))). Same operation order as Faust's C++.
+ins 2
+outs 2
+
+params:
+  prefilter = 0.7 {0.0, 1.0}
+  inDiffusion1 = 0.625 {0.0, 1.0}
+  inDiffusion2 = 0.625 {0.0, 1.0}
+  fbDiffusion1 = 0.625 {0.0, 1.0}
+  fbDiffusion2 = 0.625 {0.0, 1.0}
+  decay = 0.7 {0.0, 1.0}
+  damping = 0.625 {0.0, 1.0}
+  drywet = 0.0 {-1.0, 1.0}
+  level = -6.0 {-70.0, 40.0}
+
+namespace dt<M = 2>:
+  struct Ring:
+    buf: f32[M]
+    idx: i32 {M, wrap}
+
+    def get(self):
+      return self.buf[self.idx]
+
+    def put(self, x: f32):
+      self.buf[self.idx] = x
+      self.idx += 1
+
+    def tick(self, x: f32):
+      y = self.buf[self.idx]
+      self.buf[self.idx] = x
+      self.idx += 1
+      return y
+
+# si.smoo (si.smooth error form): returns e, the smoothed value being x + e
+struct Smooth:
+  e = 0.0
+  xp = 0.0
+
+  def step(self, x: f32, pole: f32):
+    self.e = pole * ((self.xp - x) + self.e)
+    self.xp = x
+    return self.e
+
+init:
+  sbw = Smooth()
+  sid1 = Smooth()
+  sid2 = Smooth()
+  sdd1 = Smooth()
+  sdd2 = Smooth()
+  sdec = Smooth()
+  sdmp = Smooth()
+  sdw = Smooth()
+  sg = Smooth()
+  pf1 = 0.0                            # bandwidth filter output, one and two samples ago
+  pf2 = 0.0
+  ap142 = dt<143>::Ring()              # input diffusion allpasses
+  ap107 = dt<108>::Ring()
+  ap379 = dt<380>::Ring()
+  ap277 = dt<278>::Ring()
+  ap672 = dt<673>::Ring()              # tank, block 0
+  dl4453 = dt<4453>::Ring()
+  ap1800 = dt<1801>::Ring()
+  dl1800 = dt<1800>::Ring()
+  ap908 = dt<909>::Ring()              # tank, block 1
+  dl4217 = dt<4217>::Ring()
+  ap2656 = dt<2657>::Ring()
+  dl2656 = dt<2656>::Ring()
+  lp0 = 0.0                            # damping lowpasses
+  lp1 = 0.0
+  o1p = 0.0                            # tank outputs of the previous sample
+  o2p = 0.0
+  c = 1.0 - 44.1 / SR                  # si.smoo pole
+
+block:
+  dwp1 = drywet + 1.0
+  omdmp = 1.0 - damping
+  ombw = 1.0 - prefilter
+  gl = pow(10.0, 0.05 * level)
+  sample:
+    x0 = in1
+    dw = dwp1 + sdw.step(drywet, c)
+    dry = 1.0 - 0.5 * dw
+    dd1 = fbDiffusion1 + sdd1.step(fbDiffusion1, c)
+    # tank block 1: allpass(908, -dd1), delay 4217, damping, allpass(2656, dd2), delay 2656
+    r1 = ap908.get()
+    w1 = r1 * dd1 + o2p
+    ap908.put(w1)
+    edmp = sdmp.step(damping, c)
+    dmp = damping + edmp
+    y4217 = dl4217.tick(r1 + -(dd1 * w1))
+    omd = omdmp - edmp
+    lp1 = lp1 * dmp + y4217 * omd
+    dec = decay + sdec.step(decay, c)
+    dd2 = fbDiffusion2 + sdd2.step(fbDiffusion2, c)
+    r4 = ap2656.get()
+    w4 = lp1 * dec - r4 * dd2
+    ap2656.put(w4)
+    id2 = inDiffusion2 + sid2.step(inDiffusion2, c)
+    # input: bandwidth filter, then 4 diffusion allpasses
+    ebw = sbw.step(prefilter, c)
+    x1 = in2
+    pf = pf2 * (ombw - ebw) + 0.5 * (x0 + x1) * (prefilter + ebw)
+    pf2 = pf1
+    pf1 = pf
+    id1 = inDiffusion1 + sid1.step(inDiffusion1, c)
+    r20 = ap142.get()
+    t13 = pf - id1 * r20
+    ap142.put(t13)
+    r19 = ap107.get()
+    t14 = r20 - id1 * (r19 - t13)
+    ap107.put(t14)
+    r18 = ap379.get()
+    t15 = r19 + id1 * t14 - id2 * r18
+    ap379.put(t15)
+    r24 = ap277.get()
+    t16 = r18 - id2 * (r24 - t15)
+    ap277.put(t16)
+    t17 = id2 * t16
+    y2656 = dl2656.tick(r4 + dd2 * w4)
+    o1 = t17 + dec * y2656 + r24
+    # tank block 0: allpass(672, -dd1), delay 4453, damping, allpass(1800, dd2), delay 1800
+    r7 = ap672.get()
+    w7 = dd1 * r7 + o1p
+    ap672.put(w7)
+    y4453 = dl4453.tick(r7 + -(dd1 * w7))
+    lp0 = dmp * lp0 + omd * y4453
+    r10 = ap1800.get()
+    w10 = dec * lp0 - dd2 * r10
+    ap1800.put(w10)
+    y1800 = dl1800.tick(r10 + dd2 * w10)
+    o2 = r24 + t17 + dec * y1800
+    g = gl + sg.step(gl, c)
+    out1 = (x0 * dry + 0.5 * dw * o1) * g
+    out2 = g * (x1 * dry + 0.5 * dw * o2)
+    o1p = o1
+    o2p = o2

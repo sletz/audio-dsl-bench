@@ -6,13 +6,20 @@ import json, math, sys
 
 B = sys.argv[1]
 R = json.load(open(f"{B}/results/results.json"))
+# builds whose output is wrong on a program (relative RMS 0.88 against every other engine) are left out
+# of the comparisons: the fast-math builds of the certification-4 faust on virtual_analog
+WRONG = {'virtual_analog': ('ocpp-fm', 'best-fm', 'best48-fm')}
+for _n, _ks in WRONG.items():
+    for _k in _ks:
+        R.get(_n, {}).pop(_k, None)
 
-CATS = [('Oscillators and sources', ['sine', 'fm_pad', 'additive64', 'noise']),
-        ('Nonlinearities', ['tanh_drive']),
-        ('Filters', ['biquad8', 'peq10', 'svf_mod', 'fir32c']),
-        ('Matrices and mixing', ['hoa_decoder_x', 'mixer16_x']),
-        ('Delays and reverbs', ['freeverb', 'fdn8', 'diffuser32', 'zita_rev']),
-        ('Physical models', ['clarinet', 'violin', 'frenchbell'])]
+CATS = [('Oscillators and sources', ['sine', 'fm_pad', 'additive64', 'noise', 'bubble', 'virtual_analog']),
+        ('Nonlinearities and dynamics', ['tanh_drive', 'distortion', 'compressor', 'noise_gate', 'exciter']),
+        ('Filters', ['biquad8', 'peq10', 'svf_mod', 'fir32c', 'crybaby', 'moog_vcf', 'diode_ladder', 'filter_bank']),
+        ('Modulation and pitch', ['phaser', 'flanger', 'pitch_shifter', 'autopan']),
+        ('Spatialization and mixing', ['hoa_decoder_x', 'mixer16_x', 'hoa_octo']),
+        ('Delays and reverbs', ['freeverb', 'fdn8', 'diffuser32', 'zita_rev', 'dattorro', 'greyhole', 'tapiir']),
+        ('Physical models', ['clarinet', 'violin', 'frenchbell', 'karplus', 'flute'])]
 NAMES = {'hoa_decoder_x': 'hoa_decoder', 'mixer16_x': 'mixer16'}
 IEEE = ['cpp-scal-ieee', 'cpp-vec-ieee', 'ocpp-ieee', 'ocpp48-ieee']
 FAST = ['cpp-scal-fm', 'cpp-vec-fm', 'cpp-vec-acc', 'llvm-scal', 'llvm-vec', 'llvm48', 'ocpp-fm', 'best-fm', 'best48-fm']
@@ -40,26 +47,37 @@ LD = {n: lang_ratios(n) for n in progs}
 LGEO = {c: {k: math.exp(sum(math.log(LD[n][c][k]) for n in progs) / len(progs)) for k, _ in LANGS} for c in ('s', 'f')}
 L_LO, L_HI = math.log(0.1), math.log(4.5)
 L_TICKS = [(0.125, '×⅛'), (0.25, '×¼'), (0.5, '×½'), (1, '×1'), (2, '×2'), (4, '×4')]
-CAT_SHORT = {'Oscillators and sources': 'SOURCES', 'Nonlinearities': 'NONLIN.', 'Filters': 'FILTERS',
-             'Matrices and mixing': 'MIXING', 'Delays and reverbs': 'DELAYS AND REVERBS', 'Physical models': 'PHYSICAL MODELS'}
+CAT_SHORT = {'Oscillators and sources': 'SOURCES', 'Nonlinearities and dynamics': 'DYNAMICS', 'Filters': 'FILTERS',
+             'Modulation and pitch': 'MODULATION', 'Spatialization and mixing': 'SPATIAL', 'Delays and reverbs': 'REVERBS',
+             'Physical models': 'PHYSICAL MODELS'}
 L_W, L_PLOTL, L_PLOTR = 940, 64, 916      # plot area, left axis labels before it
-L_PH, L_LABH, L_TOP = 250, 96, 128       # panel height, room for the rotated program names, first panel top
-BAR, BGAP, CATGAP = 12, 2, 14            # column width, gap between the columns of a group, gap between categories
+L_PH, L_LABH, L_TOP = 200, 96, 128       # panel height, room for the rotated program names, first panel top
+BAR, BGAP, CATGAP = 10, 2, 14            # column width, gap between the columns of a group, gap between categories
+SPLIT = 3                                # categories 0..SPLIT-1 on the first row of each contract, the rest on the second
 
 
-def svg_languages(theme):
-    t = L_THEMES[theme]
-    # x layout: groups of 3 columns per program, a gap between categories, the geometric mean last
+def layout(cats, with_geo, slot, gw):
+    """x positions of the groups of one panel row: categories, then the geometric mean if asked."""
     groups, x = [], L_PLOTL + 10
-    gw = 3 * BAR + 2 * BGAP
-    slot = (L_PLOTR - L_PLOTL - 20 - CATGAP * len(CATS) - gw) / len(progs)
-    for ci, (cat, ns) in enumerate(CATS):
+    for cat, ns in cats:
         x0 = x
         for n in ns:
             groups.append((n, x + (slot - gw) / 2)); x += slot
         groups.append(('|cat', (x0, x, cat))); x += CATGAP
-    groups.append(('|geo', x + (slot - gw) / 2))
-    H = L_TOP + 2 * (L_PH + L_LABH) + 40
+    if with_geo:
+        groups.append(('|geo', x + (slot - gw) / 2))
+    return groups
+
+
+def svg_languages(theme):
+    t = L_THEMES[theme]
+    gw = 3 * BAR + 2 * BGAP
+    rows_cats = [CATS[:SPLIT], CATS[SPLIT:]]
+    # one column width for every row, set by the fullest row (its programs, categories and the mean)
+    slot = min((L_PLOTR - L_PLOTL - 20 - CATGAP * len(c) - gw * (i == 1)) / (sum(len(ns) for _, ns in c) + (i == 1))
+               for i, c in enumerate(rows_cats))
+    panels = [(key, title, i) for key, title in (('s', 'Strict IEEE'), ('f', 'fast-math')) for i in (0, 1)]
+    H = L_TOP + len(panels) * (L_PH + L_LABH) + 40
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {L_W} {H}" width="{L_W}" height="{H}" font-family="{FONT}">',
            f'<rect width="{L_W}" height="{H}" fill="{t["bg"]}"/>',
            f'<text x="24" y="34" font-size="19" font-weight="600" fill="{t["ink"]}">onda, Cmajor and YDSP against the best Faust build</text>',
@@ -71,13 +89,18 @@ def svg_languages(theme):
         lx += 18 + len(label) * 7.5 + 22
     out.append(f'<line x1="{lx}" x2="{lx + 16}" y1="76" y2="76" stroke="{t["one"]}" stroke-width="1.5"/>')
     out.append(f'<text x="{lx + 24}" y="80" font-size="12.5" fill="{t["ink"]}">Faust: best of 13 builds (×1)</text>')
-    for p, (key, title) in enumerate((('s', 'Strict IEEE'), ('f', 'fast-math'))):
+    for p, (key, title, row) in enumerate(panels):
         top = L_TOP + p * (L_PH + L_LABH)
+        groups = layout(rows_cats[row], row == 1, slot, gw)
+        right = groups[-1][1] + gw + 10 if row == 1 else L_PLOTR
         Y = lambda v: top + L_PH - (math.log(min(max(v, 0.1), 4.5)) - L_LO) / (L_HI - L_LO) * L_PH
         g = LGEO[key]
-        means = ' · '.join(f'{lname} ×{g[k]:.2f}' for k, lname in LANGS)
-        out.append(f'<text x="{L_PLOTL}" y="{top - 10}" font-size="14" font-weight="600" fill="{t["ink"]}">{title}'
-                   f'<tspan dx="12" font-size="12" font-weight="400" fill="{t["ink2"]}">geometric means: {means}</tspan></text>')
+        if row == 1:
+            out.append(f'<text x="{L_PLOTL}" y="{top - 10}" font-size="12" fill="{t["ink2"]}">{title}, continued</text>')
+        if row == 0:
+            means = ' · '.join(f'{lname} ×{g[k]:.2f}' for k, lname in LANGS)
+            out.append(f'<text x="{L_PLOTL}" y="{top - 10}" font-size="14" font-weight="600" fill="{t["ink"]}">{title}'
+                       f'<tspan dx="12" font-size="12" font-weight="400" fill="{t["ink2"]}">geometric means: {means}</tspan></text>')
         for v, lab in L_TICKS:
             out.append(f'<line x1="{L_PLOTL}" x2="{L_PLOTR}" y1="{Y(v):.1f}" y2="{Y(v):.1f}" stroke="{t["grid"]}" stroke-width="1"/>')
             out.append(f'<text x="{L_PLOTL - 8}" y="{Y(v) + 4:.1f}" font-size="11.5" text-anchor="end" fill="{t["ink2"]}">{lab}</text>')
@@ -102,11 +125,10 @@ def svg_languages(theme):
             out.append(f'<text x="{cx:.1f}" y="{ly}" font-size="11.5" font-weight="{weight}" text-anchor="end" '
                        f'transform="rotate(-40 {cx:.1f} {ly})" fill="{t["ink"]}">{label}</text>')
         out.append(f'<line x1="{L_PLOTL}" x2="{L_PLOTR}" y1="{Y(1):.1f}" y2="{Y(1):.1f}" stroke="{t["one"]}" stroke-width="1.5"/>')
-        # category separators between the groups
-        for name, gx in groups:
-            if name == '|cat' and gx[1] < groups[-1][1] - 1:
-                sx = gx[1] + CATGAP / 2
-                out.append(f'<line x1="{sx:.1f}" x2="{sx:.1f}" y1="{top}" y2="{top + L_PH}" stroke="{t["grid"]}" stroke-width="1" stroke-dasharray="3 3"/>')
+        cats = [gx for name, gx in groups if name == '|cat']
+        for x0, x1, cat in cats[:-1]:     # dashed separators between categories
+            sx = x1 + CATGAP / 2
+            out.append(f'<line x1="{sx:.1f}" x2="{sx:.1f}" y1="{top}" y2="{top + L_PH}" stroke="{t["grid"]}" stroke-width="1" stroke-dasharray="3 3"/>')
     out.append(f'<text x="24" y="{H - 24}" font-size="11.5" fill="{t["ink2"]}">Cmajor: the faster of its generated C++ (clang) and its LLVM JIT. YDSP: YUP\'s JIT, strict or fastMath. ns per sample, Apple M5,</text>')
     out.append(f'<text x="24" y="{H - 8}" font-size="11.5" fill="{t["ink2"]}">f32, 48 kHz, 256-frame blocks; means over {len(progs)} programs. Programs grouped by category; columns past ×⅛ are cut at the axis.</text>')
     out.append('</svg>')

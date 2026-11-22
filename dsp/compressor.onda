@@ -1,0 +1,41 @@
+# dm.compressor_demo (co.compressor_stereo with makeup gain) ported to Onda, without the bypass
+# and the gain meter, like compressor.dsp. Detector: |x| + |y| through an attack/release one-pole
+# (an.amp_follower_ar = si.onePoleSwitching), in dB, gain computer, knee smoother (si.smooth, error
+# form, pole tau2pole(att/2)), back to linear. Operations in the order of Faust's generated C++.
+ins 2
+outs 2
+
+params:
+  ratio = 5.0 {1.0, 20.0}
+  threshold = -30.0 {-100.0, 10.0}
+  attack = 50.0 {1.0, 1000.0}
+  release = 500.0 {1.0, 1000.0}
+  makeupgain = 12.0 {-96.0, 96.0}
+
+init:
+  env = 0.0                            # amp_follower_ar state
+  gdbPrev = 0.0                        # knee smoother input, previous sample
+  err = 0.0                            # knee smoother error state
+
+block:
+  t = 1.0 / SR
+  mgain = pow(10.0, 0.05 * makeupgain)                   # ba.db2linear
+  slope = 1.0 / max(0.0000001192092896, ratio) + -1.0    # 1/max(ma.EPSILON, ratio) - 1
+  att = max(t, 0.001 * attack)                           # attack in s, at least one sample
+  rel = max(t, 0.001 * release)
+  poleAtt = exp(-(t / att))                              # ba.tau2pole(att)
+  poleRel = exp(-(t / rel))                              # ba.tau2pole(rel)
+  poleKnee = exp(-(t / (0.5 * att)))                     # ba.tau2pole(att/2)
+  sample:
+    x = abs(abs(in1) + abs(in2))
+    c = poleRel
+    if x > env:
+      c = poleAtt
+    env = x * (1.0 - c) + env * c
+    # ba.linear2db: 20*log10(max(ma.MIN, env)), log10 written log * 1/ln(10) (no log10 in Onda)
+    gdb = slope * max(20.0 * (log(max(0.00000000000000000000000000000000000001175494351, env)) * 0.4342944819) - threshold, 0.0)
+    err = poleKnee * (err + min(340282346638528859811704183484516925440.0, gdbPrev - gdb))
+    gdbPrev = gdb
+    g = pow(10.0, 0.05 * (gdb + err))
+    out1 = mgain * in1 * g
+    out2 = mgain * in2 * g

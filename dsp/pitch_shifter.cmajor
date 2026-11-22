@@ -1,0 +1,53 @@
+// ef.transpose(window, xfade, shift) of Faust's misceffects.lib, after dsp/pitch_shifter.onda
+// (shift at 5 semitones instead of 0). A phasor d runs through [0, window) (fmod); two taps of a
+// linearly interpolated delay line, at d and d + window, are crossfaded by min(d / xfade, 1).
+processor PitchShifter
+{
+    input stream float in1;
+    output stream float out1;
+    input event float window [[ min: 50.0f, max: 10000.0f, init: 1000.0f ]];
+    input event float xfade  [[ min: 1.0f,  max: 10000.0f, init: 10.0f ]];
+    input event float shift  [[ min: -12.0f, max: 12.0f,   init: 5.0f ]];
+
+    float windowV = 1000.0f, xfadeV = 10.0f, shiftV = 5.0f;
+    float step, ix, omw;
+    float[32768] buf;           // de.fdelay(65536, ...) line, sized like Faust's (d + window < 20001)
+    wrap<32768> iota;
+    float d;                    // read position, in [0, window)
+
+    event window (float v) { windowV = v; update(); }
+    event xfade (float v)  { xfadeV = v; update(); }
+    event shift (float v)  { shiftV = v; update(); }
+
+    void update()
+    {
+        step = windowV + (1.0f - pow (2.0f, 0.083333336f * shiftV));
+        ix = 1.0f / xfadeV;
+        omw = 1.0f - windowV;
+    }
+
+    void init() { update(); }
+
+    void main()
+    {
+        loop
+        {
+            buf[iota] = in1;
+            d = fmod (step + d, windowV);
+            let i1 = int (min (65537.0f, max (-1.0f, d)));
+            let f1 = floor (d);
+            let xf = min (ix * d, 1.0f);
+            let d2 = windowV + d;
+            let i2 = int (min (65537.0f, max (-1.0f, d2)));
+            let f2 = floor (d2);
+            let a0 = buf[wrap<32768> (iota - min (65537, max (0, i1)))];
+            let a1 = buf[wrap<32768> (iota - min (65537, max (0, i1 + 1)))];
+            let b0 = buf[wrap<32768> (iota - min (65537, max (0, i2)))];
+            let b1 = buf[wrap<32768> (iota - min (65537, max (0, i2 + 1)))];
+            out1 <- (a0 * (1.0f - d + f1) + (d - f1) * a1) * xf
+                  + (b0 * (omw - d + f2) + (windowV - f2 + d) * b1) * (1.0f - xf);
+            iota++;
+            advance();
+        }
+    }
+}

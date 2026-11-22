@@ -1,0 +1,87 @@
+// dm.flanger_demo of Faust's demos.lib (examples/phasing/flanger.dsp), after dsp/flanger.onda:
+// pf.flanger_stereo with dmax = 8192, invert off, no bypass. Each channel: a feedback comb
+// (x + fb*y into a fractional delay line, de.fdelay: linear interpolation) whose delay follows a
+// recursive quadrature LFO (fi.nlf2 driven by an impulse: os.oscrs on the left, os.oscrc on the
+// right); the output is half the sum of the input and the delayed signal one sample late. The
+// delay is written as the Faust compiler simplifies it.
+processor Flanger
+{
+    input stream float in1, in2;
+    output stream float out1, out2;
+    input event float flangeDelay [[ min: 0.0f,    max: 20.0f,  init: 10.0f ]];
+    input event float delayOffset [[ min: 0.0f,    max: 20.0f,  init: 1.0f ]];
+    input event float speed       [[ min: 0.0f,    max: 10.0f,  init: 0.5f ]];
+    input event float depth       [[ min: 0.0f,    max: 1.0f,   init: 1.0f ]];
+    input event float fb          [[ min: -0.999f, max: 0.999f, init: 0.0f ]];
+    input event float level       [[ min: -60.0f,  max: 10.0f,  init: 0.0f ]];
+
+    float flangeDelayV = 10.0f, delayOffsetV = 1.0f, speedV = 0.5f, depthV = 1.0f, fbV = 0.0f, levelV = 0.0f;
+    // control-rate values, recomputed by the event handlers
+    float lvl, off, half, sw, cw;
+
+    float[16384] bufL, bufR;    // de.fdelay(8192, d) lines
+    wrap<16384> w;              // write index, shared by both lines
+    float oscS, oscC;           // fi.nlf2 states: sine (os.oscrs) and cosine (os.oscrc)
+    float imp = 1.0f;           // impulse driving fi.nlf2 (1 - 1')
+    float yl, yr;               // delay line outputs, previous sample
+
+    event flangeDelay (float v) { flangeDelayV = v; update(); }
+    event delayOffset (float v) { delayOffsetV = v; update(); }
+    event speed (float v)       { speedV = v; update(); }
+    event depth (float v)       { depthV = v; }
+    event fb (float v)          { fbV = v; }
+    event level (float v)       { levelV = v; update(); }
+
+    void update()
+    {
+        let sr = float (processor.frequency);
+        lvl = pow (10.0f, 0.05f * levelV);          // ba.db2linear
+        off = 0.001f * delayOffsetV;                // delay in seconds: off + half * (1 + lfo)
+        half = 0.0005f * flangeDelayV;
+        let wf = float (twoPi) / sr * speedV;
+        sw = sin (wf);
+        cw = cos (wf);
+    }
+
+    void init() { update(); }
+
+    // de.fdelay(8192, d) read after the write at w: linear interpolation between the taps
+    // int(d) and int(d) + 1 (0 <= d <= 8193)
+    float read (float[16384]& buf, float d)
+    {
+        let id = int (min (8193.0f, max (-1.0f, d)));
+        let fl = floor (d);
+        return buf[wrap<16384> (w - min (8193, max (0, id)))] * (1.0f - d + fl)
+             + (d - fl) * buf[wrap<16384> (w - min (8193, max (0, id + 1)))];
+    }
+
+    void main()
+    {
+        let sr = float (processor.frequency);
+
+        loop
+        {
+            let s = sw * oscC + cw * oscS;
+            let c = imp - sw * oscS + cw * oscC;
+            oscS = s;
+            oscC = c;
+            imp = 0.0f;
+            // left channel
+            let xl = lvl * in1;
+            bufL[w] = xl + fbV * yl;
+            let dl = max (0.0f, -1.0f + sr * (off + half * (1.0f + s)));  // de.fdelay(dmax, curdel - 1)
+            let nl = read (bufL, dl);
+            out1 <- 0.5f * (xl + depthV * yl);
+            yl = nl;
+            // right channel
+            let xr = lvl * in2;
+            bufR[w] = xr + fbV * yr;
+            let dr = max (0.0f, -1.0f + sr * (off + half * (1.0f + c)));
+            let nr = read (bufR, dr);
+            out2 <- 0.5f * (xr + depthV * yr);
+            yr = nr;
+            w++;
+            advance();
+        }
+    }
+}

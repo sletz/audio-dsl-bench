@@ -1,0 +1,126 @@
+// pm.ks_ui_MIDI of Faust's physmodels.lib (examples/physicalModeling/karplus.dsp), after
+// dsp/karplus.onda, gate held at 1 like karplus.dsp: the string is plucked once, at the first
+// sample. Karplus-Strong string: impulse excitation injected into both directions of a waveguide
+// made of two fractional delay lines read by 4th-order Lagrange interpolation (de.fdelay4), closed
+// by a rigid termination on one side and by the averaging reflection filter (pm.ksReflexionFilter)
+// scaled by the damping on the other.
+processor Karplus
+{
+    output stream float out1, out2;
+    input event float freq [[ min: 50.0f, max: 1000.0f, init: 440.0f ]];
+    input event float bend [[ min: -2.0f, max: 2.0f, init: 0.0f ]];
+    input event float gain [[ min: 0.0f, max: 1.0f, init: 0.800000012f ]];
+    input event float sustain [[ min: 0.0f, max: 1.0f, init: 0.0f ]];
+    input event float damping [[ min: 0.0f, max: 1.0f, init: 0.00999999978f ]];
+    input event float gate [[ min: 0.0f, max: 1.0f, init: 1.0f ]];
+
+    float freqV = 440.0f, bendV = 0.0f, gainV = 0.800000012f, sustainV = 0.0f, dampingV = 0.00999999978f, gateV = 1.0f;
+    // control-rate values, recomputed by the event handlers
+    float len, ratio, gt, dampC;
+
+    float bendE, bendXp, dampE, dampXp;     // si.smooth states (error form)
+    float gatePrev;
+    float[2048] toEnd;                      // wave going to the reflection filter
+    float[2048] toStart;                    // wave coming back from it
+    wrap<2048> w;                           // write position of both lines
+    float r2;                               // toEnd output, one sample late
+    float r3a, r3b;                         // excitation + r2, one and two samples late
+    float r4a, r4b;                         // toStart output, one and two samples late
+    float c1, c2, c4, smoo;
+    int nmax;                               // int(c4): the integer taps clamped by c4
+
+    event freq (float v) { freqV = v; update(); }
+    event bend (float v) { bendV = v; update(); }
+    event gain (float v) { gainV = v; }
+    event sustain (float v) { sustainV = v; update(); }
+    event damping (float v) { dampingV = v; update(); }
+    event gate (float v) { gateV = v; update(); }
+
+    void update()
+    {
+        len = 340.0f / freqV;               // pm.f2l
+        ratio = pow (2.0f, 0.083333336f * bendV);
+        gt = min (1.0f, gateV + sustainV);
+        dampC = 1.0f - dampingV;
+    }
+
+    void init()
+    {
+        let sr = float (processor.frequency);
+        c1 = 0.0014705883f * sr;            // SR / (2 * pm.speedOfSound): half of pm.l2s
+        c2 = 2210.0f / sr;                  // 6.5 samples of loop delay, in meters
+        c4 = 0.00882353f * sr + 4.0f;       // the de.fdelay4 bound: l2s(pm.maxLength) + 4
+        smoo = 1.0f - 44.1f / sr;           // si.smoo
+        nmax = int (c4);
+        update();
+    }
+
+    void main()
+    {
+        loop
+        {
+            w++;
+            // pitch bend (si.polySmooth)
+            var hold = 0.0f;
+            if (gt == gatePrev || gt == 0.0f)
+                hold = 0.999f;
+            bendE = hold * (bendE + (bendXp - ratio));
+            bendXp = ratio;
+            let bendRatio = ratio + bendE;
+            // delay of each line, de.fdelay4 fractional part and Lagrange products
+            let d = c1 * (len / bendRatio - c2);
+            let dmo = d - 1.499995f;
+            let fl = floor (dmo);
+            let t3 = d - fl;
+            let t4 = -1.0f - fl + d;
+            let t5 = t3 * t4;
+            let t6 = -2.0f - fl + d;
+            let t7 = t5 * t6;
+            let t8 = -3.0f - fl + d;
+            let t9 = t7 * t8;
+            // excitation: pm.impulseExcitation(gate) * gain
+            let dg = gt - gatePrev;
+            gatePrev = gt;
+            var exc = 0.0f;
+            if (dg > 0.0f)
+                exc = gainV * dg;
+            // reflection: pm.ksReflexionFilter * ((1 - damping) * 0.2 + 0.8)
+            dampE = smoo * (dampE + (dampXp - dampingV));
+            dampXp = dampingV;
+            let t12 = 0.5f * (r4a + r4b) * (0.8f + 0.2f * (dampC - dampE));
+            toEnd[w] = t12;
+            let t13 = -4.0f - fl + d;
+            let id = int (min (c4, max (-4.0f, dmo)));
+            let k0 = 1 + min (nmax, max (0, id));
+            let k1 = 1 + min (nmax, max (0, id + 1));
+            let k2 = 1 + min (nmax, max (0, id + 2));
+            let k3 = 1 + min (nmax, max (0, id + 3));
+            let k4 = 1 + min (nmax, max (0, id + 4));
+            let x0 = toEnd[wrap<2048> ((w - k0) & 2047)];
+            let x1 = toEnd[wrap<2048> ((w - k1) & 2047)];
+            let x2 = toEnd[wrap<2048> ((w - k2) & 2047)];
+            let x3 = toEnd[wrap<2048> ((w - k3) & 2047)];
+            let x4 = toEnd[wrap<2048> ((w - k4) & 2047)];
+            let r2n = t13 * (t8 * (t6 * (0.041666668f * x0 * t4 - 0.16666667f * t3 * x1) + 0.25f * t5 * x2) - 0.16666667f * t7 * x3) + 0.041666668f * t9 * x4;
+            // rigid termination: the excitation enters both directions
+            let r3n = exc + r2;
+            toStart[w] = exc + r3b;
+            let y0 = toStart[wrap<2048> ((w - k0) & 2047)];
+            let y1 = toStart[wrap<2048> ((w - k1) & 2047)];
+            let y2 = toStart[wrap<2048> ((w - k2) & 2047)];
+            let y3 = toStart[wrap<2048> ((w - k3) & 2047)];
+            let y4 = toStart[wrap<2048> ((w - k4) & 2047)];
+            let t21 = t13 * (t8 * (t6 * (0.041666668f * t4 * y0 - 0.16666667f * t3 * y1) + 0.25f * t5 * y2) - 0.16666667f * t7 * y3);
+            let t22 = 0.041666668f * t9 * y4;
+            let o = t22 + t12 + t21;
+            out1 <- o;
+            out2 <- o;
+            r2 = r2n;
+            r3b = r3a;
+            r3a = r3n;
+            r4b = r4a;
+            r4a = t21 + t22;
+            advance();
+        }
+    }
+}

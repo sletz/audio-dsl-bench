@@ -1,0 +1,181 @@
+// dm.phaser2_demo of Faust's demos.lib (examples/phasing/phaser.dsp), after dsp/phaser.onda:
+// pf.phaser2_stereo with 4 notches, invert and vibrato mode off, no bypass. Each channel: a
+// feedback loop around 4 second-order allpass sections (TPT state-variable filter in allpass form,
+// x - bp(2k*x)) whose pole angles follow an LFO (fixed-point phasor, os.lf_sawpos; sine on the
+// left, cosine on the right), then the dry input mixed with the allpass chain. The equations are
+// written as the Faust compiler simplifies them (om = 1 - R from ma.expm1); each section returns
+// its bandpass output bp (the section's output being x - bp), with om2q = om^2/4, omc = 1 - om,
+// kq = -2 fq, uq = -4 fq (fq = 1 - R^2), sq = S/4 (also the SVF's d), pq = P/4, t = -g*hp.
+// The parameter-only values are hoisted out of the sample loop by the optimiser.
+
+let BIG = 3.4028235e38;     // ma.MAX
+
+processor Phaser {
+    input stream in1;
+    input stream in2;
+    output stream out1;
+    output stream out2;
+    input parameter float speed = 0.5 [[ min: 0.0, max: 10.0 ]];
+    input parameter float depth = 1.0 [[ min: 0.0, max: 1.0 ]];
+    input parameter float fb = 0.0 [[ min: -0.999, max: 0.999 ]];
+    input parameter float width = 1000.0 [[ min: 10.0, max: 5000.0 ]];
+    input parameter float frqmin = 100.0 [[ min: 20.0, max: 5000.0 ]];
+    input parameter float frqmax = 800.0 [[ min: 20.0, max: 10000.0 ]];
+    input parameter float fratio = 1.5 [[ min: 1.1, max: 4.0 ]];
+    input parameter float level = 0.0 [[ min: -60.0, max: 10.0 ]];
+
+    state int phase, phaseFrac;         // os.lf_sawpos phasor: 30-bit integer part and 24-bit fraction
+    // allpass section states (s1, s2), left and right
+    state float l0s1, l0s2, l1s1, l1s2, l2s1, l2s2, l3s1, l3s2;
+    state float r0s1, r0s2, r1s1, r1s2, r2s1, r2s2, r3s1, r3s2;
+    state float yl, yr;                 // chain outputs, fed back through fb
+
+    process {
+        let lvl = pow (10.0, 0.05 * level);        // ba.db2linear
+        let g2 = 0.5 * depth;
+        let g1 = lvl * (1.0 - g2);
+        let hy = 0.5 * max (-(pi / sampleRate * width), -80.0);
+        let ex = exp (hy);
+        let sh = sinh (hy);                         // om = -ma.expm1(-pi*width/SR) = -2*ex*sh
+        let om2q = (ex * ex) * (sh * sh);
+        let omc = 2.0 * ex * sh + 1.0;
+        let fqq = sh * (ex * sh + 1.0);             // fq = -4*ex*fqq
+        let kq = 8.0 * ex * fqq;
+        let uq = 16.0 * ex * fqq;
+        let th0 = 2.0 * pi * frqmin;                // SR * (pole angle of the first notch), from frqmin ...
+        let thr = pi * (frqmin - max (frqmin, frqmax));    // ... and frqmax
+        let r0 = 1.0 / sampleRate;                  // notch i at fratio^i times the first one
+        let r1 = (1.0 / sampleRate) * fratio;
+        let r2 = (1.0 / sampleRate) * (fratio * fratio);
+        let r3 = (1.0 / sampleRate) * (fratio * fratio * fratio);
+        let inc = 1073741824.0 * (1.0 / sampleRate) * speed;    // 2^30 * f / SR
+        let incInt = int (floor (inc));
+        let incFrac = int (16777216.0 * (inc - floor (inc)));
+
+        let ph = 0.00000037450704 * float (phase >> 6);        // 2 pi * os.lf_sawpos(speed)
+        phaseFrac += incFrac;
+        phase = (incInt + phase + (phaseFrac >> 24)) & 1073741823;
+        phaseFrac = phaseFrac & 16777215;
+        // left channel, LFO phase 0 (sine)
+        let xl = lvl * in1;
+        let fl = fb * yl;
+        let bl = th0 - thr * (1.0 - sin (ph));
+        // section 0
+        let hl0 = 0.5 * min (2.984513, r0 * bl);
+        let cl0 = cos (hl0);
+        let sl0 = sin (hl0);
+        let sql0 = om2q + omc * (cl0 * cl0);
+        let pql0 = om2q + omc * (sl0 * sl0);
+        let iSl0 = min (BIG, 0.25 / sql0);
+        let gl0 = sqrt (4.0 * pql0 * iSl0);
+        let tl0 = sql0 * gl0 * (iSl0 * min (BIG, 1.0 / gl0) * ((4.0 * pql0 - kq) * l0s1 + uq * (xl + fl)) + l0s2);
+        let bpl0 = l0s1 - tl0;
+        l0s1 = l0s1 - 2.0 * tl0;
+        l0s2 = l0s2 + 2.0 * gl0 * bpl0;
+        // section 1
+        let hl1 = 0.5 * min (2.984513, r1 * bl);
+        let cl1 = cos (hl1);
+        let sl1 = sin (hl1);
+        let sql1 = om2q + omc * (cl1 * cl1);
+        let pql1 = om2q + omc * (sl1 * sl1);
+        let iSl1 = min (BIG, 0.25 / sql1);
+        let gl1 = sqrt (4.0 * pql1 * iSl1);
+        let tl1 = sql1 * gl1 * (iSl1 * min (BIG, 1.0 / gl1) * ((4.0 * pql1 - kq) * l1s1 + uq * (xl - bpl0 + fl)) + l1s2);
+        let bpl1 = l1s1 - tl1;
+        l1s1 = l1s1 - 2.0 * tl1;
+        l1s2 = l1s2 + 2.0 * gl1 * bpl1;
+        let bpl01 = bpl0 + bpl1;
+        // section 2
+        let hl2 = 0.5 * min (2.984513, r2 * bl);
+        let cl2 = cos (hl2);
+        let sl2 = sin (hl2);
+        let sql2 = om2q + omc * (cl2 * cl2);
+        let pql2 = om2q + omc * (sl2 * sl2);
+        let iSl2 = min (BIG, 0.25 / sql2);
+        let gl2 = sqrt (4.0 * pql2 * iSl2);
+        let tl2 = sql2 * gl2 * (iSl2 * min (BIG, 1.0 / gl2) * ((4.0 * pql2 - kq) * l2s1 + uq * (xl - bpl01 + fl)) + l2s2);
+        let bpl2 = l2s1 - tl2;
+        l2s1 = l2s1 - 2.0 * tl2;
+        l2s2 = l2s2 + 2.0 * gl2 * bpl2;
+        let bpl012 = bpl01 + bpl2;
+        // section 3
+        let hl3 = 0.5 * min (2.984513, r3 * bl);
+        let cl3 = cos (hl3);
+        let sl3 = sin (hl3);
+        let sql3 = om2q + omc * (cl3 * cl3);
+        let pql3 = om2q + omc * (sl3 * sl3);
+        let iSl3 = min (BIG, 0.25 / sql3);
+        let gl3 = sqrt (4.0 * pql3 * iSl3);
+        let tl3 = sql3 * gl3 * (iSl3 * min (BIG, 1.0 / gl3) * ((4.0 * pql3 - kq) * l3s1 + uq * (xl - bpl012 + fl)) + l3s2);
+        let bpl3 = l3s1 - tl3;
+        l3s1 = l3s1 - 2.0 * tl3;
+        l3s2 = l3s2 + 2.0 * gl3 * bpl3;
+        yl = xl - (bpl012 + bpl3) + fl;
+        out1 = g1 * in1 + g2 * yl;
+        // right channel, LFO phase 1 (cosine)
+        let xr = lvl * in2;
+        let fr = fb * yr;
+        let br = th0 - thr * (1.0 - cos (ph));
+        // section 0
+        let hr0 = 0.5 * min (2.984513, r0 * br);
+        let cr0 = cos (hr0);
+        let sr0 = sin (hr0);
+        let sqr0 = om2q + omc * (cr0 * cr0);
+        let pqr0 = om2q + omc * (sr0 * sr0);
+        let iSr0 = min (BIG, 0.25 / sqr0);
+        let gr0 = sqrt (4.0 * pqr0 * iSr0);
+        let tr0 = sqr0 * gr0 * (iSr0 * min (BIG, 1.0 / gr0) * ((4.0 * pqr0 - kq) * r0s1 + uq * (xr + fr)) + r0s2);
+        let bpr0 = r0s1 - tr0;
+        r0s1 = r0s1 - 2.0 * tr0;
+        r0s2 = r0s2 + 2.0 * gr0 * bpr0;
+        // section 1
+        let hr1 = 0.5 * min (2.984513, r1 * br);
+        let cr1 = cos (hr1);
+        let sr1 = sin (hr1);
+        let sqr1 = om2q + omc * (cr1 * cr1);
+        let pqr1 = om2q + omc * (sr1 * sr1);
+        let iSr1 = min (BIG, 0.25 / sqr1);
+        let gr1 = sqrt (4.0 * pqr1 * iSr1);
+        let tr1 = sqr1 * gr1 * (iSr1 * min (BIG, 1.0 / gr1) * ((4.0 * pqr1 - kq) * r1s1 + uq * (xr - bpr0 + fr)) + r1s2);
+        let bpr1 = r1s1 - tr1;
+        r1s1 = r1s1 - 2.0 * tr1;
+        r1s2 = r1s2 + 2.0 * gr1 * bpr1;
+        let bpr01 = bpr0 + bpr1;
+        // section 2
+        let hr2 = 0.5 * min (2.984513, r2 * br);
+        let cr2 = cos (hr2);
+        let sr2 = sin (hr2);
+        let sqr2 = om2q + omc * (cr2 * cr2);
+        let pqr2 = om2q + omc * (sr2 * sr2);
+        let iSr2 = min (BIG, 0.25 / sqr2);
+        let gr2 = sqrt (4.0 * pqr2 * iSr2);
+        let tr2 = sqr2 * gr2 * (iSr2 * min (BIG, 1.0 / gr2) * ((4.0 * pqr2 - kq) * r2s1 + uq * (xr - bpr01 + fr)) + r2s2);
+        let bpr2 = r2s1 - tr2;
+        r2s1 = r2s1 - 2.0 * tr2;
+        r2s2 = r2s2 + 2.0 * gr2 * bpr2;
+        let bpr012 = bpr01 + bpr2;
+        // section 3
+        let hr3 = 0.5 * min (2.984513, r3 * br);
+        let cr3 = cos (hr3);
+        let sr3 = sin (hr3);
+        let sqr3 = om2q + omc * (cr3 * cr3);
+        let pqr3 = om2q + omc * (sr3 * sr3);
+        let iSr3 = min (BIG, 0.25 / sqr3);
+        let gr3 = sqrt (4.0 * pqr3 * iSr3);
+        let tr3 = sqr3 * gr3 * (iSr3 * min (BIG, 1.0 / gr3) * ((4.0 * pqr3 - kq) * r3s1 + uq * (xr - bpr012 + fr)) + r3s2);
+        let bpr3 = r3s1 - tr3;
+        r3s1 = r3s1 - 2.0 * tr3;
+        r3s2 = r3s2 + 2.0 * gr3 * bpr3;
+        yr = xr - (bpr012 + bpr3) + fr;
+        out2 = g1 * in2 + g2 * yr;
+    }
+}
+
+graph Main {
+    input stream in1;
+    input stream in2;
+    output stream out1;
+    output stream out2;
+    node p = Phaser;
+    connection { in1 -> p.in1; in2 -> p.in2; p.out1 -> out1; p.out2 -> out2; }
+}

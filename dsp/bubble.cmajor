@@ -1,0 +1,212 @@
+// examples/gameaudio/bubble.dsp of Faust, after dsp/bubble.onda, drop held at 1 like bubble.dsp:
+// one bubble dropped at the first sample. Bubble: os.osc (65536-point sine table, fixed-point
+// phasor) whose frequency rises linearly with time, under an exponential decay smoothed by
+// si.smooth(0.99). Then dm.freeverb_demo: re.stereo_freeverb (8 lowpass-feedback combs and 4
+// Schroeder allpasses per channel, the right one detuned by the stereo spread) mixed with the dry
+// signal. The delay lengths are the ones reverbs.lib computes for 48 kHz.
+processor Bubble
+{
+    output stream float out1, out2;
+    input event float drop [[ min: 0.0f, max: 1.0f, init: 1.0f ]];
+    input event float freq [[ min: 150.0f, max: 2000.0f, init: 600.0f ]];
+    input event float damp [[ min: 0.0f, max: 1.0f, init: 0.5f ]];
+    input event float roomSize [[ min: 0.0f, max: 1.0f, init: 0.5f ]];
+    input event float wet [[ min: 0.0f, max: 1.0f, init: 0.333299994f ]];
+
+    float dropV = 1.0f, freqV = 600.0f, dampV = 0.5f, roomSizeV = 0.5f, wetV = 0.333299994f;
+    // control-rate values, recomputed by the event handlers
+    float dmp, dmp1, wet2, f0, sigma, decay, fb, dry;
+
+    float[65536] sine;          // os.osc's table, sin(2 pi i / 65536)
+    bool started;               // os.osc phasor reset at the first sample
+    float dropPrev;
+    int t;                      // bubble time, in samples
+    int phase, phaseFrac;       // os.osc phasor: 30-bit integer part and 24-bit fraction
+    float ampPrev, ampE;        // si.smooth(0.99) of the decay (error form)
+    // freeverb lines: comb delay, its write position and its feedback lowpass state; allpass
+    // delay and its position. l: left channel, r: right channel
+    float[1214] cl0; wrap<1214> icl0; float lpl0;
+    float[1293] cl1; wrap<1293> icl1; float lpl1;
+    float[1389] cl2; wrap<1389> icl2; float lpl2;
+    float[1475] cl3; wrap<1475> icl3; float lpl3;
+    float[1547] cl4; wrap<1547> icl4; float lpl4;
+    float[1622] cl5; wrap<1622> icl5; float lpl5;
+    float[1694] cl6; wrap<1694> icl6; float lpl6;
+    float[1760] cl7; wrap<1760> icl7; float lpl7;
+    float[605] al0; wrap<605> ial0;
+    float[480] al1; wrap<480> ial1;
+    float[371] al2; wrap<371> ial2;
+    float[244] al3; wrap<244> ial3;
+    float[1239] cr0; wrap<1239> icr0; float lpr0;
+    float[1318] cr1; wrap<1318> icr1; float lpr1;
+    float[1414] cr2; wrap<1414> icr2; float lpr2;
+    float[1500] cr3; wrap<1500> icr3; float lpr3;
+    float[1572] cr4; wrap<1572> icr4; float lpr4;
+    float[1647] cr5; wrap<1647> icr5; float lpr5;
+    float[1719] cr6; wrap<1719> icr6; float lpr6;
+    float[1785] cr7; wrap<1785> icr7; float lpr7;
+    float[630] ar0; wrap<630> iar0;
+    float[505] ar1; wrap<505> iar1;
+    float[396] ar2; wrap<396> iar2;
+    float[269] ar3; wrap<269> iar3;
+
+    event drop (float v) { dropV = v; }
+    event freq (float v) { freqV = v; update(); }
+    event damp (float v) { dampV = v; update(); }
+    event roomSize (float v) { roomSizeV = v; update(); }
+    event wet (float v) { wetV = v; update(); }
+
+    void update()
+    {
+        let sr = float (processor.frequency);
+        dmp = (17640.0f / sr) * dampV;          // freeverb damping: scaledamp * origSR / SR
+        dmp1 = 1.0f - dmp;
+        wet2 = 0.2f * wetV;                     // g * fixedgain, both channels summed by stereo_freeverb
+        f0 = (1.0f / sr) * freqV;
+        let dc = 0.043f * freqV + 0.0014f * pow (freqV, 1.5f);  // bubble damping
+        sigma = (0.075f / sr) * dc;
+        decay = (1.0f / sr) * dc;
+        fb = (12348.0f / sr) * roomSizeV + 0.7f;  // comb feedback: scaleroom * origSR / SR + offsetroom
+        dry = 1.0f - wetV;
+    }
+
+    void init()
+    {
+        for (wrap<65536> i)
+            sine[i] = sin (float (i) * float (twoPi) / 65536.0f);
+        update();
+    }
+
+    void main()
+    {
+        loop
+        {
+            // bubble time: restarts on the rising edge of drop
+            if (dropV > dropPrev)
+                t = 1;
+            else
+                t++;
+            dropPrev = dropV;
+            let ft = float (t);
+            // os.osc at f0 * (1 + sigma * time)
+            let inc = f0 * (1.0f + sigma * ft);
+            let fi = 1073741824.0f * (inc - rint (inc));
+            let fl = floor (fi);
+            let frac = phaseFrac + int (16777216.0f * (fi - fl));
+            if (started)
+            {
+                phaseFrac = frac & 16777215;
+                phase = (phase + int (fl) + (frac >> 24)) & 1073741823;
+            }
+            started = true;
+            // exp(-damp * time) : si.smooth(0.99)
+            let a = exp (-(decay * ft));
+            ampE = 0.99f * (ampE + (ampPrev - a));
+            ampPrev = a;
+            let bubble = sine[wrap<65536> ((phase >> 6) >> 8)] * (a + ampE);
+            let x = wet2 * bubble;
+            let d = dry * bubble;
+            // left freeverb
+            let y7 = cl7[icl7];
+            lpl7 = dmp * lpl7 + dmp1 * y7;
+            cl7[icl7] = x + fb * lpl7;
+            icl7++;
+            let y6 = cl6[icl6];
+            lpl6 = dmp * lpl6 + dmp1 * y6;
+            cl6[icl6] = x + fb * lpl6;
+            icl6++;
+            let y5 = cl5[icl5];
+            lpl5 = dmp * lpl5 + dmp1 * y5;
+            cl5[icl5] = x + fb * lpl5;
+            icl5++;
+            let y4 = cl4[icl4];
+            lpl4 = dmp * lpl4 + dmp1 * y4;
+            cl4[icl4] = x + fb * lpl4;
+            icl4++;
+            let y3 = cl3[icl3];
+            lpl3 = dmp * lpl3 + dmp1 * y3;
+            cl3[icl3] = x + fb * lpl3;
+            icl3++;
+            let y2 = cl2[icl2];
+            lpl2 = dmp * lpl2 + dmp1 * y2;
+            cl2[icl2] = x + fb * lpl2;
+            icl2++;
+            let y1 = cl1[icl1];
+            lpl1 = dmp * lpl1 + dmp1 * y1;
+            cl1[icl1] = x + fb * lpl1;
+            icl1++;
+            let y0 = cl0[icl0];
+            lpl0 = dmp * lpl0 + dmp1 * y0;
+            cl0[icl0] = x + fb * lpl0;
+            icl0++;
+            let b0 = al0[ial0];
+            let b1 = al1[ial1];
+            let b2 = al2[ial2];
+            let b3 = al3[ial3];
+            let s0 = y7 + y6 + y5 + y4 + y3 + y2 + y1 + 0.5f * b0 + y0;
+            al0[ial0] = s0;
+            ial0++;
+            let s1 = b0 + 0.5f * (b1 - s0);
+            al1[ial1] = s1;
+            ial1++;
+            let s2 = b1 + 0.5f * (b2 - s1);
+            al2[ial2] = s2;
+            ial2++;
+            let s3 = b2 + 0.5f * (b3 - s2);
+            al3[ial3] = s3;
+            ial3++;
+            out1 <- b3 + d - 0.5f * s3;
+            // right freeverb
+            let z7 = cr7[icr7];
+            lpr7 = dmp * lpr7 + dmp1 * z7;
+            cr7[icr7] = x + fb * lpr7;
+            icr7++;
+            let z6 = cr6[icr6];
+            lpr6 = dmp * lpr6 + dmp1 * z6;
+            cr6[icr6] = x + fb * lpr6;
+            icr6++;
+            let z5 = cr5[icr5];
+            lpr5 = dmp * lpr5 + dmp1 * z5;
+            cr5[icr5] = x + fb * lpr5;
+            icr5++;
+            let z4 = cr4[icr4];
+            lpr4 = dmp * lpr4 + dmp1 * z4;
+            cr4[icr4] = x + fb * lpr4;
+            icr4++;
+            let z3 = cr3[icr3];
+            lpr3 = dmp * lpr3 + dmp1 * z3;
+            cr3[icr3] = x + fb * lpr3;
+            icr3++;
+            let z2 = cr2[icr2];
+            lpr2 = dmp * lpr2 + dmp1 * z2;
+            cr2[icr2] = x + fb * lpr2;
+            icr2++;
+            let z1 = cr1[icr1];
+            lpr1 = dmp * lpr1 + dmp1 * z1;
+            cr1[icr1] = x + fb * lpr1;
+            icr1++;
+            let z0 = cr0[icr0];
+            lpr0 = dmp * lpr0 + dmp1 * z0;
+            cr0[icr0] = x + fb * lpr0;
+            icr0++;
+            let c0 = ar0[iar0];
+            let c1 = ar1[iar1];
+            let c2 = ar2[iar2];
+            let c3 = ar3[iar3];
+            let r0 = z7 + z6 + z5 + z4 + z3 + z2 + z1 + 0.5f * c0 + z0;
+            ar0[iar0] = r0;
+            iar0++;
+            let r1 = c0 + 0.5f * (c1 - r0);
+            ar1[iar1] = r1;
+            iar1++;
+            let r2 = c1 + 0.5f * (c2 - r1);
+            ar2[iar2] = r2;
+            iar2++;
+            let r3 = c2 + 0.5f * (c3 - r2);
+            ar3[iar3] = r3;
+            iar3++;
+            out2 <- d + c3 - 0.5f * r3;
+            advance();
+        }
+    }
+}

@@ -1,0 +1,58 @@
+// dm.compressor_demo (co.compressor_stereo with makeup gain), after dsp/compressor.onda, without
+// the bypass and the gain meter like compressor.dsp. Detector: |x| + |y| through an attack/release
+// one-pole (an.amp_follower_ar = si.onePoleSwitching), in dB, gain computer, knee smoother
+// (si.smooth, error form, pole tau2pole(att/2)), back to linear.
+processor Compressor
+{
+    input stream float in1, in2;
+    output stream float out1, out2;
+    input event float ratio      [[ min: 1.0f,    max: 20.0f,   init: 5.0f ]];
+    input event float threshold  [[ min: -100.0f, max: 10.0f,   init: -30.0f ]];
+    input event float attack     [[ min: 1.0f,    max: 1000.0f, init: 50.0f ]];
+    input event float release    [[ min: 1.0f,    max: 1000.0f, init: 500.0f ]];
+    input event float makeupgain [[ min: -96.0f,  max: 96.0f,   init: 12.0f ]];
+
+    float ratioV = 5.0f, thresholdV = -30.0f, attackV = 50.0f, releaseV = 500.0f, makeupgainV = 12.0f;
+    float mgain, slope, poleAtt, poleRel, poleKnee;
+    float env, gdbPrev, err;
+
+    event ratio (float v)      { ratioV = v; update(); }
+    event threshold (float v)  { thresholdV = v; }
+    event attack (float v)     { attackV = v; update(); }
+    event release (float v)    { releaseV = v; update(); }
+    event makeupgain (float v) { makeupgainV = v; update(); }
+
+    void update()
+    {
+        let t = 1.0f / float (processor.frequency);
+        mgain = pow (10.0f, 0.05f * makeupgainV);                 // ba.db2linear
+        slope = 1.0f / max (0.0000001192092896f, ratioV) + -1.0f; // 1/max(ma.EPSILON, ratio) - 1
+        let att = max (t, 0.001f * attackV);                      // attack in s, at least one sample
+        let rel = max (t, 0.001f * releaseV);
+        poleAtt = exp (-(t / att));                               // ba.tau2pole(att)
+        poleRel = exp (-(t / rel));                               // ba.tau2pole(rel)
+        poleKnee = exp (-(t / (0.5f * att)));                     // ba.tau2pole(att/2)
+    }
+
+    void init() { update(); }
+
+    void main()
+    {
+        loop
+        {
+            let x1 = in1;
+            let x2 = in2;
+            let x = abs (abs (x1) + abs (x2));
+            let c = x > env ? poleAtt : poleRel;
+            env = x * (1.0f - c) + env * c;
+            // ba.linear2db: 20*log10(max(ma.MIN, env)), log10 written log * 1/ln(10) like the Onda port
+            let gdb = slope * max (20.0f * (log (max (1.175494351e-38f, env)) * 0.4342944819f) - thresholdV, 0.0f);
+            err = poleKnee * (err + min (3.4028235e38f, gdbPrev - gdb));
+            gdbPrev = gdb;
+            let g = pow (10.0f, 0.05f * (gdb + err));
+            out1 <- mgain * x1 * g;
+            out2 <- mgain * x2 * g;
+            advance();
+        }
+    }
+}

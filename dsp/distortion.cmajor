@@ -1,0 +1,42 @@
+// dm.cubicnl_demo (ef.cubicnl_nodc with si.smoo on drive and offset), after dsp/distortion.onda,
+// without the bypass like distortion.dsp: pregain 10^(2*drive), offset, clip to [-1, 1], cubic
+// soft clipper x - x^3/3, then fi.dcblocker.
+processor Distortion
+{
+    input stream float in1;
+    output stream float out1;
+    input event float drive  [[ min: 0.0f, max: 1.0f, init: 0.0f ]];
+    input event float offset [[ min: 0.0f, max: 1.0f, init: 0.0f ]];
+
+    float driveV = 0.0f, offsetV = 0.0f;
+    float pSmoo, pDc;
+    float drivePrev, driveErr, offsetPrev, offsetErr, xPrev, y;
+
+    event drive (float v)  { driveV = v; }
+    event offset (float v) { offsetV = v; }
+
+    void init()
+    {
+        let sr = float (processor.frequency);
+        pSmoo = 1.0f - 44.1f / sr;              // si.smoo pole
+        pDc = pow (0.995f, 44100.0f / sr);      // fi.dcblocker pole
+    }
+
+    void main()
+    {
+        loop
+        {
+            // si.smooth: y = x + e, e = pole * (e + x[n-1] - x); min(ma.MAX) is Faust's no-op
+            driveErr = pSmoo * (min (3.4028235e38f, drivePrev - driveV) + driveErr);
+            drivePrev = driveV;
+            offsetErr = pSmoo * (min (3.4028235e38f, offsetPrev - offsetV) + offsetErr);
+            offsetPrev = offsetV;
+            let x = max (-1.0f, min (1.0f, offsetV + in1 * pow (10.0f, 2.0f * (driveV + driveErr)) + offsetErr));
+            let c = x * (1.0f - 0.33333334f * (x * x));
+            y = pDc * y + c - xPrev;
+            xPrev = c;
+            out1 <- y;
+            advance();
+        }
+    }
+}

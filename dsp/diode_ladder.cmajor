@@ -1,0 +1,114 @@
+// examples/filtering/diodeLadder.dsp of Faust, after dsp/diode_ladder.onda, like diode_ladder.dsp:
+// the 100 Hz os.sawtooth (saw2ptr, phase accumulated in fixed point: whole counts of 2^-30 cycle
+// plus 2^-24 fractions) into ve.diodeLadder (Eric Tarr after Will Pirkle): ef.cubicnl(1, 0) * 1.5,
+// then four one-pole stages with the zero-delay feedback solved through the coefficients G, B, SG,
+// gamma. The equations are those of vaeffects.lib; g = tan(2 pi 10^(3 normFreq + 1) / SR) is
+// (2 / T) tan(wd T / 2) T / 2 as faust simplifies it. A generator: no input stream.
+processor DiodeLadder
+{
+    output stream float out1, out2;
+    input event float Q    [[ min: 0.7072f, max: 25.0f, init: 1.0f ]];
+    input event float freq [[ min: 0.0f, max: 1.0f, init: 0.1f ]];
+
+    float QV = 1.0f, freqV = 0.1f;
+    float qk;                               // control-rate value, recomputed by update()
+
+    float c1, sp, p0, cm;
+    int xi, xs;                             // saw2ptr increment in counts, whole and fraction
+    int ph, phs;                            // phase counts and fraction
+    float nE, nXp;                          // si.smoo of normFreq (error, previous input)
+    float s1, s2, s3, s4;                   // the four stage states
+
+    event Q (float v)    { QV = v; update(); }
+    event freq (float v) { freqV = v; }
+
+    void update()
+    {
+        qk = (QV - 0.70710677f) / (25.0f - 0.70710677f);
+    }
+
+    void init()
+    {
+        let sr = float (processor.frequency);
+        c1 = float (twoPi) / sr;
+        sp = 1.0f - 44.1f / sr;             // si.smoo pole
+        let t0 = 100.0f / sr;               // saw2ptr phase increment
+        p0 = 0.01f * sr;                    // saw2ptr period in samples (SR / 100)
+        cm = -1.0f - t0;                    // 2 p - 1 - t0
+        let xc = 1073741824.0f * (t0 - floor (t0));
+        let xfl = floor (xc);
+        xi = int (xfl);
+        xs = int (16777216.0f * (xc - xfl));
+        update();
+    }
+
+    void main()
+    {
+        loop
+        {
+            // os.sawtooth(100)
+            let t = phs + xs;
+            phs = t & 16777215;
+            let q = ph + xi + (t >> 24);
+            ph = q & 1073741823;
+            let phi = float (ph) * 9.313226e-10f;
+            var p = phi;
+            if (q > 1073741823)
+                p = phi * (1.0f - p0) + 1.0f;
+            // ef.cubicnl(1, 0) * 1.5
+            let c = max (-1.0f, min (1.0f, 100.0f * (cm + 2.0f * p)));
+            let x = (c - c * c * c / 3.0f) * 1.5f;
+            // coefficients
+            nE = sp * ((nXp - freqV) + nE);
+            nXp = freqV;
+            let nf = freqV + nE;
+            let g = tan (c1 * pow (10.0f, 1.0f + 3.0f * nf));
+            let k = (17.0f - pow (nf, 10.0f) * 9.7f) * qk;
+            let G4 = 0.5f * g / (1.0f + g);
+            let G3 = 0.5f * g / (1.0f + g - 0.5f * g * G4);
+            let G2 = 0.5f * g / (1.0f + g - 0.5f * g * G3);
+            let G1 = g / (1.0f + g - g * G2);
+            let Gamma = G1 * G2 * G3 * G4;
+            let SG1 = G4 * G3 * G2;
+            let SG3 = G4;
+            let alpha = g / (1.0f + g);
+            let alpha0 = 1.0f / (1.0f + k * Gamma);
+            let gam1 = 1.0f + G1 * G2;
+            let gam2 = 1.0f + G2 * G3;
+            let gam3 = 1.0f + G3 * G4;
+            let B1 = 1.0f / (1.0f + g - g * G2);
+            let B2 = 1.0f / (1.0f + g - 0.5f * g * G3);
+            let B3 = 1.0f / (1.0f + g - 0.5f * g * G4);
+            let B4 = 1.0f / (1.0f + g);
+            let d1 = g;
+            let d2 = 0.5f * g;
+            let d3 = 0.5f * g;
+            // feedback sums S4 .. S1 of the previous states
+            let S4 = s4 * B4;
+            let S3 = (S4 * d3 + s3) * B3;
+            let S2 = (S3 * d2 + s2) * B2;
+            let S1 = (S2 * d1 + s1) * B1;
+            // (the library uses SG3 for the S2 term, kept as is)
+            let u = x - S4 * k - S3 * SG3 * k - S2 * SG3 * k - S1 * SG1 * k;
+            let v1 = u * alpha0 * gam1 + S2 + S1 * G2;
+            let e1 = v1 - s1;
+            let lp1 = e1 * alpha + s1;
+            let v2 = (lp1 * gam2 + S3 + S2 * G3) * 0.5f;
+            let e2 = v2 - s2;
+            let lp2 = e2 * alpha + s2;
+            let v3 = (lp2 * gam3 + S4 + S3 * G4) * 0.5f;
+            let e3 = v3 - s3;
+            let lp3 = e3 * alpha + s3;
+            let v4 = lp3 * 0.5f;
+            let e4 = v4 - s4;
+            let y = e4 * alpha + s4;
+            s1 = e1 * alpha * 2.0f + s1;
+            s2 = e2 * alpha * 2.0f + s2;
+            s3 = e3 * alpha * 2.0f + s3;
+            s4 = e4 * alpha * 2.0f + s4;
+            out1 <- y;
+            out2 <- y;
+            advance();
+        }
+    }
+}

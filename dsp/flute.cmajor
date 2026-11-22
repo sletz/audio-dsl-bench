@@ -1,0 +1,203 @@
+// pm.flute_ui of Faust's physmodels.lib (examples/physicalModeling/flute.dsp), after dsp/flute.onda.
+// Blower: smoothed pressure + vibrato (os.osc: 65536-point sine table, fixed-point phasor) +
+// low-passed breath noise. Tube: head and foot segments, each a pair of fractional delay lines read
+// by 4th-order Lagrange interpolation (de.fdelay4), split at the embouchure (jet table); head
+// reflection *0.95, foot reflection *0.95 through a one-pole smoother (si.smooth); output from the
+// foot through fi.dcblocker. The order of operations is the one of the C++ that faust generates.
+processor Flute
+{
+    output stream float out1, out2;
+    input event float pressure [[ min: 0.0f, max: 1.0f, init: 0.899999976f ]];
+    input event float breathGain [[ min: 0.0f, max: 1.0f, init: 0.100000001f ]];
+    input event float breathCutoff [[ min: 20.0f, max: 20000.0f, init: 2000.0f ]];
+    input event float vibratoFreq [[ min: 0.1f, max: 10.0f, init: 5.0f ]];
+    input event float vibratoGain [[ min: 0.0f, max: 1.0f, init: 0.25f ]];
+    input event float tubeLength [[ min: 0.01f, max: 3.0f, init: 0.800000012f ]];
+    input event float mouthPosition [[ min: 0.0f, max: 1.0f, init: 0.5f ]];
+    input event float outGain [[ min: 0.0f, max: 1.0f, init: 0.5f ]];
+
+    let NMAX = 568;     // int(l2s(maxTubeLength = 4) + 4), the de.fdelay4 bound at 48 kHz
+
+    // One travelling wave on a tube segment: a delay line read by 4th-order Lagrange interpolation.
+    struct Line { float[1024] buf; wrap<1024> w; }
+
+    void write (Line& l, float x)
+    {
+        l.w++;
+        l.buf[l.w] = x;
+    }
+
+    // de.fdelay4 read; read4 and read4b differ only by the order of one product, as in faust's C++
+    float read4 (Line& l, int[5]& taps, float d, float fl)
+    {
+        let fd = d - fl;
+        let a = (-1.0f - fl) + d;
+        let b = (-2.0f - fl) + d;
+        let c = (-3.0f - fl) + d;
+        let q = (-4.0f - fl) + d;
+        let p1 = fd * a;
+        let p2 = p1 * b;
+        let p3 = p2 * c;
+        let x0 = l.buf[wrap<1024> (l.w - taps[0])];
+        let x1 = l.buf[wrap<1024> (l.w - taps[1])];
+        let x2 = l.buf[wrap<1024> (l.w - taps[2])];
+        let x3 = l.buf[wrap<1024> (l.w - taps[3])];
+        let x4 = l.buf[wrap<1024> (l.w - taps[4])];
+        return q * (c * (b * (0.041666668f * x0 * a - 0.16666667f * fd * x1) + 0.25f * p1 * x2) - 0.16666667f * p2 * x3) + 0.041666668f * p3 * x4;
+    }
+
+    float read4b (Line& l, int[5]& taps, float d, float fl)
+    {
+        let fd = d - fl;
+        let a = (-1.0f - fl) + d;
+        let b = (-2.0f - fl) + d;
+        let c = (-3.0f - fl) + d;
+        let q = (-4.0f - fl) + d;
+        let p1 = fd * a;
+        let p2 = p1 * b;
+        let p3 = p2 * c;
+        let x0 = l.buf[wrap<1024> (l.w - taps[0])];
+        let x1 = l.buf[wrap<1024> (l.w - taps[1])];
+        let x2 = l.buf[wrap<1024> (l.w - taps[2])];
+        let x3 = l.buf[wrap<1024> (l.w - taps[3])];
+        let x4 = l.buf[wrap<1024> (l.w - taps[4])];
+        return q * (c * (b * (0.041666668f * a * x0 - 0.16666667f * fd * x1) + 0.25f * p1 * x2) - 0.16666667f * p2 * x3) + 0.041666668f * p3 * x4;
+    }
+
+    // de.fdelay4 taps (5 integer delays) for a delay of d samples; returns floor(d - 1.499995)
+    float lagrangeTaps (float d, int[5]& taps)
+    {
+        let dmo = d - 1.499995f;
+        let id = int (min (float (NMAX), max (-4.0f, dmo)));
+        for (wrap<5> i)
+            taps[i] = 1 + min (NMAX, max (0, id + i));
+        return floor (dmo);
+    }
+
+    float pressureV = 0.899999976f, breathGainV = 0.100000001f, breathCutoffV = 2000.0f, vibratoFreqV = 5.0f,
+          vibratoGainV = 0.25f, tubeLengthV = 0.800000012f, mouthPositionV = 0.5f, outGainV = 0.5f;
+    // control-rate values, recomputed by the event handlers
+    float vg, bg, g, gk, c1, mp;
+    int incInt, incFrac;
+
+    float[65536] sine;              // os.osc's table, sin(2 pi i / 65536)
+    float footPole, dcPole, smoo, wk;
+    float tubeE, tubeXp, mouthE, mouthXp, pressE, pressXp;  // si.smoo states (error form, see dsp/flute.onda)
+    float footE;                    // foot lowpass (si.smooth) error state
+    Line footUp;                    // foot segment, wave going up from the foot to the embouchure
+    Line headUp;                    // head segment, wave going up from the embouchure to the head
+    Line headDown;                  // head segment, wave going down from the head to the embouchure
+    Line footDown;                  // foot segment, wave going down from the embouchure to the foot
+    float upIn;                     // footUp output, one sample late (reaches the embouchure)
+    float headTop, headTop2;        // headUp output, one and two samples late (reflected at the head)
+    float downIn;                   // headDown output, one sample late (reaches the embouchure)
+    float footOut;                  // footDown output, one sample late
+    float foot1, foot2;             // wave at the foot, previous sample and two samples back
+    float dc;                       // fi.dcblocker state
+    int phase, phaseFrac;           // os.osc phasor: 30-bit integer part and 24-bit fraction
+    int seed;                       // no.noise
+    float s1, s2;                   // breath lowpass (fi.lowpass(2, breathCutoff), TPT SVF)
+
+    event pressure (float v) { pressureV = v; }
+    event breathGain (float v) { breathGainV = v; update(); }
+    event breathCutoff (float v) { breathCutoffV = v; update(); }
+    event vibratoFreq (float v) { vibratoFreqV = v; update(); }
+    event vibratoGain (float v) { vibratoGainV = v; update(); }
+    event tubeLength (float v) { tubeLengthV = v; }
+    event mouthPosition (float v) { mouthPositionV = v; update(); }
+    event outGain (float v) { outGainV = v; }
+
+    void update()
+    {
+        let sr = float (processor.frequency);
+        vg = 0.03f * vibratoGainV;
+        let inc = 1073741824.0f * (1.0f / sr) * vibratoFreqV;   // 2^30 * f / SR
+        incInt = int (floor (inc));
+        incFrac = int (16777216.0f * (inc - floor (inc)));
+        bg = 0.05f * breathGainV;
+        g = tan (max (0.0f, min (float (pi) / sr * breathCutoffV, 1.5676547f)));
+        gk = g + 1.4142135f;
+        c1 = g * min (3.4028235e38f, 1.0f / (g * gk + 1.0f));
+        mp = mouthPositionV - 0.5f;
+    }
+
+    void init()
+    {
+        let sr = float (processor.frequency);
+        for (wrap<65536> i)
+            sine[i] = sin (float (i) * float (twoPi) / 65536.0f);
+        footPole = pow (0.7f, 44100.0f / sr);
+        dcPole = pow (0.995f, 44100.0f / sr);
+        smoo = 1.0f - 44.1f / sr;
+        wk = 2136.283f / sr;
+        update();
+    }
+
+    void main()
+    {
+        let sr = float (processor.frequency);
+
+        loop
+        {
+            // foot: the wave reaching the foot is reflected (*0.95) through the dispersion lowpass
+            footE = footPole * (footE + min (3.4028235e38f, -(0.95f * (foot1 - foot2))));
+            write (footUp, 0.95f * foot1 + footE);
+            // tube length in samples from the period wanted (pm.fluteModel's fit)
+            tubeE = smoo * (min (3.4028235e38f, tubeXp - tubeLengthV) + tubeE);
+            tubeXp = tubeLengthV;
+            let tl = tubeLengthV + tubeE;
+            let w = wk / tl;
+            let num = -6.418f + sr * (0.000037619047f + 0.0029411765f * tl - 0.0006464499f * tl * atan2 (footPole * sin (w), 1.0f - footPole * cos (w)));
+            mouthE = smoo * (min (3.4028235e38f, mouthXp - mouthPositionV) + mouthE);
+            mouthXp = mouthPositionV;
+            let em = 0.4f * (mp + mouthE);      // 0.4 * (smoothed mouthPosition - 0.5), as faust reorders it
+            let epos = 0.27f + em;              // embouchure position on the tube
+            let den = 1.0f - 0.5f * epos;
+            // foot segment: embouchure to foot distance, in samples
+            int[5] footTaps;
+            let footD = 0.6287726f * (num * (0.73f - em) / den);
+            let footFl = lagrangeTaps (footD, footTaps);
+            let up = read4 (footUp, footTaps, footD, footFl);
+            write (headUp, upIn);
+            // head segment: head to embouchure distance, in samples
+            int[5] headTaps;
+            let headD = 0.6287726f * (num * epos / den);
+            let headFl = lagrangeTaps (headD, headTaps);
+            let top = read4 (headUp, headTaps, headD, headFl);
+            write (headDown, 0.95f * headTop2);
+            let down = read4b (headDown, headTaps, headD, headFl);
+            // blower: pressure + vibrato + breath noise
+            pressE = smoo * (min (3.4028235e38f, pressXp - pressureV) + pressE);
+            pressXp = pressureV;
+            let pe = pressE;                    // smoothed pressure = pressure + pe
+            let vib = sine[wrap<65536> ((phase >> 6) >> 8)];
+            phaseFrac += incFrac;
+            phase = (incInt + phase + (phaseFrac >> 24)) & 1073741823;
+            phaseFrac &= 16777215;
+            seed = 12345 + 1103515245 * seed;
+            let t = 0.0000000004656613f * float (seed) - (gk * s1 + s2);
+            let v1 = s1 + c1 * t;
+            let lp = s2 + g * v1;
+            s1 += 2.0f * c1 * t;
+            s2 += 2.0f * g * v1;
+            // embouchure: jet table on the blow minus half the wave coming down from the head
+            let x = pressureV - 0.5f * downIn + pe + vg * vib + bg * (pressureV + pe) * lp;
+            write (footDown, 0.5f * upIn + clamp (x * (-1.0f + x * x), -1.0f, 1.0f));
+            let foot = read4b (footDown, footTaps, footD, footFl);
+            // one-sample delays of the chain
+            upIn = up;
+            headTop2 = headTop;
+            headTop = top;
+            downIn = down;
+            foot2 = foot1;
+            foot1 = footOut;
+            footOut = foot;
+            // fi.dcblocker on the wave at the foot
+            dc = dcPole * dc + foot1 - foot2;
+            let o = outGainV * dc;
+            out1 <- o;
+            out2 <- o;
+            advance();
+        }
+    }
+}

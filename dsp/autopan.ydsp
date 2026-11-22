@@ -1,0 +1,61 @@
+// examples/misc/autopan.dsp, after dsp/autopan.onda, with Amount at 1 like autopan.dsp. Two
+// os.oscp LFOs (os.osc's 65536-point sine and cosine tables, fixed-point phasor; the right one
+// offset by the smoothed phase), each through a tanh saturator (it.interpolate_linear by the
+// smoothed shape) and it.remap(-1, 1, 1 - amount, 1), as the gains of the two channels.
+processor Autopan {
+    input stream in1;
+    input stream in2;
+    output stream out1;
+    output stream out2;
+    input parameter float amount = 1.0 [[ min: 0.0, max: 1.0 ]];
+    input parameter float rate = 1.0 [[ min: 0.05, max: 90.0 ]];
+    input parameter float phase = 180.0 [[ min: 0.0, max: 360.0 ]];
+    input parameter float shape = 0.0 [[ min: 0.0, max: 1.0 ]];
+
+    state float sine[65536];            // os.oscsin's table, sin(2 pi i / 65536)
+    state float cosine[65536];          // os.osccos's table, cos(2 pi i / 65536)
+    state int ph, phFrac;               // os.oscp phasor: 30-bit integer part and 24-bit fraction
+    state float shapePrev, shapeErr;    // si.smoo on shape: input, previous sample, error state
+    state float phasePrev, phaseErr;    // si.smoo on phase
+
+    init {
+        for i in 0..65536 {
+            sine[i] = sin (float (i) * (2.0 * pi) / 65536.0);
+            cosine[i] = cos (float (i) * (2.0 * pi) / 65536.0);
+        }
+    }
+
+    process {
+        let f = 1.0 / sampleRate * rate;
+        let inc = 1073741824.0 * (f - rint (f));   // 2^30 * f / SR, wrapped
+        let incFloor = floor (inc);
+        let incInt = int (incFloor);
+        let incFrac = int (16777216.0 * (inc - incFloor));
+        let pSmoo = 1.0 - 44.1 / sampleRate;       // si.smoo pole
+        let i = (ph >> 6) >> 8;
+        let s = sine[i];
+        phFrac += incFrac;
+        ph = (incInt + ph + (phFrac >> 24)) & 1073741823;
+        phFrac = phFrac & 16777215;
+        // si.smooth: y = x + e, e = pole * (e + x[n-1] - x); min(ma.MAX) is Faust's no-op
+        shapeErr = pSmoo * (min (3.4028235e38, shapePrev - shape) + shapeErr);
+        shapePrev = shape;
+        let sh = shape + shapeErr;
+        // left: oscp(rate, 0) = the sine; saturator, then remap(-1, 1, 1 - amount, 1)
+        out1 = in1 * (1.0 + amount * (-1.0 + 0.5 * (1.0 + s + sh * (tanh (10.0 * s) - s))));
+        phaseErr = pSmoo * (min (3.4028235e38, phasePrev - phase) + phaseErr);
+        phasePrev = phase;
+        let p = 0.017453292 * (phase + phaseErr);  // ma.deg2rad
+        let r = s * cos (p) + cosine[i] * sin (p); // oscp(rate, p)
+        out2 = in2 * (1.0 + amount * (-1.0 + 0.5 * (1.0 + r + sh * (tanh (10.0 * r) - r))));
+    }
+}
+
+graph Main {
+    input stream in1;
+    input stream in2;
+    output stream out1;
+    output stream out2;
+    node p = Autopan;
+    connection { in1 -> p.in1; in2 -> p.in2; p.out1 -> out1; p.out2 -> out2; }
+}

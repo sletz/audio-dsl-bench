@@ -1,0 +1,136 @@
+// dm.dattorro_rev_demo of Faust's demos.lib (examples/reverb/dattorro.dsp), after
+// dsp/dattorro.onda: re.dattorro_rev(0, ...) with every control smoothed by si.smoo, then the
+// demo's dry/wet mix and output level. Fixed delay lengths (no SR dependence); allpass_f(t, a)
+// is a line of t + 1 samples; the bandwidth filter recurses on y[n-2]. Scalar filter state.
+processor Dattorro
+{
+    input stream float in1, in2;
+    output stream float out1, out2;
+    input event float prefilter    [[ min: 0.0f,   max: 1.0f,  init: 0.7f ]];
+    input event float inDiffusion1 [[ min: 0.0f,   max: 1.0f,  init: 0.625f ]];
+    input event float inDiffusion2 [[ min: 0.0f,   max: 1.0f,  init: 0.625f ]];
+    input event float fbDiffusion1 [[ min: 0.0f,   max: 1.0f,  init: 0.625f ]];
+    input event float fbDiffusion2 [[ min: 0.0f,   max: 1.0f,  init: 0.625f ]];
+    input event float decay        [[ min: 0.0f,   max: 1.0f,  init: 0.7f ]];
+    input event float damping      [[ min: 0.0f,   max: 1.0f,  init: 0.625f ]];
+    input event float drywet       [[ min: -1.0f,  max: 1.0f,  init: 0.0f ]];
+    input event float level        [[ min: -70.0f, max: 40.0f, init: -6.0f ]];
+
+    float bwV = 0.7f, id1V = 0.625f, id2V = 0.625f, dd1V = 0.625f, dd2V = 0.625f;
+    float decV = 0.7f, dmpV = 0.625f, dwV = 0.0f, levelV = -6.0f;
+    float dwp1, omdmp, ombw, gl, c;
+    // si.smoo states: error e and previous input xp
+    float eBw, xpBw, eId1, xpId1, eId2, xpId2, eDd1, xpDd1, eDd2, xpDd2;
+    float eDec, xpDec, eDmp, xpDmp, eDw, xpDw, eG, xpG;
+    float pf1, pf2;             // bandwidth filter output, one and two samples ago
+    float lp0, lp1;             // damping lowpasses
+    float o1p, o2p;             // tank outputs of the previous sample
+    float[143] ap142;  wrap<143> i142;      // input diffusion allpasses
+    float[108] ap107;  wrap<108> i107;
+    float[380] ap379;  wrap<380> i379;
+    float[278] ap277;  wrap<278> i277;
+    float[673] ap672;  wrap<673> i672;      // tank, block 0
+    float[4453] dl4453;  wrap<4453> i4453;
+    float[1801] ap1800;  wrap<1801> i1800;
+    float[1800] dl1800;  wrap<1800> j1800;
+    float[909] ap908;  wrap<909> i908;      // tank, block 1
+    float[4217] dl4217;  wrap<4217> i4217;
+    float[2657] ap2656;  wrap<2657> i2656;
+    float[2656] dl2656;  wrap<2656> j2656;
+
+    event prefilter (float v)    { bwV = v; update(); }
+    event inDiffusion1 (float v) { id1V = v; update(); }
+    event inDiffusion2 (float v) { id2V = v; update(); }
+    event fbDiffusion1 (float v) { dd1V = v; update(); }
+    event fbDiffusion2 (float v) { dd2V = v; update(); }
+    event decay (float v)        { decV = v; update(); }
+    event damping (float v)      { dmpV = v; update(); }
+    event drywet (float v)       { dwV = v; update(); }
+    event level (float v)        { levelV = v; update(); }
+
+    void update()
+    {
+        dwp1 = dwV + 1.0f;
+        omdmp = 1.0f - dmpV;
+        ombw = 1.0f - bwV;
+        gl = pow (10.0f, 0.05f * levelV);
+    }
+
+    void init()
+    {
+        c = 1.0f - 44.1f / float (processor.frequency);   // si.smoo pole
+        update();
+    }
+
+    void main()
+    {
+        loop
+        {
+            let x0 = in1;
+            eDw = c * ((xpDw - dwV) + eDw);  xpDw = dwV;
+            let dw = dwp1 + eDw;
+            let dry = 1.0f - 0.5f * dw;
+            eDd1 = c * ((xpDd1 - dd1V) + eDd1);  xpDd1 = dd1V;
+            let dd1 = dd1V + eDd1;
+            // tank block 1: allpass(908, -dd1), delay 4217, damping, allpass(2656, dd2), delay 2656
+            let r1 = ap908[i908];
+            let w1 = r1 * dd1 + o2p;
+            ap908[i908] = w1;  i908++;
+            eDmp = c * ((xpDmp - dmpV) + eDmp);  xpDmp = dmpV;
+            let dmp = dmpV + eDmp;
+            let y4217 = dl4217[i4217];  dl4217[i4217] = r1 + -(dd1 * w1);  i4217++;
+            let omd = omdmp - eDmp;
+            lp1 = lp1 * dmp + y4217 * omd;
+            eDec = c * ((xpDec - decV) + eDec);  xpDec = decV;
+            let dec = decV + eDec;
+            eDd2 = c * ((xpDd2 - dd2V) + eDd2);  xpDd2 = dd2V;
+            let dd2 = dd2V + eDd2;
+            let r4 = ap2656[i2656];
+            let w4 = lp1 * dec - r4 * dd2;
+            ap2656[i2656] = w4;  i2656++;
+            eId2 = c * ((xpId2 - id2V) + eId2);  xpId2 = id2V;
+            let id2 = id2V + eId2;
+            // input: bandwidth filter, then 4 diffusion allpasses
+            eBw = c * ((xpBw - bwV) + eBw);  xpBw = bwV;
+            let x1 = in2;
+            let pf = pf2 * (ombw - eBw) + 0.5f * (x0 + x1) * (bwV + eBw);
+            pf2 = pf1;
+            pf1 = pf;
+            eId1 = c * ((xpId1 - id1V) + eId1);  xpId1 = id1V;
+            let id1 = id1V + eId1;
+            let r20 = ap142[i142];
+            let t13 = pf - id1 * r20;
+            ap142[i142] = t13;  i142++;
+            let r19 = ap107[i107];
+            let t14 = r20 - id1 * (r19 - t13);
+            ap107[i107] = t14;  i107++;
+            let r18 = ap379[i379];
+            let t15 = r19 + id1 * t14 - id2 * r18;
+            ap379[i379] = t15;  i379++;
+            let r24 = ap277[i277];
+            let t16 = r18 - id2 * (r24 - t15);
+            ap277[i277] = t16;  i277++;
+            let t17 = id2 * t16;
+            let y2656 = dl2656[j2656];  dl2656[j2656] = r4 + dd2 * w4;  j2656++;
+            let o1 = t17 + dec * y2656 + r24;
+            // tank block 0: allpass(672, -dd1), delay 4453, damping, allpass(1800, dd2), delay 1800
+            let r7 = ap672[i672];
+            let w7 = dd1 * r7 + o1p;
+            ap672[i672] = w7;  i672++;
+            let y4453 = dl4453[i4453];  dl4453[i4453] = r7 + -(dd1 * w7);  i4453++;
+            lp0 = dmp * lp0 + omd * y4453;
+            let r10 = ap1800[i1800];
+            let w10 = dec * lp0 - dd2 * r10;
+            ap1800[i1800] = w10;  i1800++;
+            let y1800 = dl1800[j1800];  dl1800[j1800] = r10 + dd2 * w10;  j1800++;
+            let o2 = r24 + t17 + dec * y1800;
+            eG = c * ((xpG - gl) + eG);  xpG = gl;
+            let g = gl + eG;
+            out1 <- (x0 * dry + 0.5f * dw * o1) * g;
+            out2 <- g * (x1 * dry + 0.5f * dw * o2);
+            o1p = o1;
+            o2p = o2;
+            advance();
+        }
+    }
+}

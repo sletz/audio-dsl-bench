@@ -1,0 +1,219 @@
+// examples/gameaudio/bubble.dsp of Faust, after dsp/bubble.onda, drop held at 1 like bubble.dsp:
+// one bubble dropped at the first sample. Bubble: os.osc (65536-point sine table, fixed-point
+// phasor) whose frequency rises linearly with time, under an exponential decay smoothed by
+// si.smooth(0.99). Then dm.freeverb_demo: re.stereo_freeverb (8 lowpass-feedback combs and 4
+// Schroeder allpasses per channel, the right one detuned by the stereo spread) mixed with the dry
+// signal. The delay lengths are the ones reverbs.lib computes for 48 kHz. One processor: each
+// line has its own array and a counter wrapped at a constant, the states are scalars; the
+// parameter-only values are hoisted out of the sample loop by the optimiser.
+processor Bubble {
+    output stream out1;
+    output stream out2;
+    input parameter float drop = 1.0 [[ min: 0.0, max: 1.0 ]];
+    input parameter float freq = 600.0 [[ min: 150.0, max: 2000.0 ]];
+    input parameter float damp = 0.5 [[ min: 0.0, max: 1.0 ]];
+    input parameter float roomSize = 0.5 [[ min: 0.0, max: 1.0 ]];
+    input parameter float wet = 0.333299994 [[ min: 0.0, max: 1.0 ]];
+
+    state float sine[65536];            // os.osc's table, sin(2 pi i / 65536)
+    state int started;                  // os.osc phasor reset at the first sample
+    state float dropPrev;
+    state int t;                        // bubble time, in samples
+    state int phase, phaseFrac;         // os.osc phasor: 30-bit integer part and 24-bit fraction
+    state float ampPrev, ampE;          // si.smooth(0.99) of the decay (error form)
+    // freeverb lines: comb delay and its write position, allpass delay and its position
+    // (l: left channel, r: right channel)
+    state float cl0[1214];
+    state int icl0;
+    state float cl1[1293];
+    state int icl1;
+    state float cl2[1389];
+    state int icl2;
+    state float cl3[1475];
+    state int icl3;
+    state float cl4[1547];
+    state int icl4;
+    state float cl5[1622];
+    state int icl5;
+    state float cl6[1694];
+    state int icl6;
+    state float cl7[1760];
+    state int icl7;
+    state float al0[605];
+    state int ial0;
+    state float al1[480];
+    state int ial1;
+    state float al2[371];
+    state int ial2;
+    state float al3[244];
+    state int ial3;
+    state float cr0[1239];
+    state int icr0;
+    state float cr1[1318];
+    state int icr1;
+    state float cr2[1414];
+    state int icr2;
+    state float cr3[1500];
+    state int icr3;
+    state float cr4[1572];
+    state int icr4;
+    state float cr5[1647];
+    state int icr5;
+    state float cr6[1719];
+    state int icr6;
+    state float cr7[1785];
+    state int icr7;
+    state float ar0[630];
+    state int iar0;
+    state float ar1[505];
+    state int iar1;
+    state float ar2[396];
+    state int iar2;
+    state float ar3[269];
+    state int iar3;
+    state float lpl0, lpl1, lpl2, lpl3, lpl4, lpl5, lpl6, lpl7;   // comb lowpass states
+    state float lpr0, lpr1, lpr2, lpr3, lpr4, lpr5, lpr6, lpr7;
+
+    init {
+        for i in 0..65536 { sine[i] = sin (float (i) * (2.0 * pi) / 65536.0); }
+    }
+
+    process {
+        let dmp = (17640.0 / sampleRate) * damp;        // freeverb damping: scaledamp * origSR / SR
+        let dmp1 = 1.0 - dmp;
+        let wet2 = 0.2 * wet;                           // g * fixedgain, both channels summed
+        let f0 = (1.0 / sampleRate) * freq;
+        let dc = 0.043 * freq + 0.0014 * pow (freq, 1.5);   // bubble damping
+        let sigma = (0.075 / sampleRate) * dc;
+        let decay = (1.0 / sampleRate) * dc;
+        let fb = (12348.0 / sampleRate) * roomSize + 0.7;  // comb feedback
+        let dry = 1.0 - wet;
+
+        // bubble time: restarts on the rising edge of drop
+        t = select (drop > dropPrev, 1, t + 1);
+        dropPrev = drop;
+        let ft = float (t);
+        // os.osc at f0 * (1 + sigma * time)
+        let inc = f0 * (1.0 + sigma * ft);
+        let fi = 1073741824.0 * (inc - rint (inc));
+        let fl = floor (fi);
+        let frac = phaseFrac + int (16777216.0 * (fi - fl));
+        phaseFrac = select (started != 0, frac & 16777215, 0);
+        phase = select (started != 0, (phase + int (fl) + (frac >> 24)) & 1073741823, 0);
+        started = 1;
+        // exp(-damp * time) : si.smooth(0.99)
+        let a = exp (-(decay * ft));
+        ampE = 0.99 * (ampE + (ampPrev - a));
+        ampPrev = a;
+        let bubble = sine[(phase >> 6) >> 8] * (a + ampE);
+        let x = wet2 * bubble;
+        let d = dry * bubble;
+        // left freeverb
+        let y7 = cl7[icl7];
+        lpl7 = dmp * lpl7 + dmp1 * y7;
+        cl7[icl7] = x + fb * lpl7;
+        icl7 += 1; if (icl7 >= 1760) { icl7 = 0; }
+        let y6 = cl6[icl6];
+        lpl6 = dmp * lpl6 + dmp1 * y6;
+        cl6[icl6] = x + fb * lpl6;
+        icl6 += 1; if (icl6 >= 1694) { icl6 = 0; }
+        let y5 = cl5[icl5];
+        lpl5 = dmp * lpl5 + dmp1 * y5;
+        cl5[icl5] = x + fb * lpl5;
+        icl5 += 1; if (icl5 >= 1622) { icl5 = 0; }
+        let y4 = cl4[icl4];
+        lpl4 = dmp * lpl4 + dmp1 * y4;
+        cl4[icl4] = x + fb * lpl4;
+        icl4 += 1; if (icl4 >= 1547) { icl4 = 0; }
+        let y3 = cl3[icl3];
+        lpl3 = dmp * lpl3 + dmp1 * y3;
+        cl3[icl3] = x + fb * lpl3;
+        icl3 += 1; if (icl3 >= 1475) { icl3 = 0; }
+        let y2 = cl2[icl2];
+        lpl2 = dmp * lpl2 + dmp1 * y2;
+        cl2[icl2] = x + fb * lpl2;
+        icl2 += 1; if (icl2 >= 1389) { icl2 = 0; }
+        let y1 = cl1[icl1];
+        lpl1 = dmp * lpl1 + dmp1 * y1;
+        cl1[icl1] = x + fb * lpl1;
+        icl1 += 1; if (icl1 >= 1293) { icl1 = 0; }
+        let y0 = cl0[icl0];
+        lpl0 = dmp * lpl0 + dmp1 * y0;
+        cl0[icl0] = x + fb * lpl0;
+        icl0 += 1; if (icl0 >= 1214) { icl0 = 0; }
+        let b0 = al0[ial0];
+        let b1 = al1[ial1];
+        let b2 = al2[ial2];
+        let b3 = al3[ial3];
+        let s0 = y7 + y6 + y5 + y4 + y3 + y2 + y1 + 0.5 * b0 + y0;
+        al0[ial0] = s0;
+        ial0 += 1; if (ial0 >= 605) { ial0 = 0; }
+        let s1 = b0 + 0.5 * (b1 - s0);
+        al1[ial1] = s1;
+        ial1 += 1; if (ial1 >= 480) { ial1 = 0; }
+        let s2 = b1 + 0.5 * (b2 - s1);
+        al2[ial2] = s2;
+        ial2 += 1; if (ial2 >= 371) { ial2 = 0; }
+        let s3 = b2 + 0.5 * (b3 - s2);
+        al3[ial3] = s3;
+        ial3 += 1; if (ial3 >= 244) { ial3 = 0; }
+        out1 = b3 + d - 0.5 * s3;
+        // right freeverb
+        let z7 = cr7[icr7];
+        lpr7 = dmp * lpr7 + dmp1 * z7;
+        cr7[icr7] = x + fb * lpr7;
+        icr7 += 1; if (icr7 >= 1785) { icr7 = 0; }
+        let z6 = cr6[icr6];
+        lpr6 = dmp * lpr6 + dmp1 * z6;
+        cr6[icr6] = x + fb * lpr6;
+        icr6 += 1; if (icr6 >= 1719) { icr6 = 0; }
+        let z5 = cr5[icr5];
+        lpr5 = dmp * lpr5 + dmp1 * z5;
+        cr5[icr5] = x + fb * lpr5;
+        icr5 += 1; if (icr5 >= 1647) { icr5 = 0; }
+        let z4 = cr4[icr4];
+        lpr4 = dmp * lpr4 + dmp1 * z4;
+        cr4[icr4] = x + fb * lpr4;
+        icr4 += 1; if (icr4 >= 1572) { icr4 = 0; }
+        let z3 = cr3[icr3];
+        lpr3 = dmp * lpr3 + dmp1 * z3;
+        cr3[icr3] = x + fb * lpr3;
+        icr3 += 1; if (icr3 >= 1500) { icr3 = 0; }
+        let z2 = cr2[icr2];
+        lpr2 = dmp * lpr2 + dmp1 * z2;
+        cr2[icr2] = x + fb * lpr2;
+        icr2 += 1; if (icr2 >= 1414) { icr2 = 0; }
+        let z1 = cr1[icr1];
+        lpr1 = dmp * lpr1 + dmp1 * z1;
+        cr1[icr1] = x + fb * lpr1;
+        icr1 += 1; if (icr1 >= 1318) { icr1 = 0; }
+        let z0 = cr0[icr0];
+        lpr0 = dmp * lpr0 + dmp1 * z0;
+        cr0[icr0] = x + fb * lpr0;
+        icr0 += 1; if (icr0 >= 1239) { icr0 = 0; }
+        let c0 = ar0[iar0];
+        let c1 = ar1[iar1];
+        let c2 = ar2[iar2];
+        let c3 = ar3[iar3];
+        let r0 = z7 + z6 + z5 + z4 + z3 + z2 + z1 + 0.5 * c0 + z0;
+        ar0[iar0] = r0;
+        iar0 += 1; if (iar0 >= 630) { iar0 = 0; }
+        let r1 = c0 + 0.5 * (c1 - r0);
+        ar1[iar1] = r1;
+        iar1 += 1; if (iar1 >= 505) { iar1 = 0; }
+        let r2 = c1 + 0.5 * (c2 - r1);
+        ar2[iar2] = r2;
+        iar2 += 1; if (iar2 >= 396) { iar2 = 0; }
+        let r3 = c2 + 0.5 * (c3 - r2);
+        ar3[iar3] = r3;
+        iar3 += 1; if (iar3 >= 269) { iar3 = 0; }
+        out2 = d + c3 - 0.5 * r3;
+    }
+}
+
+graph Main {
+    output stream out1;
+    output stream out2;
+    node p = Bubble;
+    connection { p.out1 -> out1; p.out2 -> out2; }
+}

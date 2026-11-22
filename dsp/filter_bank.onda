@@ -1,0 +1,875 @@
+# dm.filterbank_demo = dm.mth_octave_filterbank_demo(1) (examples/filtering/filterBank.dsp), after
+# filter_bank.dsp: fi.mth_octave_filterbank_default(1, 10000, 10), each band through its fader
+# (dB, si.smoo), summed; no bypass. Analyzer (an.mth_octave_analyzer_tpt_df): a dyadic tree of
+# 5th-order Butterworth highpass/lowpass splits at 10000 * 2^(n-9) Hz, n = 9 ... 1, each a
+# first-order section and two second-order ones (a1 = 1.618034, 0.618034); as in single-precision
+# Faust (fi.tpt_df_fmin = 2304 Hz) the splits below 2304 Hz are trapezoidal (tf1s, svf.lp/hp) and
+# the others direct form (tf1s_df, tf2s_df). Delay equalizer: band i goes through the allpasses
+# fi.highpass_plus_lowpass(5, fc(j)) (tf2s(1,-1.618,1,1.618,1) or its direct form), j = 1 ... 8-i.
+# All state is scalar and the network is written out in full.
+ins 1
+
+params:
+  band1 = -10.0 {-70.0, 10.0}
+  band2 = -10.0 {-70.0, 10.0}
+  band3 = -10.0 {-70.0, 10.0}
+  band4 = -10.0 {-70.0, 10.0}
+  band5 = -10.0 {-70.0, 10.0}
+  band6 = -10.0 {-70.0, 10.0}
+  band7 = -10.0 {-70.0, 10.0}
+  band8 = -10.0 {-70.0, 10.0}
+  band9 = -10.0 {-70.0, 10.0}
+  band10 = -10.0 {-70.0, 10.0}
+
+init:
+  # previous input of hp9 and lp9 (tf1s_df)
+  xp9 = 0.0
+  # hp(10000 Hz), direct form: tf1 output, two biquad states
+  hp9y1 = 0.0
+  hp9a1 = 0.0
+  hp9a2 = 0.0
+  hp9b1 = 0.0
+  hp9b2 = 0.0
+  # lp(10000 Hz), direct form: tf1 output, two biquad states
+  lp9y1 = 0.0
+  lp9a1 = 0.0
+  lp9a2 = 0.0
+  lp9b1 = 0.0
+  lp9b2 = 0.0
+  # previous input of hp8 and lp8 (tf1s_df)
+  xp8 = 0.0
+  # hp(5000 Hz), direct form: tf1 output, two biquad states
+  hp8y1 = 0.0
+  hp8a1 = 0.0
+  hp8a2 = 0.0
+  hp8b1 = 0.0
+  hp8b2 = 0.0
+  # lp(5000 Hz), direct form: tf1 output, two biquad states
+  lp8y1 = 0.0
+  lp8a1 = 0.0
+  lp8a2 = 0.0
+  lp8b1 = 0.0
+  lp8b2 = 0.0
+  # previous input of hp7 and lp7 (tf1s_df)
+  xp7 = 0.0
+  # hp(2500 Hz), direct form: tf1 output, two biquad states
+  hp7y1 = 0.0
+  hp7a1 = 0.0
+  hp7a2 = 0.0
+  hp7b1 = 0.0
+  hp7b2 = 0.0
+  # lp(2500 Hz), direct form: tf1 output, two biquad states
+  lp7y1 = 0.0
+  lp7a1 = 0.0
+  lp7a2 = 0.0
+  lp7b1 = 0.0
+  lp7b2 = 0.0
+  # hp(1250 Hz), TPT: tf1s state, two svf states
+  hp6s = 0.0
+  hp6a1 = 0.0
+  hp6a2 = 0.0
+  hp6b1 = 0.0
+  hp6b2 = 0.0
+  # lp(1250 Hz), TPT: tf1s state, two svf states
+  lp6s = 0.0
+  lp6a1 = 0.0
+  lp6a2 = 0.0
+  lp6b1 = 0.0
+  lp6b2 = 0.0
+  # hp(625 Hz), TPT: tf1s state, two svf states
+  hp5s = 0.0
+  hp5a1 = 0.0
+  hp5a2 = 0.0
+  hp5b1 = 0.0
+  hp5b2 = 0.0
+  # lp(625 Hz), TPT: tf1s state, two svf states
+  lp5s = 0.0
+  lp5a1 = 0.0
+  lp5a2 = 0.0
+  lp5b1 = 0.0
+  lp5b2 = 0.0
+  # hp(312.5 Hz), TPT: tf1s state, two svf states
+  hp4s = 0.0
+  hp4a1 = 0.0
+  hp4a2 = 0.0
+  hp4b1 = 0.0
+  hp4b2 = 0.0
+  # lp(312.5 Hz), TPT: tf1s state, two svf states
+  lp4s = 0.0
+  lp4a1 = 0.0
+  lp4a2 = 0.0
+  lp4b1 = 0.0
+  lp4b2 = 0.0
+  # hp(156.25 Hz), TPT: tf1s state, two svf states
+  hp3s = 0.0
+  hp3a1 = 0.0
+  hp3a2 = 0.0
+  hp3b1 = 0.0
+  hp3b2 = 0.0
+  # lp(156.25 Hz), TPT: tf1s state, two svf states
+  lp3s = 0.0
+  lp3a1 = 0.0
+  lp3a2 = 0.0
+  lp3b1 = 0.0
+  lp3b2 = 0.0
+  # hp(78.125 Hz), TPT: tf1s state, two svf states
+  hp2s = 0.0
+  hp2a1 = 0.0
+  hp2a2 = 0.0
+  hp2b1 = 0.0
+  hp2b2 = 0.0
+  # lp(78.125 Hz), TPT: tf1s state, two svf states
+  lp2s = 0.0
+  lp2a1 = 0.0
+  lp2a2 = 0.0
+  lp2b1 = 0.0
+  lp2b2 = 0.0
+  # hp(39.0625 Hz), TPT: tf1s state, two svf states
+  hp1s = 0.0
+  hp1a1 = 0.0
+  hp1a2 = 0.0
+  hp1b1 = 0.0
+  hp1b2 = 0.0
+  # lp(39.0625 Hz), TPT: tf1s state, two svf states
+  lp1s = 0.0
+  lp1a1 = 0.0
+  lp1a2 = 0.0
+  lp1b1 = 0.0
+  lp1b2 = 0.0
+  # band 0 allpass at 39.0625 Hz, TPT (tf2s states)
+  p0_1s1 = 0.0
+  p0_1s0 = 0.0
+  # band 0 allpass at 78.125 Hz, TPT (tf2s states)
+  p0_2s1 = 0.0
+  p0_2s0 = 0.0
+  # band 0 allpass at 156.25 Hz, TPT (tf2s states)
+  p0_3s1 = 0.0
+  p0_3s0 = 0.0
+  # band 0 allpass at 312.5 Hz, TPT (tf2s states)
+  p0_4s1 = 0.0
+  p0_4s0 = 0.0
+  # band 0 allpass at 625 Hz, TPT (tf2s states)
+  p0_5s1 = 0.0
+  p0_5s0 = 0.0
+  # band 0 allpass at 1250 Hz, TPT (tf2s states)
+  p0_6s1 = 0.0
+  p0_6s0 = 0.0
+  # band 0 allpass at 2500 Hz, direct form
+  p0_7w1 = 0.0
+  p0_7w2 = 0.0
+  # band 0 allpass at 5000 Hz, direct form
+  p0_8w1 = 0.0
+  p0_8w2 = 0.0
+  # band 1 allpass at 39.0625 Hz, TPT (tf2s states)
+  p1_1s1 = 0.0
+  p1_1s0 = 0.0
+  # band 1 allpass at 78.125 Hz, TPT (tf2s states)
+  p1_2s1 = 0.0
+  p1_2s0 = 0.0
+  # band 1 allpass at 156.25 Hz, TPT (tf2s states)
+  p1_3s1 = 0.0
+  p1_3s0 = 0.0
+  # band 1 allpass at 312.5 Hz, TPT (tf2s states)
+  p1_4s1 = 0.0
+  p1_4s0 = 0.0
+  # band 1 allpass at 625 Hz, TPT (tf2s states)
+  p1_5s1 = 0.0
+  p1_5s0 = 0.0
+  # band 1 allpass at 1250 Hz, TPT (tf2s states)
+  p1_6s1 = 0.0
+  p1_6s0 = 0.0
+  # band 1 allpass at 2500 Hz, direct form
+  p1_7w1 = 0.0
+  p1_7w2 = 0.0
+  # band 2 allpass at 39.0625 Hz, TPT (tf2s states)
+  p2_1s1 = 0.0
+  p2_1s0 = 0.0
+  # band 2 allpass at 78.125 Hz, TPT (tf2s states)
+  p2_2s1 = 0.0
+  p2_2s0 = 0.0
+  # band 2 allpass at 156.25 Hz, TPT (tf2s states)
+  p2_3s1 = 0.0
+  p2_3s0 = 0.0
+  # band 2 allpass at 312.5 Hz, TPT (tf2s states)
+  p2_4s1 = 0.0
+  p2_4s0 = 0.0
+  # band 2 allpass at 625 Hz, TPT (tf2s states)
+  p2_5s1 = 0.0
+  p2_5s0 = 0.0
+  # band 2 allpass at 1250 Hz, TPT (tf2s states)
+  p2_6s1 = 0.0
+  p2_6s0 = 0.0
+  # band 3 allpass at 39.0625 Hz, TPT (tf2s states)
+  p3_1s1 = 0.0
+  p3_1s0 = 0.0
+  # band 3 allpass at 78.125 Hz, TPT (tf2s states)
+  p3_2s1 = 0.0
+  p3_2s0 = 0.0
+  # band 3 allpass at 156.25 Hz, TPT (tf2s states)
+  p3_3s1 = 0.0
+  p3_3s0 = 0.0
+  # band 3 allpass at 312.5 Hz, TPT (tf2s states)
+  p3_4s1 = 0.0
+  p3_4s0 = 0.0
+  # band 3 allpass at 625 Hz, TPT (tf2s states)
+  p3_5s1 = 0.0
+  p3_5s0 = 0.0
+  # band 4 allpass at 39.0625 Hz, TPT (tf2s states)
+  p4_1s1 = 0.0
+  p4_1s0 = 0.0
+  # band 4 allpass at 78.125 Hz, TPT (tf2s states)
+  p4_2s1 = 0.0
+  p4_2s0 = 0.0
+  # band 4 allpass at 156.25 Hz, TPT (tf2s states)
+  p4_3s1 = 0.0
+  p4_3s0 = 0.0
+  # band 4 allpass at 312.5 Hz, TPT (tf2s states)
+  p4_4s1 = 0.0
+  p4_4s0 = 0.0
+  # band 5 allpass at 39.0625 Hz, TPT (tf2s states)
+  p5_1s1 = 0.0
+  p5_1s0 = 0.0
+  # band 5 allpass at 78.125 Hz, TPT (tf2s states)
+  p5_2s1 = 0.0
+  p5_2s0 = 0.0
+  # band 5 allpass at 156.25 Hz, TPT (tf2s states)
+  p5_3s1 = 0.0
+  p5_3s0 = 0.0
+  # band 6 allpass at 39.0625 Hz, TPT (tf2s states)
+  p6_1s1 = 0.0
+  p6_1s0 = 0.0
+  # band 6 allpass at 78.125 Hz, TPT (tf2s states)
+  p6_2s1 = 0.0
+  p6_2s0 = 0.0
+  # band 7 allpass at 39.0625 Hz, TPT (tf2s states)
+  p7_1s1 = 0.0
+  p7_1s0 = 0.0
+  # si.smoo of band10: error, previous input
+  e10 = 0.0
+  xq10 = 0.0
+  # si.smoo of band9: error, previous input
+  e9 = 0.0
+  xq9 = 0.0
+  # si.smoo of band8: error, previous input
+  e8 = 0.0
+  xq8 = 0.0
+  # si.smoo of band7: error, previous input
+  e7 = 0.0
+  xq7 = 0.0
+  # si.smoo of band6: error, previous input
+  e6 = 0.0
+  xq6 = 0.0
+  # si.smoo of band5: error, previous input
+  e5 = 0.0
+  xq5 = 0.0
+  # si.smoo of band4: error, previous input
+  e4 = 0.0
+  xq4 = 0.0
+  # si.smoo of band3: error, previous input
+  e3 = 0.0
+  xq3 = 0.0
+  # si.smoo of band2: error, previous input
+  e2 = 0.0
+  xq2 = 0.0
+  # si.smoo of band1: error, previous input
+  e1 = 0.0
+  xq1 = 0.0
+
+block:
+  t1 = tan(max(0.0, min(122.71846 / SR, 1.5676547)))    # tan(PI*fc/SR), fc = 39.0625 Hz
+  r1 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t1))
+  gkA1 = t1 + 1.618034
+  rA1 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t1 * gkA1))
+  gkB1 = t1 + 0.618034
+  rB1 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t1 * gkB1))
+  ga1 = 1.618034 * t1
+  ra1 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + ga1 * (1.0 + ga1 * 0.38196602)))
+  t2 = tan(max(0.0, min(245.43693 / SR, 1.5676547)))    # tan(PI*fc/SR), fc = 78.125 Hz
+  r2 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t2))
+  gkA2 = t2 + 1.618034
+  rA2 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t2 * gkA2))
+  gkB2 = t2 + 0.618034
+  rB2 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t2 * gkB2))
+  ga2 = 1.618034 * t2
+  ra2 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + ga2 * (1.0 + ga2 * 0.38196602)))
+  t3 = tan(max(0.0, min(490.87385 / SR, 1.5676547)))    # tan(PI*fc/SR), fc = 156.25 Hz
+  r3 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t3))
+  gkA3 = t3 + 1.618034
+  rA3 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t3 * gkA3))
+  gkB3 = t3 + 0.618034
+  rB3 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t3 * gkB3))
+  ga3 = 1.618034 * t3
+  ra3 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + ga3 * (1.0 + ga3 * 0.38196602)))
+  t4 = tan(max(0.0, min(981.7477 / SR, 1.5676547)))    # tan(PI*fc/SR), fc = 312.5 Hz
+  r4 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t4))
+  gkA4 = t4 + 1.618034
+  rA4 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t4 * gkA4))
+  gkB4 = t4 + 0.618034
+  rB4 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t4 * gkB4))
+  ga4 = 1.618034 * t4
+  ra4 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + ga4 * (1.0 + ga4 * 0.38196602)))
+  t5 = tan(max(0.0, min(1963.4954 / SR, 1.5676547)))    # tan(PI*fc/SR), fc = 625 Hz
+  r5 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t5))
+  gkA5 = t5 + 1.618034
+  rA5 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t5 * gkA5))
+  gkB5 = t5 + 0.618034
+  rB5 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t5 * gkB5))
+  ga5 = 1.618034 * t5
+  ra5 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + ga5 * (1.0 + ga5 * 0.38196602)))
+  t6 = tan(max(0.0, min(3926.9908 / SR, 1.5676547)))    # tan(PI*fc/SR), fc = 1250 Hz
+  r6 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t6))
+  gkA6 = t6 + 1.618034
+  rA6 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t6 * gkA6))
+  gkB6 = t6 + 0.618034
+  rB6 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t6 * gkB6))
+  ga6 = 1.618034 * t6
+  ra6 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + ga6 * (1.0 + ga6 * 0.38196602)))
+  t7 = tan(max(0.0, min(7853.9816 / SR, 1.5676547)))    # tan(PI*fc/SR), fc = 2500 Hz
+  c7 = 1.0 / t7
+  csq7 = c7 * c7
+  d7 = 1.0 + c7
+  lp7b = 1.0 / d7
+  hp7b = c7 / d7
+  a7f = (1.0 - c7) / d7
+  dA7 = 1.0 + 1.618034 * c7 + csq7
+  a1A7 = 2.0 * (1.0 - csq7) / dA7
+  a2A7 = (1.0 - 1.618034 * c7 + csq7) / dA7
+  lpA7 = 1.0 / dA7
+  hpA7 = csq7 / dA7
+  dB7 = 1.0 + 0.618034 * c7 + csq7
+  a1B7 = 2.0 * (1.0 - csq7) / dB7
+  a2B7 = (1.0 - 0.618034 * c7 + csq7) / dB7
+  lpB7 = 1.0 / dB7
+  hpB7 = csq7 / dB7
+  t8 = tan(max(0.0, min(15707.963 / SR, 1.5676547)))    # tan(PI*fc/SR), fc = 5000 Hz
+  c8 = 1.0 / t8
+  csq8 = c8 * c8
+  d8 = 1.0 + c8
+  lp8b = 1.0 / d8
+  hp8b = c8 / d8
+  a8f = (1.0 - c8) / d8
+  dA8 = 1.0 + 1.618034 * c8 + csq8
+  a1A8 = 2.0 * (1.0 - csq8) / dA8
+  a2A8 = (1.0 - 1.618034 * c8 + csq8) / dA8
+  lpA8 = 1.0 / dA8
+  hpA8 = csq8 / dA8
+  dB8 = 1.0 + 0.618034 * c8 + csq8
+  a1B8 = 2.0 * (1.0 - csq8) / dB8
+  a2B8 = (1.0 - 0.618034 * c8 + csq8) / dB8
+  lpB8 = 1.0 / dB8
+  hpB8 = csq8 / dB8
+  t9 = tan(max(0.0, min(31415.927 / SR, 1.5676547)))    # tan(PI*fc/SR), fc = 10000 Hz
+  c9 = 1.0 / t9
+  csq9 = c9 * c9
+  d9 = 1.0 + c9
+  lp9b = 1.0 / d9
+  hp9b = c9 / d9
+  a9f = (1.0 - c9) / d9
+  dA9 = 1.0 + 1.618034 * c9 + csq9
+  a1A9 = 2.0 * (1.0 - csq9) / dA9
+  a2A9 = (1.0 - 1.618034 * c9 + csq9) / dA9
+  lpA9 = 1.0 / dA9
+  hpA9 = csq9 / dA9
+  dB9 = 1.0 + 0.618034 * c9 + csq9
+  a1B9 = 2.0 * (1.0 - csq9) / dB9
+  a2B9 = (1.0 - 0.618034 * c9 + csq9) / dB9
+  lpB9 = 1.0 / dB9
+  hpB9 = csq9 / dB9
+  smoo = 1.0 - 44.1 / SR    # si.smoo pole
+  sample:
+    # analyzer: band i is hp(9-i) of the lowpassed signal, the dc band is lp(1)
+    x = in1
+    # hp(10000 Hz): tf1s_df, then tf2s_df with a1 = 1.618034 and a1 = 0.618034
+    hp9y1 = hp9b * (x - xp9) - a9f * hp9y1
+    hp9aw = hp9y1 - (a1A9 * hp9a1 + a2A9 * hp9a2)
+    hp9ay = hpA9 * (hp9a2 + (hp9aw - 2.0 * hp9a1))
+    hp9a2 = hp9a1
+    hp9a1 = hp9aw
+    hp9bw = hp9ay - (a1B9 * hp9b1 + a2B9 * hp9b2)
+    hp9by = hpB9 * (hp9b2 + (hp9bw - 2.0 * hp9b1))
+    hp9b2 = hp9b1
+    hp9b1 = hp9bw
+    # lp(10000 Hz): tf1s_df, then tf2s_df with a1 = 1.618034 and a1 = 0.618034
+    lp9y1 = lp9b * (x + xp9) - a9f * lp9y1
+    lp9aw = lp9y1 - (a1A9 * lp9a1 + a2A9 * lp9a2)
+    lp9ay = lpA9 * (lp9a2 + lp9aw + 2.0 * lp9a1)
+    lp9a2 = lp9a1
+    lp9a1 = lp9aw
+    lp9bw = lp9ay - (a1B9 * lp9b1 + a2B9 * lp9b2)
+    lp9by = lpB9 * (lp9b2 + lp9bw + 2.0 * lp9b1)
+    lp9b2 = lp9b1
+    lp9b1 = lp9bw
+    xp9 = x
+    # hp(5000 Hz): tf1s_df, then tf2s_df with a1 = 1.618034 and a1 = 0.618034
+    hp8y1 = hp8b * (lp9by - xp8) - a8f * hp8y1
+    hp8aw = hp8y1 - (a1A8 * hp8a1 + a2A8 * hp8a2)
+    hp8ay = hpA8 * (hp8a2 + (hp8aw - 2.0 * hp8a1))
+    hp8a2 = hp8a1
+    hp8a1 = hp8aw
+    hp8bw = hp8ay - (a1B8 * hp8b1 + a2B8 * hp8b2)
+    hp8by = hpB8 * (hp8b2 + (hp8bw - 2.0 * hp8b1))
+    hp8b2 = hp8b1
+    hp8b1 = hp8bw
+    # lp(5000 Hz): tf1s_df, then tf2s_df with a1 = 1.618034 and a1 = 0.618034
+    lp8y1 = lp8b * (lp9by + xp8) - a8f * lp8y1
+    lp8aw = lp8y1 - (a1A8 * lp8a1 + a2A8 * lp8a2)
+    lp8ay = lpA8 * (lp8a2 + lp8aw + 2.0 * lp8a1)
+    lp8a2 = lp8a1
+    lp8a1 = lp8aw
+    lp8bw = lp8ay - (a1B8 * lp8b1 + a2B8 * lp8b2)
+    lp8by = lpB8 * (lp8b2 + lp8bw + 2.0 * lp8b1)
+    lp8b2 = lp8b1
+    lp8b1 = lp8bw
+    xp8 = lp9by
+    # hp(2500 Hz): tf1s_df, then tf2s_df with a1 = 1.618034 and a1 = 0.618034
+    hp7y1 = hp7b * (lp8by - xp7) - a7f * hp7y1
+    hp7aw = hp7y1 - (a1A7 * hp7a1 + a2A7 * hp7a2)
+    hp7ay = hpA7 * (hp7a2 + (hp7aw - 2.0 * hp7a1))
+    hp7a2 = hp7a1
+    hp7a1 = hp7aw
+    hp7bw = hp7ay - (a1B7 * hp7b1 + a2B7 * hp7b2)
+    hp7by = hpB7 * (hp7b2 + (hp7bw - 2.0 * hp7b1))
+    hp7b2 = hp7b1
+    hp7b1 = hp7bw
+    # lp(2500 Hz): tf1s_df, then tf2s_df with a1 = 1.618034 and a1 = 0.618034
+    lp7y1 = lp7b * (lp8by + xp7) - a7f * lp7y1
+    lp7aw = lp7y1 - (a1A7 * lp7a1 + a2A7 * lp7a2)
+    lp7ay = lpA7 * (lp7a2 + lp7aw + 2.0 * lp7a1)
+    lp7a2 = lp7a1
+    lp7a1 = lp7aw
+    lp7bw = lp7ay - (a1B7 * lp7b1 + a2B7 * lp7b2)
+    lp7by = lpB7 * (lp7b2 + lp7bw + 2.0 * lp7b1)
+    lp7b2 = lp7b1
+    lp7b1 = lp7bw
+    xp7 = lp8by
+    # hp(1250 Hz): tf1s, then svf.hp with k = 1.618034 and k = 0.618034
+    hp6u = (lp7by - hp6s) * r6
+    hp6v = t6 * hp6u + hp6s
+    hp6s = hp6v + t6 * hp6u
+    hp6ah = (hp6u - gkA6 * hp6a1 - hp6a2) * rA6
+    hp6av1 = t6 * hp6ah + hp6a1
+    hp6av2 = t6 * hp6av1 + hp6a2
+    hp6a1 = hp6av1 + t6 * hp6ah
+    hp6a2 = hp6av2 + t6 * hp6av1
+    hp6ay = hp6u - 1.618034 * hp6av1 - hp6av2
+    hp6bh = (hp6ay - gkB6 * hp6b1 - hp6b2) * rB6
+    hp6bv1 = t6 * hp6bh + hp6b1
+    hp6bv2 = t6 * hp6bv1 + hp6b2
+    hp6b1 = hp6bv1 + t6 * hp6bh
+    hp6b2 = hp6bv2 + t6 * hp6bv1
+    hp6by = hp6ay - 0.618034 * hp6bv1 - hp6bv2
+    # lp(1250 Hz): tf1s, then svf.lp with k = 1.618034 and k = 0.618034
+    lp6u = (lp7by - lp6s) * r6
+    lp6v = t6 * lp6u + lp6s
+    lp6s = lp6v + t6 * lp6u
+    lp6ah = (lp6v - gkA6 * lp6a1 - lp6a2) * rA6
+    lp6av1 = t6 * lp6ah + lp6a1
+    lp6av2 = t6 * lp6av1 + lp6a2
+    lp6a1 = lp6av1 + t6 * lp6ah
+    lp6a2 = lp6av2 + t6 * lp6av1
+    lp6bh = (lp6av2 - gkB6 * lp6b1 - lp6b2) * rB6
+    lp6bv1 = t6 * lp6bh + lp6b1
+    lp6bv2 = t6 * lp6bv1 + lp6b2
+    lp6b1 = lp6bv1 + t6 * lp6bh
+    lp6b2 = lp6bv2 + t6 * lp6bv1
+    # hp(625 Hz): tf1s, then svf.hp with k = 1.618034 and k = 0.618034
+    hp5u = (lp6bv2 - hp5s) * r5
+    hp5v = t5 * hp5u + hp5s
+    hp5s = hp5v + t5 * hp5u
+    hp5ah = (hp5u - gkA5 * hp5a1 - hp5a2) * rA5
+    hp5av1 = t5 * hp5ah + hp5a1
+    hp5av2 = t5 * hp5av1 + hp5a2
+    hp5a1 = hp5av1 + t5 * hp5ah
+    hp5a2 = hp5av2 + t5 * hp5av1
+    hp5ay = hp5u - 1.618034 * hp5av1 - hp5av2
+    hp5bh = (hp5ay - gkB5 * hp5b1 - hp5b2) * rB5
+    hp5bv1 = t5 * hp5bh + hp5b1
+    hp5bv2 = t5 * hp5bv1 + hp5b2
+    hp5b1 = hp5bv1 + t5 * hp5bh
+    hp5b2 = hp5bv2 + t5 * hp5bv1
+    hp5by = hp5ay - 0.618034 * hp5bv1 - hp5bv2
+    # lp(625 Hz): tf1s, then svf.lp with k = 1.618034 and k = 0.618034
+    lp5u = (lp6bv2 - lp5s) * r5
+    lp5v = t5 * lp5u + lp5s
+    lp5s = lp5v + t5 * lp5u
+    lp5ah = (lp5v - gkA5 * lp5a1 - lp5a2) * rA5
+    lp5av1 = t5 * lp5ah + lp5a1
+    lp5av2 = t5 * lp5av1 + lp5a2
+    lp5a1 = lp5av1 + t5 * lp5ah
+    lp5a2 = lp5av2 + t5 * lp5av1
+    lp5bh = (lp5av2 - gkB5 * lp5b1 - lp5b2) * rB5
+    lp5bv1 = t5 * lp5bh + lp5b1
+    lp5bv2 = t5 * lp5bv1 + lp5b2
+    lp5b1 = lp5bv1 + t5 * lp5bh
+    lp5b2 = lp5bv2 + t5 * lp5bv1
+    # hp(312.5 Hz): tf1s, then svf.hp with k = 1.618034 and k = 0.618034
+    hp4u = (lp5bv2 - hp4s) * r4
+    hp4v = t4 * hp4u + hp4s
+    hp4s = hp4v + t4 * hp4u
+    hp4ah = (hp4u - gkA4 * hp4a1 - hp4a2) * rA4
+    hp4av1 = t4 * hp4ah + hp4a1
+    hp4av2 = t4 * hp4av1 + hp4a2
+    hp4a1 = hp4av1 + t4 * hp4ah
+    hp4a2 = hp4av2 + t4 * hp4av1
+    hp4ay = hp4u - 1.618034 * hp4av1 - hp4av2
+    hp4bh = (hp4ay - gkB4 * hp4b1 - hp4b2) * rB4
+    hp4bv1 = t4 * hp4bh + hp4b1
+    hp4bv2 = t4 * hp4bv1 + hp4b2
+    hp4b1 = hp4bv1 + t4 * hp4bh
+    hp4b2 = hp4bv2 + t4 * hp4bv1
+    hp4by = hp4ay - 0.618034 * hp4bv1 - hp4bv2
+    # lp(312.5 Hz): tf1s, then svf.lp with k = 1.618034 and k = 0.618034
+    lp4u = (lp5bv2 - lp4s) * r4
+    lp4v = t4 * lp4u + lp4s
+    lp4s = lp4v + t4 * lp4u
+    lp4ah = (lp4v - gkA4 * lp4a1 - lp4a2) * rA4
+    lp4av1 = t4 * lp4ah + lp4a1
+    lp4av2 = t4 * lp4av1 + lp4a2
+    lp4a1 = lp4av1 + t4 * lp4ah
+    lp4a2 = lp4av2 + t4 * lp4av1
+    lp4bh = (lp4av2 - gkB4 * lp4b1 - lp4b2) * rB4
+    lp4bv1 = t4 * lp4bh + lp4b1
+    lp4bv2 = t4 * lp4bv1 + lp4b2
+    lp4b1 = lp4bv1 + t4 * lp4bh
+    lp4b2 = lp4bv2 + t4 * lp4bv1
+    # hp(156.25 Hz): tf1s, then svf.hp with k = 1.618034 and k = 0.618034
+    hp3u = (lp4bv2 - hp3s) * r3
+    hp3v = t3 * hp3u + hp3s
+    hp3s = hp3v + t3 * hp3u
+    hp3ah = (hp3u - gkA3 * hp3a1 - hp3a2) * rA3
+    hp3av1 = t3 * hp3ah + hp3a1
+    hp3av2 = t3 * hp3av1 + hp3a2
+    hp3a1 = hp3av1 + t3 * hp3ah
+    hp3a2 = hp3av2 + t3 * hp3av1
+    hp3ay = hp3u - 1.618034 * hp3av1 - hp3av2
+    hp3bh = (hp3ay - gkB3 * hp3b1 - hp3b2) * rB3
+    hp3bv1 = t3 * hp3bh + hp3b1
+    hp3bv2 = t3 * hp3bv1 + hp3b2
+    hp3b1 = hp3bv1 + t3 * hp3bh
+    hp3b2 = hp3bv2 + t3 * hp3bv1
+    hp3by = hp3ay - 0.618034 * hp3bv1 - hp3bv2
+    # lp(156.25 Hz): tf1s, then svf.lp with k = 1.618034 and k = 0.618034
+    lp3u = (lp4bv2 - lp3s) * r3
+    lp3v = t3 * lp3u + lp3s
+    lp3s = lp3v + t3 * lp3u
+    lp3ah = (lp3v - gkA3 * lp3a1 - lp3a2) * rA3
+    lp3av1 = t3 * lp3ah + lp3a1
+    lp3av2 = t3 * lp3av1 + lp3a2
+    lp3a1 = lp3av1 + t3 * lp3ah
+    lp3a2 = lp3av2 + t3 * lp3av1
+    lp3bh = (lp3av2 - gkB3 * lp3b1 - lp3b2) * rB3
+    lp3bv1 = t3 * lp3bh + lp3b1
+    lp3bv2 = t3 * lp3bv1 + lp3b2
+    lp3b1 = lp3bv1 + t3 * lp3bh
+    lp3b2 = lp3bv2 + t3 * lp3bv1
+    # hp(78.125 Hz): tf1s, then svf.hp with k = 1.618034 and k = 0.618034
+    hp2u = (lp3bv2 - hp2s) * r2
+    hp2v = t2 * hp2u + hp2s
+    hp2s = hp2v + t2 * hp2u
+    hp2ah = (hp2u - gkA2 * hp2a1 - hp2a2) * rA2
+    hp2av1 = t2 * hp2ah + hp2a1
+    hp2av2 = t2 * hp2av1 + hp2a2
+    hp2a1 = hp2av1 + t2 * hp2ah
+    hp2a2 = hp2av2 + t2 * hp2av1
+    hp2ay = hp2u - 1.618034 * hp2av1 - hp2av2
+    hp2bh = (hp2ay - gkB2 * hp2b1 - hp2b2) * rB2
+    hp2bv1 = t2 * hp2bh + hp2b1
+    hp2bv2 = t2 * hp2bv1 + hp2b2
+    hp2b1 = hp2bv1 + t2 * hp2bh
+    hp2b2 = hp2bv2 + t2 * hp2bv1
+    hp2by = hp2ay - 0.618034 * hp2bv1 - hp2bv2
+    # lp(78.125 Hz): tf1s, then svf.lp with k = 1.618034 and k = 0.618034
+    lp2u = (lp3bv2 - lp2s) * r2
+    lp2v = t2 * lp2u + lp2s
+    lp2s = lp2v + t2 * lp2u
+    lp2ah = (lp2v - gkA2 * lp2a1 - lp2a2) * rA2
+    lp2av1 = t2 * lp2ah + lp2a1
+    lp2av2 = t2 * lp2av1 + lp2a2
+    lp2a1 = lp2av1 + t2 * lp2ah
+    lp2a2 = lp2av2 + t2 * lp2av1
+    lp2bh = (lp2av2 - gkB2 * lp2b1 - lp2b2) * rB2
+    lp2bv1 = t2 * lp2bh + lp2b1
+    lp2bv2 = t2 * lp2bv1 + lp2b2
+    lp2b1 = lp2bv1 + t2 * lp2bh
+    lp2b2 = lp2bv2 + t2 * lp2bv1
+    # hp(39.0625 Hz): tf1s, then svf.hp with k = 1.618034 and k = 0.618034
+    hp1u = (lp2bv2 - hp1s) * r1
+    hp1v = t1 * hp1u + hp1s
+    hp1s = hp1v + t1 * hp1u
+    hp1ah = (hp1u - gkA1 * hp1a1 - hp1a2) * rA1
+    hp1av1 = t1 * hp1ah + hp1a1
+    hp1av2 = t1 * hp1av1 + hp1a2
+    hp1a1 = hp1av1 + t1 * hp1ah
+    hp1a2 = hp1av2 + t1 * hp1av1
+    hp1ay = hp1u - 1.618034 * hp1av1 - hp1av2
+    hp1bh = (hp1ay - gkB1 * hp1b1 - hp1b2) * rB1
+    hp1bv1 = t1 * hp1bh + hp1b1
+    hp1bv2 = t1 * hp1bv1 + hp1b2
+    hp1b1 = hp1bv1 + t1 * hp1bh
+    hp1b2 = hp1bv2 + t1 * hp1bv1
+    hp1by = hp1ay - 0.618034 * hp1bv1 - hp1bv2
+    # lp(39.0625 Hz): tf1s, then svf.lp with k = 1.618034 and k = 0.618034
+    lp1u = (lp2bv2 - lp1s) * r1
+    lp1v = t1 * lp1u + lp1s
+    lp1s = lp1v + t1 * lp1u
+    lp1ah = (lp1v - gkA1 * lp1a1 - lp1a2) * rA1
+    lp1av1 = t1 * lp1ah + lp1a1
+    lp1av2 = t1 * lp1av1 + lp1a2
+    lp1a1 = lp1av1 + t1 * lp1ah
+    lp1a2 = lp1av2 + t1 * lp1av1
+    lp1bh = (lp1av2 - gkB1 * lp1b1 - lp1b2) * rB1
+    lp1bv1 = t1 * lp1bh + lp1b1
+    lp1bv2 = t1 * lp1bv1 + lp1b2
+    lp1b1 = lp1bv1 + t1 * lp1bh
+    lp1b2 = lp1bv2 + t1 * lp1bv1
+    # band 0: delay-equalizing allpasses at fc(1) ... fc(8) (highpass_plus_lowpass, order 5)
+    p0_1u = (hp9by - p0_1s1 - 0.38196602 * (ga1 * p0_1s1 + p0_1s0)) * ra1
+    p0_1v1 = ga1 * p0_1u + p0_1s1
+    p0_1v0 = ga1 * p0_1v1 + p0_1s0
+    p0_1y = p0_1u - p0_1v1 + 0.38196602 * p0_1v0
+    p0_1s1 = 2.0 * p0_1v1 - p0_1s1
+    p0_1s0 = 2.0 * p0_1v0 - p0_1s0
+    p0_2u = (p0_1y - p0_2s1 - 0.38196602 * (ga2 * p0_2s1 + p0_2s0)) * ra2
+    p0_2v1 = ga2 * p0_2u + p0_2s1
+    p0_2v0 = ga2 * p0_2v1 + p0_2s0
+    p0_2y = p0_2u - p0_2v1 + 0.38196602 * p0_2v0
+    p0_2s1 = 2.0 * p0_2v1 - p0_2s1
+    p0_2s0 = 2.0 * p0_2v0 - p0_2s0
+    p0_3u = (p0_2y - p0_3s1 - 0.38196602 * (ga3 * p0_3s1 + p0_3s0)) * ra3
+    p0_3v1 = ga3 * p0_3u + p0_3s1
+    p0_3v0 = ga3 * p0_3v1 + p0_3s0
+    p0_3y = p0_3u - p0_3v1 + 0.38196602 * p0_3v0
+    p0_3s1 = 2.0 * p0_3v1 - p0_3s1
+    p0_3s0 = 2.0 * p0_3v0 - p0_3s0
+    p0_4u = (p0_3y - p0_4s1 - 0.38196602 * (ga4 * p0_4s1 + p0_4s0)) * ra4
+    p0_4v1 = ga4 * p0_4u + p0_4s1
+    p0_4v0 = ga4 * p0_4v1 + p0_4s0
+    p0_4y = p0_4u - p0_4v1 + 0.38196602 * p0_4v0
+    p0_4s1 = 2.0 * p0_4v1 - p0_4s1
+    p0_4s0 = 2.0 * p0_4v0 - p0_4s0
+    p0_5u = (p0_4y - p0_5s1 - 0.38196602 * (ga5 * p0_5s1 + p0_5s0)) * ra5
+    p0_5v1 = ga5 * p0_5u + p0_5s1
+    p0_5v0 = ga5 * p0_5v1 + p0_5s0
+    p0_5y = p0_5u - p0_5v1 + 0.38196602 * p0_5v0
+    p0_5s1 = 2.0 * p0_5v1 - p0_5s1
+    p0_5s0 = 2.0 * p0_5v0 - p0_5s0
+    p0_6u = (p0_5y - p0_6s1 - 0.38196602 * (ga6 * p0_6s1 + p0_6s0)) * ra6
+    p0_6v1 = ga6 * p0_6u + p0_6s1
+    p0_6v0 = ga6 * p0_6v1 + p0_6s0
+    p0_6y = p0_6u - p0_6v1 + 0.38196602 * p0_6v0
+    p0_6s1 = 2.0 * p0_6v1 - p0_6s1
+    p0_6s0 = 2.0 * p0_6v0 - p0_6s0
+    p0_7w = p0_6y - (a1A7 * p0_7w1 + a2A7 * p0_7w2)
+    p0_7y = p0_7w2 + (a1A7 * p0_7w1 + a2A7 * p0_7w)
+    p0_7w2 = p0_7w1
+    p0_7w1 = p0_7w
+    p0_8w = p0_7y - (a1A8 * p0_8w1 + a2A8 * p0_8w2)
+    p0_8y = p0_8w2 + (a1A8 * p0_8w1 + a2A8 * p0_8w)
+    p0_8w2 = p0_8w1
+    p0_8w1 = p0_8w
+    # band 1: delay-equalizing allpasses at fc(1) ... fc(7) (highpass_plus_lowpass, order 5)
+    p1_1u = (hp8by - p1_1s1 - 0.38196602 * (ga1 * p1_1s1 + p1_1s0)) * ra1
+    p1_1v1 = ga1 * p1_1u + p1_1s1
+    p1_1v0 = ga1 * p1_1v1 + p1_1s0
+    p1_1y = p1_1u - p1_1v1 + 0.38196602 * p1_1v0
+    p1_1s1 = 2.0 * p1_1v1 - p1_1s1
+    p1_1s0 = 2.0 * p1_1v0 - p1_1s0
+    p1_2u = (p1_1y - p1_2s1 - 0.38196602 * (ga2 * p1_2s1 + p1_2s0)) * ra2
+    p1_2v1 = ga2 * p1_2u + p1_2s1
+    p1_2v0 = ga2 * p1_2v1 + p1_2s0
+    p1_2y = p1_2u - p1_2v1 + 0.38196602 * p1_2v0
+    p1_2s1 = 2.0 * p1_2v1 - p1_2s1
+    p1_2s0 = 2.0 * p1_2v0 - p1_2s0
+    p1_3u = (p1_2y - p1_3s1 - 0.38196602 * (ga3 * p1_3s1 + p1_3s0)) * ra3
+    p1_3v1 = ga3 * p1_3u + p1_3s1
+    p1_3v0 = ga3 * p1_3v1 + p1_3s0
+    p1_3y = p1_3u - p1_3v1 + 0.38196602 * p1_3v0
+    p1_3s1 = 2.0 * p1_3v1 - p1_3s1
+    p1_3s0 = 2.0 * p1_3v0 - p1_3s0
+    p1_4u = (p1_3y - p1_4s1 - 0.38196602 * (ga4 * p1_4s1 + p1_4s0)) * ra4
+    p1_4v1 = ga4 * p1_4u + p1_4s1
+    p1_4v0 = ga4 * p1_4v1 + p1_4s0
+    p1_4y = p1_4u - p1_4v1 + 0.38196602 * p1_4v0
+    p1_4s1 = 2.0 * p1_4v1 - p1_4s1
+    p1_4s0 = 2.0 * p1_4v0 - p1_4s0
+    p1_5u = (p1_4y - p1_5s1 - 0.38196602 * (ga5 * p1_5s1 + p1_5s0)) * ra5
+    p1_5v1 = ga5 * p1_5u + p1_5s1
+    p1_5v0 = ga5 * p1_5v1 + p1_5s0
+    p1_5y = p1_5u - p1_5v1 + 0.38196602 * p1_5v0
+    p1_5s1 = 2.0 * p1_5v1 - p1_5s1
+    p1_5s0 = 2.0 * p1_5v0 - p1_5s0
+    p1_6u = (p1_5y - p1_6s1 - 0.38196602 * (ga6 * p1_6s1 + p1_6s0)) * ra6
+    p1_6v1 = ga6 * p1_6u + p1_6s1
+    p1_6v0 = ga6 * p1_6v1 + p1_6s0
+    p1_6y = p1_6u - p1_6v1 + 0.38196602 * p1_6v0
+    p1_6s1 = 2.0 * p1_6v1 - p1_6s1
+    p1_6s0 = 2.0 * p1_6v0 - p1_6s0
+    p1_7w = p1_6y - (a1A7 * p1_7w1 + a2A7 * p1_7w2)
+    p1_7y = p1_7w2 + (a1A7 * p1_7w1 + a2A7 * p1_7w)
+    p1_7w2 = p1_7w1
+    p1_7w1 = p1_7w
+    # band 2: delay-equalizing allpasses at fc(1) ... fc(6) (highpass_plus_lowpass, order 5)
+    p2_1u = (hp7by - p2_1s1 - 0.38196602 * (ga1 * p2_1s1 + p2_1s0)) * ra1
+    p2_1v1 = ga1 * p2_1u + p2_1s1
+    p2_1v0 = ga1 * p2_1v1 + p2_1s0
+    p2_1y = p2_1u - p2_1v1 + 0.38196602 * p2_1v0
+    p2_1s1 = 2.0 * p2_1v1 - p2_1s1
+    p2_1s0 = 2.0 * p2_1v0 - p2_1s0
+    p2_2u = (p2_1y - p2_2s1 - 0.38196602 * (ga2 * p2_2s1 + p2_2s0)) * ra2
+    p2_2v1 = ga2 * p2_2u + p2_2s1
+    p2_2v0 = ga2 * p2_2v1 + p2_2s0
+    p2_2y = p2_2u - p2_2v1 + 0.38196602 * p2_2v0
+    p2_2s1 = 2.0 * p2_2v1 - p2_2s1
+    p2_2s0 = 2.0 * p2_2v0 - p2_2s0
+    p2_3u = (p2_2y - p2_3s1 - 0.38196602 * (ga3 * p2_3s1 + p2_3s0)) * ra3
+    p2_3v1 = ga3 * p2_3u + p2_3s1
+    p2_3v0 = ga3 * p2_3v1 + p2_3s0
+    p2_3y = p2_3u - p2_3v1 + 0.38196602 * p2_3v0
+    p2_3s1 = 2.0 * p2_3v1 - p2_3s1
+    p2_3s0 = 2.0 * p2_3v0 - p2_3s0
+    p2_4u = (p2_3y - p2_4s1 - 0.38196602 * (ga4 * p2_4s1 + p2_4s0)) * ra4
+    p2_4v1 = ga4 * p2_4u + p2_4s1
+    p2_4v0 = ga4 * p2_4v1 + p2_4s0
+    p2_4y = p2_4u - p2_4v1 + 0.38196602 * p2_4v0
+    p2_4s1 = 2.0 * p2_4v1 - p2_4s1
+    p2_4s0 = 2.0 * p2_4v0 - p2_4s0
+    p2_5u = (p2_4y - p2_5s1 - 0.38196602 * (ga5 * p2_5s1 + p2_5s0)) * ra5
+    p2_5v1 = ga5 * p2_5u + p2_5s1
+    p2_5v0 = ga5 * p2_5v1 + p2_5s0
+    p2_5y = p2_5u - p2_5v1 + 0.38196602 * p2_5v0
+    p2_5s1 = 2.0 * p2_5v1 - p2_5s1
+    p2_5s0 = 2.0 * p2_5v0 - p2_5s0
+    p2_6u = (p2_5y - p2_6s1 - 0.38196602 * (ga6 * p2_6s1 + p2_6s0)) * ra6
+    p2_6v1 = ga6 * p2_6u + p2_6s1
+    p2_6v0 = ga6 * p2_6v1 + p2_6s0
+    p2_6y = p2_6u - p2_6v1 + 0.38196602 * p2_6v0
+    p2_6s1 = 2.0 * p2_6v1 - p2_6s1
+    p2_6s0 = 2.0 * p2_6v0 - p2_6s0
+    # band 3: delay-equalizing allpasses at fc(1) ... fc(5) (highpass_plus_lowpass, order 5)
+    p3_1u = (hp6by - p3_1s1 - 0.38196602 * (ga1 * p3_1s1 + p3_1s0)) * ra1
+    p3_1v1 = ga1 * p3_1u + p3_1s1
+    p3_1v0 = ga1 * p3_1v1 + p3_1s0
+    p3_1y = p3_1u - p3_1v1 + 0.38196602 * p3_1v0
+    p3_1s1 = 2.0 * p3_1v1 - p3_1s1
+    p3_1s0 = 2.0 * p3_1v0 - p3_1s0
+    p3_2u = (p3_1y - p3_2s1 - 0.38196602 * (ga2 * p3_2s1 + p3_2s0)) * ra2
+    p3_2v1 = ga2 * p3_2u + p3_2s1
+    p3_2v0 = ga2 * p3_2v1 + p3_2s0
+    p3_2y = p3_2u - p3_2v1 + 0.38196602 * p3_2v0
+    p3_2s1 = 2.0 * p3_2v1 - p3_2s1
+    p3_2s0 = 2.0 * p3_2v0 - p3_2s0
+    p3_3u = (p3_2y - p3_3s1 - 0.38196602 * (ga3 * p3_3s1 + p3_3s0)) * ra3
+    p3_3v1 = ga3 * p3_3u + p3_3s1
+    p3_3v0 = ga3 * p3_3v1 + p3_3s0
+    p3_3y = p3_3u - p3_3v1 + 0.38196602 * p3_3v0
+    p3_3s1 = 2.0 * p3_3v1 - p3_3s1
+    p3_3s0 = 2.0 * p3_3v0 - p3_3s0
+    p3_4u = (p3_3y - p3_4s1 - 0.38196602 * (ga4 * p3_4s1 + p3_4s0)) * ra4
+    p3_4v1 = ga4 * p3_4u + p3_4s1
+    p3_4v0 = ga4 * p3_4v1 + p3_4s0
+    p3_4y = p3_4u - p3_4v1 + 0.38196602 * p3_4v0
+    p3_4s1 = 2.0 * p3_4v1 - p3_4s1
+    p3_4s0 = 2.0 * p3_4v0 - p3_4s0
+    p3_5u = (p3_4y - p3_5s1 - 0.38196602 * (ga5 * p3_5s1 + p3_5s0)) * ra5
+    p3_5v1 = ga5 * p3_5u + p3_5s1
+    p3_5v0 = ga5 * p3_5v1 + p3_5s0
+    p3_5y = p3_5u - p3_5v1 + 0.38196602 * p3_5v0
+    p3_5s1 = 2.0 * p3_5v1 - p3_5s1
+    p3_5s0 = 2.0 * p3_5v0 - p3_5s0
+    # band 4: delay-equalizing allpasses at fc(1) ... fc(4) (highpass_plus_lowpass, order 5)
+    p4_1u = (hp5by - p4_1s1 - 0.38196602 * (ga1 * p4_1s1 + p4_1s0)) * ra1
+    p4_1v1 = ga1 * p4_1u + p4_1s1
+    p4_1v0 = ga1 * p4_1v1 + p4_1s0
+    p4_1y = p4_1u - p4_1v1 + 0.38196602 * p4_1v0
+    p4_1s1 = 2.0 * p4_1v1 - p4_1s1
+    p4_1s0 = 2.0 * p4_1v0 - p4_1s0
+    p4_2u = (p4_1y - p4_2s1 - 0.38196602 * (ga2 * p4_2s1 + p4_2s0)) * ra2
+    p4_2v1 = ga2 * p4_2u + p4_2s1
+    p4_2v0 = ga2 * p4_2v1 + p4_2s0
+    p4_2y = p4_2u - p4_2v1 + 0.38196602 * p4_2v0
+    p4_2s1 = 2.0 * p4_2v1 - p4_2s1
+    p4_2s0 = 2.0 * p4_2v0 - p4_2s0
+    p4_3u = (p4_2y - p4_3s1 - 0.38196602 * (ga3 * p4_3s1 + p4_3s0)) * ra3
+    p4_3v1 = ga3 * p4_3u + p4_3s1
+    p4_3v0 = ga3 * p4_3v1 + p4_3s0
+    p4_3y = p4_3u - p4_3v1 + 0.38196602 * p4_3v0
+    p4_3s1 = 2.0 * p4_3v1 - p4_3s1
+    p4_3s0 = 2.0 * p4_3v0 - p4_3s0
+    p4_4u = (p4_3y - p4_4s1 - 0.38196602 * (ga4 * p4_4s1 + p4_4s0)) * ra4
+    p4_4v1 = ga4 * p4_4u + p4_4s1
+    p4_4v0 = ga4 * p4_4v1 + p4_4s0
+    p4_4y = p4_4u - p4_4v1 + 0.38196602 * p4_4v0
+    p4_4s1 = 2.0 * p4_4v1 - p4_4s1
+    p4_4s0 = 2.0 * p4_4v0 - p4_4s0
+    # band 5: delay-equalizing allpasses at fc(1) ... fc(3) (highpass_plus_lowpass, order 5)
+    p5_1u = (hp4by - p5_1s1 - 0.38196602 * (ga1 * p5_1s1 + p5_1s0)) * ra1
+    p5_1v1 = ga1 * p5_1u + p5_1s1
+    p5_1v0 = ga1 * p5_1v1 + p5_1s0
+    p5_1y = p5_1u - p5_1v1 + 0.38196602 * p5_1v0
+    p5_1s1 = 2.0 * p5_1v1 - p5_1s1
+    p5_1s0 = 2.0 * p5_1v0 - p5_1s0
+    p5_2u = (p5_1y - p5_2s1 - 0.38196602 * (ga2 * p5_2s1 + p5_2s0)) * ra2
+    p5_2v1 = ga2 * p5_2u + p5_2s1
+    p5_2v0 = ga2 * p5_2v1 + p5_2s0
+    p5_2y = p5_2u - p5_2v1 + 0.38196602 * p5_2v0
+    p5_2s1 = 2.0 * p5_2v1 - p5_2s1
+    p5_2s0 = 2.0 * p5_2v0 - p5_2s0
+    p5_3u = (p5_2y - p5_3s1 - 0.38196602 * (ga3 * p5_3s1 + p5_3s0)) * ra3
+    p5_3v1 = ga3 * p5_3u + p5_3s1
+    p5_3v0 = ga3 * p5_3v1 + p5_3s0
+    p5_3y = p5_3u - p5_3v1 + 0.38196602 * p5_3v0
+    p5_3s1 = 2.0 * p5_3v1 - p5_3s1
+    p5_3s0 = 2.0 * p5_3v0 - p5_3s0
+    # band 6: delay-equalizing allpasses at fc(1) ... fc(2) (highpass_plus_lowpass, order 5)
+    p6_1u = (hp3by - p6_1s1 - 0.38196602 * (ga1 * p6_1s1 + p6_1s0)) * ra1
+    p6_1v1 = ga1 * p6_1u + p6_1s1
+    p6_1v0 = ga1 * p6_1v1 + p6_1s0
+    p6_1y = p6_1u - p6_1v1 + 0.38196602 * p6_1v0
+    p6_1s1 = 2.0 * p6_1v1 - p6_1s1
+    p6_1s0 = 2.0 * p6_1v0 - p6_1s0
+    p6_2u = (p6_1y - p6_2s1 - 0.38196602 * (ga2 * p6_2s1 + p6_2s0)) * ra2
+    p6_2v1 = ga2 * p6_2u + p6_2s1
+    p6_2v0 = ga2 * p6_2v1 + p6_2s0
+    p6_2y = p6_2u - p6_2v1 + 0.38196602 * p6_2v0
+    p6_2s1 = 2.0 * p6_2v1 - p6_2s1
+    p6_2s0 = 2.0 * p6_2v0 - p6_2s0
+    # band 7: delay-equalizing allpasses at fc(1) ... fc(1) (highpass_plus_lowpass, order 5)
+    p7_1u = (hp2by - p7_1s1 - 0.38196602 * (ga1 * p7_1s1 + p7_1s0)) * ra1
+    p7_1v1 = ga1 * p7_1u + p7_1s1
+    p7_1v0 = ga1 * p7_1v1 + p7_1s0
+    p7_1y = p7_1u - p7_1v1 + 0.38196602 * p7_1v0
+    p7_1s1 = 2.0 * p7_1v1 - p7_1s1
+    p7_1s0 = 2.0 * p7_1v0 - p7_1s0
+    # faders: si.smoo (error form) of each Band slider, ba.db2linear
+    e10 = smoo * (e10 + min(340282346638528859811704183484516925440.0, xq10 - band10))
+    xq10 = band10
+    g10 = pow(10.0, 0.05 * (band10 + e10))
+    e9 = smoo * (e9 + min(340282346638528859811704183484516925440.0, xq9 - band9))
+    xq9 = band9
+    g9 = pow(10.0, 0.05 * (band9 + e9))
+    e8 = smoo * (e8 + min(340282346638528859811704183484516925440.0, xq8 - band8))
+    xq8 = band8
+    g8 = pow(10.0, 0.05 * (band8 + e8))
+    e7 = smoo * (e7 + min(340282346638528859811704183484516925440.0, xq7 - band7))
+    xq7 = band7
+    g7 = pow(10.0, 0.05 * (band7 + e7))
+    e6 = smoo * (e6 + min(340282346638528859811704183484516925440.0, xq6 - band6))
+    xq6 = band6
+    g6 = pow(10.0, 0.05 * (band6 + e6))
+    e5 = smoo * (e5 + min(340282346638528859811704183484516925440.0, xq5 - band5))
+    xq5 = band5
+    g5 = pow(10.0, 0.05 * (band5 + e5))
+    e4 = smoo * (e4 + min(340282346638528859811704183484516925440.0, xq4 - band4))
+    xq4 = band4
+    g4 = pow(10.0, 0.05 * (band4 + e4))
+    e3 = smoo * (e3 + min(340282346638528859811704183484516925440.0, xq3 - band3))
+    xq3 = band3
+    g3 = pow(10.0, 0.05 * (band3 + e3))
+    e2 = smoo * (e2 + min(340282346638528859811704183484516925440.0, xq2 - band2))
+    xq2 = band2
+    g2 = pow(10.0, 0.05 * (band2 + e2))
+    e1 = smoo * (e1 + min(340282346638528859811704183484516925440.0, xq1 - band1))
+    xq1 = band1
+    g1 = pow(10.0, 0.05 * (band1 + e1))
+    y = p0_8y * g10 + p1_7y * g9 + p2_6y * g8 + p3_5y * g7 + p4_4y * g6 + p5_3y * g5 + p6_2y * g4 + p7_1y * g3 + hp1by * g2 + lp1bv2 * g1
+    out1 = y

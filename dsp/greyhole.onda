@@ -1,0 +1,581 @@
+# Port of dm.greyhole_demo (examples/reverb/greyhole.dsp): re.greyhole(dt, damp, size, early_diff,
+# feedback, mod_depth, mod_freq) of reverbs.lib with the demo's default controls, after the C++ that
+# faust generates for dsp/greyhole.dsp (same expressions, same operation order). The input, summed
+# with the feedback, goes through 3 nested diffusers of 4 levels (24 rotations feeding allpass
+# delays de.fdelay1a whose lengths are primes chosen by size, smoothed by smooth_init), then
+# si.smooth(damp); the feedback path is de.fdelay4 modulated by a coupled-form oscillator (os.oscrc,
+# os.oscrs), then de.sdelay(65536, 22050, dt*SR) and the feedback gain. Every control goes through
+# linear_interp(x) = (x + x')/2, computed per sample as faust does. Constants computed for SR = 48 kHz
+# like faust's (fConst1 = 0.00056689343*SR, fConst2 = PI/SR). The rotator of angle PI/2 is (-b, a),
+# as faust simplifies it. The prime table (ma.primes) is cut to its first 400 entries: size <= 3
+# reads at most index 321. The allpasses are written out with scalar state, each one right after the
+# line computing its input, their outputs committed at the end of the sample. Each of their
+# 16384-sample lines is padded with 16 floats (one cache line): 64 KB apart, the 24 lines would all
+# fall in the same L1 cache sets.
+ins 2
+outs 2
+
+params:
+  delayTime = 0.2 {0.001, 1.45}
+  damping = 0.0 {0.0, 0.99}
+  size = 1.0 {0.5, 3.0}
+  diffusion = 0.5 {0.0, 0.99}
+  feedback = 0.9 {0.0, 1.0}
+  modDepth = 0.1 {0.0, 1.0}
+  modFreq = 2.0 {0.0, 10.0}
+
+const PRIMES: f32[400] = [
+  2.0, 3.0, 5.0, 7.0, 11.0, 13.0, 17.0, 19.0, 23.0, 29.0, 31.0, 37.0, 41.0, 43.0, 47.0, 53.0, 59.0, 61.0, 67.0, 71.0,
+  73.0, 79.0, 83.0, 89.0, 97.0, 101.0, 103.0, 107.0, 109.0, 113.0, 127.0, 131.0, 137.0, 139.0, 149.0, 151.0, 157.0, 163.0, 167.0, 173.0,
+  179.0, 181.0, 191.0, 193.0, 197.0, 199.0, 211.0, 223.0, 227.0, 229.0, 233.0, 239.0, 241.0, 251.0, 257.0, 263.0, 269.0, 271.0, 277.0, 281.0,
+  283.0, 293.0, 307.0, 311.0, 313.0, 317.0, 331.0, 337.0, 347.0, 349.0, 353.0, 359.0, 367.0, 373.0, 379.0, 383.0, 389.0, 397.0, 401.0, 409.0,
+  419.0, 421.0, 431.0, 433.0, 439.0, 443.0, 449.0, 457.0, 461.0, 463.0, 467.0, 479.0, 487.0, 491.0, 499.0, 503.0, 509.0, 521.0, 523.0, 541.0,
+  547.0, 557.0, 563.0, 569.0, 571.0, 577.0, 587.0, 593.0, 599.0, 601.0, 607.0, 613.0, 617.0, 619.0, 631.0, 641.0, 643.0, 647.0, 653.0, 659.0,
+  661.0, 673.0, 677.0, 683.0, 691.0, 701.0, 709.0, 719.0, 727.0, 733.0, 739.0, 743.0, 751.0, 757.0, 761.0, 769.0, 773.0, 787.0, 797.0, 809.0,
+  811.0, 821.0, 823.0, 827.0, 829.0, 839.0, 853.0, 857.0, 859.0, 863.0, 877.0, 881.0, 883.0, 887.0, 907.0, 911.0, 919.0, 929.0, 937.0, 941.0,
+  947.0, 953.0, 967.0, 971.0, 977.0, 983.0, 991.0, 997.0, 1009.0, 1013.0, 1019.0, 1021.0, 1031.0, 1033.0, 1039.0, 1049.0, 1051.0, 1061.0, 1063.0, 1069.0,
+  1087.0, 1091.0, 1093.0, 1097.0, 1103.0, 1109.0, 1117.0, 1123.0, 1129.0, 1151.0, 1153.0, 1163.0, 1171.0, 1181.0, 1187.0, 1193.0, 1201.0, 1213.0, 1217.0, 1223.0,
+  1229.0, 1231.0, 1237.0, 1249.0, 1259.0, 1277.0, 1279.0, 1283.0, 1289.0, 1291.0, 1297.0, 1301.0, 1303.0, 1307.0, 1319.0, 1321.0, 1327.0, 1361.0, 1367.0, 1373.0,
+  1381.0, 1399.0, 1409.0, 1423.0, 1427.0, 1429.0, 1433.0, 1439.0, 1447.0, 1451.0, 1453.0, 1459.0, 1471.0, 1481.0, 1483.0, 1487.0, 1489.0, 1493.0, 1499.0, 1511.0,
+  1523.0, 1531.0, 1543.0, 1549.0, 1553.0, 1559.0, 1567.0, 1571.0, 1579.0, 1583.0, 1597.0, 1601.0, 1607.0, 1609.0, 1613.0, 1619.0, 1621.0, 1627.0, 1637.0, 1657.0,
+  1663.0, 1667.0, 1669.0, 1693.0, 1697.0, 1699.0, 1709.0, 1721.0, 1723.0, 1733.0, 1741.0, 1747.0, 1753.0, 1759.0, 1777.0, 1783.0, 1787.0, 1789.0, 1801.0, 1811.0,
+  1823.0, 1831.0, 1847.0, 1861.0, 1867.0, 1871.0, 1873.0, 1877.0, 1879.0, 1889.0, 1901.0, 1907.0, 1913.0, 1931.0, 1933.0, 1949.0, 1951.0, 1973.0, 1979.0, 1987.0,
+  1993.0, 1997.0, 1999.0, 2003.0, 2011.0, 2017.0, 2027.0, 2029.0, 2039.0, 2053.0, 2063.0, 2069.0, 2081.0, 2083.0, 2087.0, 2089.0, 2099.0, 2111.0, 2113.0, 2129.0,
+  2131.0, 2137.0, 2141.0, 2143.0, 2153.0, 2161.0, 2179.0, 2203.0, 2207.0, 2213.0, 2221.0, 2237.0, 2239.0, 2243.0, 2251.0, 2267.0, 2269.0, 2273.0, 2281.0, 2287.0,
+  2293.0, 2297.0, 2309.0, 2311.0, 2333.0, 2339.0, 2341.0, 2347.0, 2351.0, 2357.0, 2371.0, 2377.0, 2381.0, 2383.0, 2389.0, 2393.0, 2399.0, 2411.0, 2417.0, 2423.0,
+  2437.0, 2441.0, 2447.0, 2459.0, 2467.0, 2473.0, 2477.0, 2503.0, 2521.0, 2531.0, 2539.0, 2543.0, 2549.0, 2551.0, 2557.0, 2579.0, 2591.0, 2593.0, 2609.0, 2617.0,
+  2621.0, 2633.0, 2647.0, 2657.0, 2659.0, 2663.0, 2671.0, 2677.0, 2683.0, 2687.0, 2689.0, 2693.0, 2699.0, 2707.0, 2711.0, 2713.0, 2719.0, 2729.0, 2731.0, 2741.0
+]
+
+init:
+  sr: f32 = SR
+  c1 = 0.00056689343 * sr              # (SR/44100)*50, times the 1/2 of linear_interp
+  c2 = 3.1415927 / sr                  # 2*PI/SR, times the 1/2 of linear_interp
+  lineL: f32[1024]                     # output L, read back by de.fdelay4
+  lineR: f32[1024]
+  sdL: f32[65536]                      # de.sdelay lines
+  sdR: f32[65536]
+  w = 0 {65536, wrap}                  # write position of every line
+  imp = 1.0                            # impulse: 1 at the first sample
+  diffPrev = 0.0                       # x' of linear_interp, per control
+  freqPrev = 0.0
+  depthPrev = 0.0
+  fbPrev = 0.0
+  dampPrev = 0.0
+  oscS = 0.0                           # fi.nlf2 oscillator (fRec28, fRec29)
+  oscC = 0.0
+  sdv = 0.0                            # de.sdelay control: step, crossfade, delay 0 and 1
+  sdi = 0.0
+  sd0 = 0.0
+  sd1 = 0.0
+  smL = 0.0                            # si.smooth error and previous input
+  spL = 0.0
+  smR = 0.0
+  spR = 0.0
+
+  ap0: f32[16400]
+  y0 = 0.0
+  xp0 = 0.0
+  r0 = 0.0
+  ap1: f32[16400]
+  y1 = 0.0
+  xp1 = 0.0
+  r1 = 0.0
+  ap2: f32[16400]
+  y2 = 0.0
+  xp2 = 0.0
+  r2 = 0.0
+  ap3: f32[16400]
+  y3 = 0.0
+  xp3 = 0.0
+  r3 = 0.0
+  ap4: f32[16400]
+  y4 = 0.0
+  xp4 = 0.0
+  r4 = 0.0
+  ap5: f32[16400]
+  y5 = 0.0
+  xp5 = 0.0
+  r5 = 0.0
+  ap6: f32[16400]
+  y6 = 0.0
+  xp6 = 0.0
+  r6 = 0.0
+  ap7: f32[16400]
+  y7 = 0.0
+  xp7 = 0.0
+  r7 = 0.0
+  ap8: f32[16400]
+  y8 = 0.0
+  xp8 = 0.0
+  r8 = 0.0
+  ap9: f32[16400]
+  y9 = 0.0
+  xp9 = 0.0
+  r9 = 0.0
+  ap10: f32[16400]
+  y10 = 0.0
+  xp10 = 0.0
+  r10 = 0.0
+  ap11: f32[16400]
+  y11 = 0.0
+  xp11 = 0.0
+  r11 = 0.0
+  ap12: f32[16400]
+  y12 = 0.0
+  xp12 = 0.0
+  r12 = 0.0
+  ap13: f32[16400]
+  y13 = 0.0
+  xp13 = 0.0
+  r13 = 0.0
+  ap14: f32[16400]
+  y14 = 0.0
+  xp14 = 0.0
+  r14 = 0.0
+  ap15: f32[16400]
+  y15 = 0.0
+  xp15 = 0.0
+  r15 = 0.0
+  ap16: f32[16400]
+  y16 = 0.0
+  xp16 = 0.0
+  r16 = 0.0
+  ap17: f32[16400]
+  y17 = 0.0
+  xp17 = 0.0
+  r17 = 0.0
+  ap18: f32[16400]
+  y18 = 0.0
+  xp18 = 0.0
+  r18 = 0.0
+  ap19: f32[16400]
+  y19 = 0.0
+  xp19 = 0.0
+  r19 = 0.0
+  ap20: f32[16400]
+  y20 = 0.0
+  xp20 = 0.0
+  r20 = 0.0
+  ap21: f32[16400]
+  y21 = 0.0
+  xp21 = 0.0
+  r21 = 0.0
+  ap22: f32[16400]
+  y22 = 0.0
+  xp22 = 0.0
+  r22 = 0.0
+  ap23: f32[16400]
+  y23 = 0.0
+  xp23 = 0.0
+  r23 = 0.0
+
+block:
+  dts = floor(min(65533.0, sr * delayTime))
+  # primes of the 24 allpasses, and (1 - 0.9999)*prime
+  p0 = PRIMES[i32(59.0 * size)]
+  p1 = PRIMES[i32(49.0 * size)]
+  p2 = PRIMES[i32(36.0 * size)]
+  p3 = PRIMES[i32(46.0 * size)]
+  p4 = PRIMES[i32(23.0 * size)]
+  p5 = PRIMES[i32(33.0 * size)]
+  p6 = PRIMES[i32(10.0 * size)]
+  p7 = PRIMES[i32(20.0 * size)]
+  p8 = PRIMES[i32(78.0 * size)]
+  p9 = PRIMES[i32(68.0 * size)]
+  p10 = PRIMES[i32(55.0 * size)]
+  p11 = PRIMES[i32(65.0 * size)]
+  p12 = PRIMES[i32(42.0 * size)]
+  p13 = PRIMES[i32(52.0 * size)]
+  p14 = PRIMES[i32(29.0 * size)]
+  p15 = PRIMES[i32(39.0 * size)]
+  p16 = PRIMES[i32(97.0 * size)]
+  p17 = PRIMES[i32(87.0 * size)]
+  p18 = PRIMES[i32(74.0 * size)]
+  p19 = PRIMES[i32(84.0 * size)]
+  p20 = PRIMES[i32(61.0 * size)]
+  p21 = PRIMES[i32(71.0 * size)]
+  p22 = PRIMES[i32(48.0 * size)]
+  p23 = PRIMES[i32(58.0 * size)]
+  s0 = 0.0001 * p0
+  s1 = 0.0001 * p1
+  s2 = 0.0001 * p2
+  s3 = 0.0001 * p3
+  s4 = 0.0001 * p4
+  s5 = 0.0001 * p5
+  s6 = 0.0001 * p6
+  s7 = 0.0001 * p7
+  s8 = 0.0001 * p8
+  s9 = 0.0001 * p9
+  s10 = 0.0001 * p10
+  s11 = 0.0001 * p11
+  s12 = 0.0001 * p12
+  s13 = 0.0001 * p13
+  s14 = 0.0001 * p14
+  s15 = 0.0001 * p15
+  s16 = 0.0001 * p16
+  s17 = 0.0001 * p17
+  s18 = 0.0001 * p18
+  s19 = 0.0001 * p19
+  s20 = 0.0001 * p20
+  s21 = 0.0001 * p21
+  s22 = 0.0001 * p22
+  s23 = 0.0001 * p23
+  sample:
+    # linear_interp of the controls
+    sdf = diffusion + diffPrev
+    diffPrev = diffusion
+    th = c2 * (modFreq + freqPrev)
+    freqPrev = modFreq
+    dd = c1 * (modDepth + depthPrev)
+    depthPrev = modDepth
+    fbs = feedback + fbPrev
+    fbPrev = feedback
+    dms = damping + dampPrev
+    dampPrev = damping
+    c = cos(0.5 * sdf)
+    s = sin(0.5 * sdf)
+    cn = cos(-0.5 * sdf)
+    sn = sin(-0.5 * sdf)
+    # modulation oscillator (fi.nlf2)
+    os = sin(th)
+    oc = cos(th)
+    nS = oscC * os + oscS * oc
+    nC = imp - os * oscS + oscC * oc
+    oscS = nS
+    oscC = nC
+    # feedback path: de.fdelay4 read of the output lines, then de.sdelay
+    t8L = dd * (1.0 + oscC)
+    t9L = 8.500005 + t8L
+    t10L = floor(t9L)
+    t11L = 7.0 - t10L + t8L
+    t12L = 8.0 - t10L + t8L
+    i13L = i32(min(516.0, max(-4.0, t9L)))
+    t14L = 9.0 - t10L + t8L
+    t15L = 10.0 - t10L + t8L
+    t16L = t15L * t14L
+    t17L = t16L * t12L
+    x0L = lineL[(w - (1 + min(516, max(0, i13L)))) & 1023]
+    x1L = lineL[(w - (1 + min(516, max(0, i13L + 1)))) & 1023]
+    x2L = lineL[(w - (1 + min(516, max(0, i13L + 2)))) & 1023]
+    x3L = lineL[(w - (1 + min(516, max(0, i13L + 3)))) & 1023]
+    x4L = lineL[(w - (1 + min(516, max(0, i13L + 4)))) & 1023]
+    fdL = (6.0 - t10L + t8L) * (t11L * (t12L * (0.041666668 * x0L * t14L - 0.16666667 * t15L * x1L) + 0.25 * t16L * x2L) - 0.16666667 * t17L * x3L) + 0.041666668 * t17L * t11L * x4L
+    t8R = dd * (1.0 + oscS)
+    t9R = 8.500005 + t8R
+    t10R = floor(t9R)
+    t11R = 7.0 - t10R + t8R
+    t12R = 8.0 - t10R + t8R
+    i13R = i32(min(516.0, max(-4.0, t9R)))
+    t14R = 9.0 - t10R + t8R
+    t15R = 10.0 - t10R + t8R
+    t16R = t15R * t14R
+    t17R = t16R * t12R
+    x0R = lineR[(w - (1 + min(516, max(0, i13R)))) & 1023]
+    x1R = lineR[(w - (1 + min(516, max(0, i13R + 1)))) & 1023]
+    x2R = lineR[(w - (1 + min(516, max(0, i13R + 2)))) & 1023]
+    x3R = lineR[(w - (1 + min(516, max(0, i13R + 3)))) & 1023]
+    x4R = lineR[(w - (1 + min(516, max(0, i13R + 4)))) & 1023]
+    fdR = (6.0 - t10R + t8R) * (t11R * (t12R * (0.041666668 * x0R * t14R - 0.16666667 * t15R * x1R) + 0.25 * t16R * x2R) - 0.16666667 * t17R * x3R) + 0.041666668 * t17R * t11R * x4R
+    sdL[w] = fdL
+    sdR[w] = fdR
+    v = 0.0
+    if sdv != 0.0:
+      if sdi > 0.0 && sdi < 1.0:
+        v = sdv
+    elif sdi == 0.0 && dts != sd0:
+      v = 0.000045351473
+    elif sdi == 1.0 && dts != sd1:
+      v = -0.000045351473
+    ni = max(0.0, min(1.0, sdi + v))
+    n0 = sd0
+    if sdi >= 1.0 && sd1 != dts:
+      n0 = dts
+    n1 = sd1
+    if sdi <= 0.0 && sd0 != dts:
+      n1 = dts
+    sdv = v
+    sdi = ni
+    sd0 = n0
+    sd1 = n1
+    k0 = i32(min(65536.0, max(0.0, sd0)))
+    k1 = i32(min(65536.0, max(0.0, sd1)))
+    aL = sdL[(w - k0) & 65535]
+    x1 = in1 + 0.5 * (aL + sdi * (sdL[(w - k1) & 65535] - aL)) * fbs
+    aR = sdR[(w - k0) & 65535]
+    x2 = in2 + 0.5 * fbs * (aR + sdi * (sdR[(w - k1) & 65535] - aR))
+    # diffuser 1 (angle diff)
+    a1 = x1 * c - s * r6
+    a2 = c * a1 - s * r4
+    a3 = c * a2 - s * r2
+    b1 = c * x2 - s * r7
+    b2 = c * b1 - s * r5
+    b3 = c * b2 - s * r3
+    i0 = c * a3 - r1 * s
+    y0 = s0 + 0.9999 * (imp * p0 + y0)
+    dmo0 = -1.49999 + y0
+    ap0[w & 16383] = i0
+    xd0 = ap0[(w - i32(min(8192.0, max(0.0, dmo0)))) & 16383]
+    fl0 = floor(dmo0)
+    rn0 = xp0 - (2.0 - y0 + fl0) * (r0 - xd0) / (y0 - fl0)
+    xp0 = xd0
+    i1 = r0 * s - c * b3
+    y1 = s1 + 0.9999 * (imp * p1 + y1)
+    dmo1 = -1.49999 + y1
+    ap1[w & 16383] = i1
+    xd1 = ap1[(w - i32(min(8192.0, max(0.0, dmo1)))) & 16383]
+    fl1 = floor(dmo1)
+    rn1 = xp1 - (2.0 - y1 + fl1) * (r1 - xd1) / (y1 - fl1)
+    xp1 = xd1
+    i2 = r0 * c + s * b3
+    y2 = s2 + 0.9999 * (imp * p2 + y2)
+    dmo2 = -1.49999 + y2
+    ap2[w & 16383] = i2
+    xd2 = ap2[(w - i32(min(8192.0, max(0.0, dmo2)))) & 16383]
+    fl2 = floor(dmo2)
+    ca2 = 2.0 - y2 + fl2
+    cb2 = y2 - fl2
+    rn2 = -(r2 * ca2 / cb2 + ca2 * xd2 / cb2 + xp2)
+    xp2 = xd2
+    i3 = r1 * c + s * a3
+    y3 = s3 + 0.9999 * (imp * p3 + y3)
+    dmo3 = -1.49999 + y3
+    ap3[w & 16383] = i3
+    xd3 = ap3[(w - i32(min(8192.0, max(0.0, dmo3)))) & 16383]
+    fl3 = floor(dmo3)
+    rn3 = xp3 - (2.0 - y3 + fl3) * (r3 - xd3) / (y3 - fl3)
+    xp3 = xd3
+    i4 = c * r3 + s * b2
+    y4 = s4 + 0.9999 * (imp * p4 + y4)
+    dmo4 = -1.49999 + y4
+    ap4[w & 16383] = i4
+    xd4 = ap4[(w - i32(min(8192.0, max(0.0, dmo4)))) & 16383]
+    fl4 = floor(dmo4)
+    ca4 = 2.0 - y4 + fl4
+    cb4 = y4 - fl4
+    rn4 = -(r4 * ca4 / cb4 + ca4 * xd4 / cb4 + xp4)
+    xp4 = xd4
+    i5 = r2 * c + s * a2
+    y5 = s5 + 0.9999 * (imp * p5 + y5)
+    dmo5 = -1.49999 + y5
+    ap5[w & 16383] = i5
+    xd5 = ap5[(w - i32(min(8192.0, max(0.0, dmo5)))) & 16383]
+    fl5 = floor(dmo5)
+    rn5 = xp5 - (2.0 - y5 + fl5) * (r5 - xd5) / (y5 - fl5)
+    xp5 = xd5
+    i6 = c * r5 + s * b1
+    y6 = s6 + 0.9999 * (imp * p6 + y6)
+    dmo6 = -1.49999 + y6
+    ap6[w & 16383] = i6
+    xd6 = ap6[(w - i32(min(8192.0, max(0.0, dmo6)))) & 16383]
+    fl6 = floor(dmo6)
+    ca6 = 2.0 - y6 + fl6
+    cb6 = y6 - fl6
+    rn6 = -(r6 * ca6 / cb6 + ca6 * xd6 / cb6 + xp6)
+    xp6 = xd6
+    i7 = r4 * c + s * a1
+    y7 = s7 + 0.9999 * (imp * p7 + y7)
+    dmo7 = -1.49999 + y7
+    ap7[w & 16383] = i7
+    xd7 = ap7[(w - i32(min(8192.0, max(0.0, dmo7)))) & 16383]
+    fl7 = floor(dmo7)
+    rn7 = xp7 - (2.0 - y7 + fl7) * (r7 - xd7) / (y7 - fl7)
+    xp7 = xd7
+    l1 = r6 * c + s * x1
+    q1 = c * r7 + s * x2
+    # diffuser 2 (angle -diff)
+    d1 = l1 * cn - sn * r14
+    d2 = cn * d1 - sn * r12
+    d3 = cn * d2 - sn * r10
+    e1 = cn * q1 - sn * r15
+    e2 = cn * e1 - sn * r13
+    e3 = cn * e2 - sn * r11
+    i8 = cn * d3 - r9 * sn
+    y8 = s8 + 0.9999 * (imp * p8 + y8)
+    dmo8 = -1.49999 + y8
+    ap8[w & 16383] = i8
+    xd8 = ap8[(w - i32(min(8192.0, max(0.0, dmo8)))) & 16383]
+    fl8 = floor(dmo8)
+    rn8 = xp8 - (2.0 - y8 + fl8) * (r8 - xd8) / (y8 - fl8)
+    xp8 = xd8
+    i9 = r8 * sn - cn * e3
+    y9 = s9 + 0.9999 * (imp * p9 + y9)
+    dmo9 = -1.49999 + y9
+    ap9[w & 16383] = i9
+    xd9 = ap9[(w - i32(min(8192.0, max(0.0, dmo9)))) & 16383]
+    fl9 = floor(dmo9)
+    rn9 = xp9 - (2.0 - y9 + fl9) * (r9 - xd9) / (y9 - fl9)
+    xp9 = xd9
+    i10 = r8 * cn + sn * e3
+    y10 = s10 + 0.9999 * (imp * p10 + y10)
+    dmo10 = -1.49999 + y10
+    ap10[w & 16383] = i10
+    xd10 = ap10[(w - i32(min(8192.0, max(0.0, dmo10)))) & 16383]
+    fl10 = floor(dmo10)
+    ca10 = 2.0 - y10 + fl10
+    cb10 = y10 - fl10
+    rn10 = -(r10 * ca10 / cb10 + ca10 * xd10 / cb10 + xp10)
+    xp10 = xd10
+    i11 = r9 * cn + sn * d3
+    y11 = s11 + 0.9999 * (imp * p11 + y11)
+    dmo11 = -1.49999 + y11
+    ap11[w & 16383] = i11
+    xd11 = ap11[(w - i32(min(8192.0, max(0.0, dmo11)))) & 16383]
+    fl11 = floor(dmo11)
+    rn11 = xp11 - (2.0 - y11 + fl11) * (r11 - xd11) / (y11 - fl11)
+    xp11 = xd11
+    i12 = cn * r11 + sn * e2
+    y12 = s12 + 0.9999 * (imp * p12 + y12)
+    dmo12 = -1.49999 + y12
+    ap12[w & 16383] = i12
+    xd12 = ap12[(w - i32(min(8192.0, max(0.0, dmo12)))) & 16383]
+    fl12 = floor(dmo12)
+    ca12 = 2.0 - y12 + fl12
+    cb12 = y12 - fl12
+    rn12 = -(r12 * ca12 / cb12 + ca12 * xd12 / cb12 + xp12)
+    xp12 = xd12
+    i13 = r10 * cn + sn * d2
+    y13 = s13 + 0.9999 * (imp * p13 + y13)
+    dmo13 = -1.49999 + y13
+    ap13[w & 16383] = i13
+    xd13 = ap13[(w - i32(min(8192.0, max(0.0, dmo13)))) & 16383]
+    fl13 = floor(dmo13)
+    rn13 = xp13 - (2.0 - y13 + fl13) * (r13 - xd13) / (y13 - fl13)
+    xp13 = xd13
+    i14 = cn * r13 + sn * e1
+    y14 = s14 + 0.9999 * (imp * p14 + y14)
+    dmo14 = -1.49999 + y14
+    ap14[w & 16383] = i14
+    xd14 = ap14[(w - i32(min(8192.0, max(0.0, dmo14)))) & 16383]
+    fl14 = floor(dmo14)
+    ca14 = 2.0 - y14 + fl14
+    cb14 = y14 - fl14
+    rn14 = -(r14 * ca14 / cb14 + ca14 * xd14 / cb14 + xp14)
+    xp14 = xd14
+    i15 = r12 * cn + sn * d1
+    y15 = s15 + 0.9999 * (imp * p15 + y15)
+    dmo15 = -1.49999 + y15
+    ap15[w & 16383] = i15
+    xd15 = ap15[(w - i32(min(8192.0, max(0.0, dmo15)))) & 16383]
+    fl15 = floor(dmo15)
+    rn15 = xp15 - (2.0 - y15 + fl15) * (r15 - xd15) / (y15 - fl15)
+    xp15 = xd15
+    l2 = r14 * cn + sn * l1
+    q2 = cn * r15 + sn * q1
+    # diffuser 3 (angle diff)
+    f1 = c * l2 - s * r22
+    f2 = c * f1 - s * r20
+    f3 = c * f2 - s * r18
+    g1 = c * q2 - s * r23
+    g2 = c * g1 - s * r21
+    g3 = c * g2 - s * r19
+    i16 = c * f3 - s * r17
+    y16 = s16 + 0.9999 * (imp * p16 + y16)
+    dmo16 = -1.49999 + y16
+    ap16[w & 16383] = i16
+    xd16 = ap16[(w - i32(min(8192.0, max(0.0, dmo16)))) & 16383]
+    fl16 = floor(dmo16)
+    rn16 = xp16 - (2.0 - y16 + fl16) * (r16 - xd16) / (y16 - fl16)
+    xp16 = xd16
+    i17 = s * r16 - c * g3
+    y17 = s17 + 0.9999 * (imp * p17 + y17)
+    dmo17 = -1.49999 + y17
+    ap17[w & 16383] = i17
+    xd17 = ap17[(w - i32(min(8192.0, max(0.0, dmo17)))) & 16383]
+    fl17 = floor(dmo17)
+    rn17 = xp17 - (2.0 - y17 + fl17) * (r17 - xd17) / (y17 - fl17)
+    xp17 = xd17
+    i18 = c * r16 + s * g3
+    y18 = s18 + 0.9999 * (imp * p18 + y18)
+    dmo18 = -1.49999 + y18
+    ap18[w & 16383] = i18
+    xd18 = ap18[(w - i32(min(8192.0, max(0.0, dmo18)))) & 16383]
+    fl18 = floor(dmo18)
+    ca18 = 2.0 - y18 + fl18
+    cb18 = y18 - fl18
+    rn18 = -(r18 * ca18 / cb18 + ca18 * xd18 / cb18 + xp18)
+    xp18 = xd18
+    i19 = c * r17 + s * f3
+    y19 = s19 + 0.9999 * (imp * p19 + y19)
+    dmo19 = -1.49999 + y19
+    ap19[w & 16383] = i19
+    xd19 = ap19[(w - i32(min(8192.0, max(0.0, dmo19)))) & 16383]
+    fl19 = floor(dmo19)
+    rn19 = xp19 - (2.0 - y19 + fl19) * (r19 - xd19) / (y19 - fl19)
+    xp19 = xd19
+    i20 = c * r19 + s * g2
+    y20 = s20 + 0.9999 * (imp * p20 + y20)
+    dmo20 = -1.49999 + y20
+    ap20[w & 16383] = i20
+    xd20 = ap20[(w - i32(min(8192.0, max(0.0, dmo20)))) & 16383]
+    fl20 = floor(dmo20)
+    ca20 = 2.0 - y20 + fl20
+    cb20 = y20 - fl20
+    rn20 = -(r20 * ca20 / cb20 + ca20 * xd20 / cb20 + xp20)
+    xp20 = xd20
+    i21 = c * r18 + s * f2
+    y21 = s21 + 0.9999 * (imp * p21 + y21)
+    dmo21 = -1.49999 + y21
+    ap21[w & 16383] = i21
+    xd21 = ap21[(w - i32(min(8192.0, max(0.0, dmo21)))) & 16383]
+    fl21 = floor(dmo21)
+    rn21 = xp21 - (2.0 - y21 + fl21) * (r21 - xd21) / (y21 - fl21)
+    xp21 = xd21
+    i22 = c * r21 + s * g1
+    y22 = s22 + 0.9999 * (imp * p22 + y22)
+    dmo22 = -1.49999 + y22
+    ap22[w & 16383] = i22
+    xd22 = ap22[(w - i32(min(8192.0, max(0.0, dmo22)))) & 16383]
+    fl22 = floor(dmo22)
+    ca22 = 2.0 - y22 + fl22
+    cb22 = y22 - fl22
+    rn22 = -(r22 * ca22 / cb22 + ca22 * xd22 / cb22 + xp22)
+    xp22 = xd22
+    i23 = c * r20 + s * f1
+    y23 = s23 + 0.9999 * (imp * p23 + y23)
+    dmo23 = -1.49999 + y23
+    ap23[w & 16383] = i23
+    xd23 = ap23[(w - i32(min(8192.0, max(0.0, dmo23)))) & 16383]
+    fl23 = floor(dmo23)
+    rn23 = xp23 - (2.0 - y23 + fl23) * (r23 - xd23) / (y23 - fl23)
+    xp23 = xd23
+    yl = c * r22 + s * l2
+    yr = c * r23 + s * q2
+    # allpass outputs, one sample late
+    r0 = rn0
+    r1 = rn1
+    r2 = rn2
+    r3 = rn3
+    r4 = rn4
+    r5 = rn5
+    r6 = rn6
+    r7 = rn7
+    r8 = rn8
+    r9 = rn9
+    r10 = rn10
+    r11 = rn11
+    r12 = rn12
+    r13 = rn13
+    r14 = rn14
+    r15 = rn15
+    r16 = rn16
+    r17 = rn17
+    r18 = rn18
+    r19 = rn19
+    r20 = rn20
+    r21 = rn21
+    r22 = rn22
+    r23 = rn23
+    # si.smooth(damp), the outputs and the lines read back by de.fdelay4
+    smL = 0.5 * dms * (smL + min(340282346638528859811704183484516925440.0, spL - yl))
+    spL = yl
+    oL = yl + smL
+    smR = 0.5 * dms * (smR + min(340282346638528859811704183484516925440.0, spR - yr))
+    spR = yr
+    oR = yr + smR
+    lineL[w & 1023] = oL
+    lineR[w & 1023] = oR
+    out1 = oL
+    out2 = oR
+    imp = 0.0
+    w += 1

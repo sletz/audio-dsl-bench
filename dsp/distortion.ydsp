@@ -1,0 +1,32 @@
+// dm.cubicnl_demo (ef.cubicnl_nodc with si.smoo on drive and offset), after dsp/distortion.onda,
+// without the bypass like distortion.dsp: pregain 10^(2*drive), offset, clip to [-1, 1], cubic
+// soft clipper x - x^3/3, then fi.dcblocker.
+processor Distortion {
+    input stream in1;
+    output stream out1;
+    input parameter float drive = 0.0 [[ min: 0.0, max: 1.0 ]];
+    input parameter float offset = 0.0 [[ min: 0.0, max: 1.0 ]];
+    state float drivePrev, driveErr, offsetPrev, offsetErr, xPrev, y;
+
+    process {
+        let pSmoo = 1.0 - 44.1 / sampleRate;               // si.smoo pole
+        let pDc = pow (0.995, 44100.0 / sampleRate);       // fi.dcblocker pole
+        // si.smooth: y = x + e, e = pole * (e + x[n-1] - x); min(ma.MAX) is Faust's no-op
+        driveErr = pSmoo * (min (3.4028235e38, drivePrev - drive) + driveErr);
+        drivePrev = drive;
+        offsetErr = pSmoo * (min (3.4028235e38, offsetPrev - offset) + offsetErr);
+        offsetPrev = offset;
+        let x = max (-1.0, min (1.0, offset + in1 * pow (10.0, 2.0 * (drive + driveErr)) + offsetErr));
+        let c = x * (1.0 - 0.33333334 * (x * x));
+        y = pDc * y + c - xPrev;
+        xPrev = c;
+        out1 = y;
+    }
+}
+
+graph Main {
+    input stream in1;
+    output stream out1;
+    node p = Distortion;
+    connection { in1 -> p.in1; p.out1 -> out1; }
+}

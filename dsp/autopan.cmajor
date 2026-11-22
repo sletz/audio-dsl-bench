@@ -1,0 +1,73 @@
+// examples/misc/autopan.dsp, after dsp/autopan.onda, with Amount at 1 like autopan.dsp. Two
+// os.oscp LFOs (os.osc's 65536-point sine and cosine tables, fixed-point phasor; the right one
+// offset by the smoothed phase), each through a tanh saturator (it.interpolate_linear by the
+// smoothed shape) and it.remap(-1, 1, 1 - amount, 1), as the gains of the two channels.
+processor Autopan
+{
+    input stream float in1, in2;
+    output stream float out1, out2;
+    input event float amount [[ min: 0.0f,  max: 1.0f,   init: 1.0f ]];
+    input event float rate   [[ min: 0.05f, max: 90.0f,  init: 1.0f ]];
+    input event float phase  [[ min: 0.0f,  max: 360.0f, init: 180.0f ]];
+    input event float shape  [[ min: 0.0f,  max: 1.0f,   init: 0.0f ]];
+
+    float amountV = 1.0f, rateV = 1.0f, phaseV = 180.0f, shapeV = 0.0f;
+    int incInt, incFrac;
+    float pSmoo;
+
+    float[65536] sine;          // os.oscsin's table, sin(2 pi i / 65536)
+    float[65536] cosine;        // os.osccos's table, cos(2 pi i / 65536)
+    int ph, phFrac;             // os.oscp phasor: 30-bit integer part and 24-bit fraction
+    float shapePrev, shapeErr;  // si.smoo on shape: input, previous sample, error state
+    float phasePrev, phaseErr;  // si.smoo on phase
+
+    event amount (float v) { amountV = v; }
+    event rate (float v)   { rateV = v; update(); }
+    event phase (float v)  { phaseV = v; }
+    event shape (float v)  { shapeV = v; }
+
+    void update()
+    {
+        let sr = float (processor.frequency);
+        let f = 1.0f / sr * rateV;
+        let inc = 1073741824.0f * (f - float (roundToInt (f)));   // 2^30 * f / SR, wrapped
+        let incFloor = floor (inc);
+        incInt = int (incFloor);
+        incFrac = int (16777216.0f * (inc - incFloor));
+        pSmoo = 1.0f - 44.1f / sr;                                  // si.smoo pole
+    }
+
+    void init()
+    {
+        for (wrap<65536> i)
+        {
+            sine[i] = sin (float (i) * float (twoPi) / 65536.0f);
+            cosine[i] = cos (float (i) * float (twoPi) / 65536.0f);
+        }
+        update();
+    }
+
+    void main()
+    {
+        loop
+        {
+            let i = wrap<65536> ((ph >> 6) >> 8);
+            let s = sine[i];
+            phFrac += incFrac;
+            ph = (incInt + ph + (phFrac >> 24)) & 1073741823;
+            phFrac &= 16777215;
+            // si.smooth: y = x + e, e = pole * (e + x[n-1] - x); min(ma.MAX) is Faust's no-op
+            shapeErr = pSmoo * (min (3.4028235e38f, shapePrev - shapeV) + shapeErr);
+            shapePrev = shapeV;
+            let sh = shapeV + shapeErr;
+            // left: oscp(rate, 0) = the sine; saturator, then remap(-1, 1, 1 - amount, 1)
+            out1 <- in1 * (1.0f + amountV * (-1.0f + 0.5f * (1.0f + s + sh * (tanh (10.0f * s) - s))));
+            phaseErr = pSmoo * (min (3.4028235e38f, phasePrev - phaseV) + phaseErr);
+            phasePrev = phaseV;
+            let p = 0.017453292f * (phaseV + phaseErr);            // ma.deg2rad
+            let r = s * cos (p) + cosine[i] * sin (p);              // oscp(rate, p)
+            out2 <- in2 * (1.0f + amountV * (-1.0f + 0.5f * (1.0f + r + sh * (tanh (10.0f * r) - r))));
+            advance();
+        }
+    }
+}

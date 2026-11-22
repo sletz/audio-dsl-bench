@@ -1,0 +1,150 @@
+# dm.virtual_analog_oscillator_demo of Faust's demos.lib (examples/generator/virtualAnalog.dsp)
+# ported to onda, controls at their defaults like virtual_analog.dsp: three detuned voices, each a
+# saw (os.sawN(2)), a square and a pulse train (os.pulsetrain: a difference of linearly
+# interpolated delays of a second sawN(2) at the clipped frequency) and a triangle (leaky
+# integrated square), plus pink noise and the external input, mixed by their level sliders. The
+# phases are the fixed-point phasor of oscillators.lib (_phasor_fix: whole counts of 2^-30 cycle
+# plus 2^-24 fractions), reset to 0 at the first sample. Constant factors are grouped as faust
+# groups them (SR / 12 for the saws, squares and pulses, 4 / 3 / SR for the triangles).
+ins 1
+
+params:
+  ssaw = 1.0 {0.0, 1.0}
+  spt = 0.0 {0.0, 1.0}
+  duty = 0.5 {0.0, 1.0}
+  ssq = 0.0 {0.0, 1.0}
+  stri = 0.0 {0.0, 1.0}
+  spn = 0.0 {0.0, 1.0}
+  sei = 0.0 {0.0, 1.0}
+  mixdb = -20.0 {-120.0, 10.0}
+  freq = 49.0 {1.0, 88.0}
+  detune1 = -0.1 {-10.0, 10.0}
+  detune2 = 0.1 {-10.0, 10.0}
+  portamento = 0.1 {0.001, 10.0}
+
+# _phasor_fix and the square of the DPW ramp of sawN(2): returns x^2 - x'^2, x = 2 phi - 1
+struct Saw2:
+  p: i32 = 0
+  s: i32 = 0
+  v = 0.0
+
+  def tick(self, inc: f32, pm: i32, sm: i32) -> f32:
+    xc = 1073741824.0 * (inc - round(inc))         # increment in counts (2^30 per cycle)
+    fl = floor(xc)
+    t = self.s + i32(16777216.0 * (xc - fl))       # fraction sum, carry in bit 24
+    self.s = t & sm
+    self.p = (self.p + i32(fl) + (t >> 24)) & pm
+    x = -1.0 + 0.00000011920929 * f32(self.p >> 6)
+    v = x * x
+    d = v - self.v
+    self.v = v
+    return d
+
+# pulsetrainN's diffdel: x - x@int(del) (1 - frac(del)) - x@(int(del) + 1) frac(del)
+def diffdel(buf: f32[16384], w: i32, x: f32, del: f32) -> f32:
+  id = i32(del)
+  fl = floor(del)
+  return x - buf[(w - id) & 16383] * (1.0 - del + fl) - (del - fl) * buf[(w - id - 1) & 16383]
+
+init:
+  c1 = 1.0 - 44.1 / SR                 # si.smoo pole
+  c2 = 0.083333336 * SR                # SR / 12: sawN(2) scale SR / (4 f) times amp / 3
+  c3 = 1.0 / SR
+  c4 = 0.5 * SR                        # square delay (1 - 0.5) SR
+  c5 = 1.3333334 / SR                  # triangle gain 4 f / SR times 1 / 3
+  c6 = 0.25 * SR                       # sawN(2) scale SR / 4 inside the triangle integrator
+  c7 = 1.0 - 48.0 / SR                 # triangle leak
+  aE = 0.0                             # si.smoo of the amplitude (error, previous input)
+  aXp = 0.0
+  fE = 0.0                             # si.smooth of the frequency (portamento)
+  fXp = 0.0
+  dE = 0.0                             # si.smooth(0.99) of the duty cycle
+  dXp = 0.0
+  gate = 0.0                           # 1@1 of sawN (0 at the first sample)
+  pm: i32 = 0                          # phase masks, 0 at the first sample (hard reset)
+  sm: i32 = 0
+  sa1 = Saw2()                         # saw voices
+  sa2 = Saw2()
+  sa3 = Saw2()
+  sb1 = Saw2()                         # square / pulse voices (frequency clipped at 23.45 Hz)
+  sb2 = Saw2()
+  sb3 = Saw2()
+  d1: f32[16384]
+  d2: f32[16384]
+  d3: f32[16384]
+  w = 0 {16384, wrap}
+  tr1 = 0.0                            # triangle integrators
+  tr2 = 0.0
+  tr3 = 0.0
+  seed: i32 = 0                        # no.noise
+  k1 = 0.0                             # pink filter (fi.iir) states
+  k2 = 0.0
+  k3 = 0.0
+
+block:
+  ampT = pow(10.0, 0.05 * mixdb)                       # ba.db2linear
+  frR = pow(2.0, 0.083333336 * (freq - 49.0))          # ba.pianokey2hz
+  frT = 440.0 * frR
+  porP = exp(-(c3 / portamento))                       # ba.tau2pole
+  dt1 = 0.01 * detune1 + 1.0
+  dt2 = 0.01 * detune2 + 1.0
+  triG = c5 * stri
+  ptG = c2 * spt
+  dutyC = 1.0 - duty
+  sample:
+    aE = c1 * ((aXp - ampT) + aE)
+    aXp = ampT
+    fE = porP * ((fXp - frT) + fE)
+    fXp = frT
+    f1 = frT + fE                                      # smoothed frequency, voice 1
+    f2 = dt1 * f1
+    f3 = dt2 * f1
+    # saws: sawN(2) (x^2 - x'^2) / f, scaled by SR / 4 below
+    fa1 = max(20.0, abs(f1))
+    fa2 = max(20.0, abs(f2))
+    fa3 = max(20.0, abs(f3))
+    q1 = sa1.tick(c3 * fa1, pm, sm)
+    q2 = sa2.tick(c3 * fa2, pm, sm)
+    q3 = sa3.tick(c3 * fa3, pm, sm)
+    # square / pulse saws at max(f, 23.45 Hz), written to their delay lines
+    fc1 = max(f1, 23.44895)
+    fc2 = max(f2, 23.44895)
+    fc3 = max(f3, 23.44895)
+    fb1 = max(20.0, abs(fc1))
+    fb2 = max(20.0, abs(fc2))
+    fb3 = max(20.0, abs(fc3))
+    x1 = gate * sb1.tick(c3 * fb1, pm, sm) / fb1
+    x2 = gate * sb2.tick(c3 * fb2, pm, sm) / fb2
+    x3 = gate * sb3.tick(c3 * fb3, pm, sm) / fb3
+    d1[w] = x1
+    d2[w] = x2
+    d3[w] = x3
+    sq1 = diffdel(d1, w, x1, max(0.0, min(8191.0, c4 / fc1)))
+    sq2 = diffdel(d2, w, x2, max(0.0, min(8191.0, c4 / fc2)))
+    sq3 = diffdel(d3, w, x3, max(0.0, min(8191.0, c4 / fc3)))
+    tr1 = c6 * sq1 + c7 * tr1
+    tr2 = c6 * sq2 + c7 * tr2
+    tr3 = c6 * sq3 + c7 * tr3
+    # pulse trains: delay (1 - duty) SR / f, duty through si.smooth(0.99)
+    dE = 0.99 * ((dXp - duty) + dE)
+    dXp = duty
+    dd = dutyC - dE
+    pt1 = diffdel(d1, w, x1, max(0.0, min(8191.0, SR * (dd / fc1))))
+    pt2 = diffdel(d2, w, x2, max(0.0, min(8191.0, SR * (dd / fc2))))
+    pt3 = diffdel(d3, w, x3, max(0.0, min(8191.0, SR * (dd / fc3))))
+    # pink noise: no.noise through no.pink_filter
+    seed = seed * 1103515245 + 12345
+    k0 = 0.5221894 * k3 + 0.0000000004656613 * f32(seed) + 2.494956 * k1 - 2.0172658 * k2
+    pink = 0.049922034 * k0 + 0.0506127 * k2 - (0.095993534 * k1 + 0.004408786 * k3)
+    k3 = k2
+    k2 = k1
+    k1 = k0
+    saws = ssaw * gate * (q1 / fa1 + q2 / fa2 + q3 / fa3)
+    sqs = ssq * (sq1 + sq2 + sq3)
+    tris = triG * f1 * (tr1 + dt1 * tr2 + dt2 * tr3)
+    pts = ptG * (pt1 + pt2 + pt3)
+    out1 = sei * in1 + (ampT + aE) * (c2 * (saws + sqs) + tris + pts + spn * pink)
+    gate = 1.0
+    pm = 1073741823
+    sm = 16777215
+    w += 1

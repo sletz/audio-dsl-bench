@@ -1,0 +1,104 @@
+// examples/filtering/diodeLadder.dsp of Faust, after dsp/diode_ladder.onda, like diode_ladder.dsp:
+// the 100 Hz os.sawtooth (saw2ptr, phase accumulated in fixed point: whole counts of 2^-30 cycle
+// plus 2^-24 fractions) into ve.diodeLadder (Eric Tarr after Will Pirkle): ef.cubicnl(1, 0) * 1.5,
+// then four one-pole stages with the zero-delay feedback solved through the coefficients G, B, SG,
+// gamma. The equations are those of vaeffects.lib; g = tan(2 pi 10^(3 normFreq + 1) / SR) is
+// (2 / T) tan(wd T / 2) T / 2 as faust simplifies it. A generator: no input stream. The phase sums
+// stay below 2^31, so YDSP's saturating integer arithmetic does not change them.
+
+processor DiodeLadder {
+    output stream out1;
+    output stream out2;
+    input parameter float Q = 1.0 [[ min: 0.7072, max: 25.0 ]];
+    input parameter float freq = 0.1 [[ min: 0.0, max: 1.0 ]];
+
+    state float c1, sp, p0, cm;
+    state int xi, xs;                   // saw2ptr increment in counts, whole and fraction
+    state int ph, phs;                  // phase counts and fraction
+    state float nE, nXp;                // si.smoo of normFreq (error, previous input)
+    state float s1, s2, s3, s4;         // the four stage states
+
+    init {
+        c1 = 2.0 * pi / sampleRate;
+        sp = 1.0 - 44.1 / sampleRate;           // si.smoo pole
+        let t0 = 100.0 / sampleRate;            // saw2ptr phase increment
+        p0 = 0.01 * sampleRate;                 // saw2ptr period in samples (SR / 100)
+        cm = -1.0 - t0;                         // 2 p - 1 - t0
+        let xc = 1073741824.0 * (t0 - floor (t0));
+        let xfl = floor (xc);
+        xi = int (xfl);
+        xs = int (16777216.0 * (xc - xfl));
+    }
+
+    process {
+        let qk = (Q - 0.70710677) / (25.0 - 0.70710677);
+
+        // os.sawtooth(100)
+        let t = phs + xs;
+        phs = t & 16777215;
+        let q = ph + xi + (t >> 24);
+        ph = q & 1073741823;
+        let phi = float (ph) * 9.313226e-10;
+        let p = q > 1073741823 ? phi * (1.0 - p0) + 1.0 : phi;
+        // ef.cubicnl(1, 0) * 1.5
+        let c = max (-1.0, min (1.0, 100.0 * (cm + 2.0 * p)));
+        let x = (c - c * c * c / 3.0) * 1.5;
+        // coefficients
+        nE = sp * ((nXp - freq) + nE);
+        nXp = freq;
+        let nf = freq + nE;
+        let g = tan (c1 * pow (10.0, 1.0 + 3.0 * nf));
+        let k = (17.0 - pow (nf, 10.0) * 9.7) * qk;
+        let G4 = 0.5 * g / (1.0 + g);
+        let G3 = 0.5 * g / (1.0 + g - 0.5 * g * G4);
+        let G2 = 0.5 * g / (1.0 + g - 0.5 * g * G3);
+        let G1 = g / (1.0 + g - g * G2);
+        let Gamma = G1 * G2 * G3 * G4;
+        let SG1 = G4 * G3 * G2;
+        let SG3 = G4;
+        let alpha = g / (1.0 + g);
+        let alpha0 = 1.0 / (1.0 + k * Gamma);
+        let gam1 = 1.0 + G1 * G2;
+        let gam2 = 1.0 + G2 * G3;
+        let gam3 = 1.0 + G3 * G4;
+        let B1 = 1.0 / (1.0 + g - g * G2);
+        let B2 = 1.0 / (1.0 + g - 0.5 * g * G3);
+        let B3 = 1.0 / (1.0 + g - 0.5 * g * G4);
+        let B4 = 1.0 / (1.0 + g);
+        let d1 = g;
+        let d2 = 0.5 * g;
+        let d3 = 0.5 * g;
+        // feedback sums S4 .. S1 of the previous states
+        let S4 = s4 * B4;
+        let S3 = (S4 * d3 + s3) * B3;
+        let S2 = (S3 * d2 + s2) * B2;
+        let S1 = (S2 * d1 + s1) * B1;
+        // (the library uses SG3 for the S2 term, kept as is)
+        let u = x - S4 * k - S3 * SG3 * k - S2 * SG3 * k - S1 * SG1 * k;
+        let v1 = u * alpha0 * gam1 + S2 + S1 * G2;
+        let e1 = v1 - s1;
+        let lp1 = e1 * alpha + s1;
+        let v2 = (lp1 * gam2 + S3 + S2 * G3) * 0.5;
+        let e2 = v2 - s2;
+        let lp2 = e2 * alpha + s2;
+        let v3 = (lp2 * gam3 + S4 + S3 * G4) * 0.5;
+        let e3 = v3 - s3;
+        let lp3 = e3 * alpha + s3;
+        let v4 = lp3 * 0.5;
+        let e4 = v4 - s4;
+        let y = e4 * alpha + s4;
+        s1 = e1 * alpha * 2.0 + s1;
+        s2 = e2 * alpha * 2.0 + s2;
+        s3 = e3 * alpha * 2.0 + s3;
+        s4 = e4 * alpha * 2.0 + s4;
+        out1 = y;
+        out2 = y;
+    }
+}
+
+graph Main {
+    output stream out1;
+    output stream out2;
+    node p = DiodeLadder;
+    connection { p.out1 -> out1; p.out2 -> out2; }
+}
