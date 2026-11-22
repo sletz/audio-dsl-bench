@@ -13,6 +13,18 @@ from the faust of the `master-dev-certification-4` branch (`tools/faust-cert4`, 
 copy of the libraries, where `platform.lib` says `SR = 48000.0`. Measured in November 2026 on
 an Apple M5: `results/`; report: `report/onda-vs-faust.html`.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="report/chart-dark.svg">
+  <img alt="onda speedup over the best Faust build, per program, strict IEEE and fast-math, log scale. onda wins on additive64, tanh_drive, noise and zita_rev; Faust wins on freeverb, fdn8, diffuser32, peq10, biquad8 and fm_pad. Geometric mean x0.93 strict, x0.82 fast-math." src="report/chart-light.svg">
+</picture>
+
+| onda against… (geometric mean, 15 programs) | strict IEEE | fast-math |
+| --- | ---: | ---: |
+| Faust 2.95.1 (C++ and LLVM, every option) | ×1.15 | ×1.03 |
+| best Faust, master-dev-certification-4 included | ×0.93 | ×0.82 |
+
+Above ×1 onda is faster. Full tables and analysis: `report/onda-vs-faust.html`.
+
 ## Requirements
 
 - A built onda: `tools/build-onda.sh` builds `../onda/target/release/onda` against MacPorts
@@ -58,6 +70,7 @@ Measure on an idle machine, on AC power.
 | `build.sh` | One program: onda objects, Faust C++ classes, harness |
 | `run_all.sh` | The 18 programs in two passes, then the report |
 | `report/gen.py`, `report/template.html` | Merge the two passes (`results/results.json`) and generate the HTML report |
+| `report/readme_chart.py` | Draws `report/chart-light.svg` and `report/chart-dark.svg`, the README chart |
 | `tools/dumpir.cpp` | Writes the LLVM IR of a Faust LLVM factory (`writeDSPFactoryToIRFile`) |
 | `tools/faust-cert4*.sh` | cert-4 faust with the faustlibraries libraries, or with `sr48/` |
 | `tools/build-faust-cert4.sh`, `tools/make-sr48.sh` | Recreate the two generated, unversioned items |

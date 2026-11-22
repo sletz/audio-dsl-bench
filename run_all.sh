@@ -19,4 +19,5 @@ run_pass() {  # $1 = output file, $2 = extra flags for the strict C++ variants
 run_pass results/results.tsv ""
 run_pass results/results_nocontract.tsv "-ffp-contract=off"
 python3 report/gen.py "$HERE"
+python3 report/readme_chart.py "$HERE"
 echo "report: $HERE/report/onda-vs-faust.html"
