@@ -67,7 +67,8 @@ $CXX -O3 -ffast-math -fveclib=Accelerate -c $cls.cpp -o $cls.o
 
 # faust of the master-dev-certification-4 branch: -lang ocpp, and the options elected by fcautotool
 FAUST_CERT4="$HERE/tools/faust-cert4.sh"
-BEST=$(sed -n 's/^fcautotool: winner .* -- \(.*\)  \[.*$/\1/p' "$HERE/results/autotool/$N.txt" 2>/dev/null | head -1)
+BEST=""
+[ -f "$HERE/results/autotool/$N.txt" ] && BEST=$(sed -n 's/^fcautotool: winner .* -- \(.*\)  \[.*$/\1/p' "$HERE/results/autotool/$N.txt" | head -1)
 [ -n "$BEST" ] || BEST="-lang ocpp"
 echo "$BEST" > best_options.txt
 gen_cert4() {  # $1 = class, $2 = make function, $3 = c++ flags, rest = faust options ($FC = faust wrapper)

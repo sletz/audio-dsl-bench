@@ -376,5 +376,26 @@
   "cpp-vec-ieee": 16.3222,
   "ocpp-ieee": 5.8007,
   "ocpp48-ieee": 5.2243
+ },
+ "clarinet": {
+  "onda": 10.8711,
+  "onda-fm": 12.1622,
+  "cpp-scal": 10.6589,
+  "cpp-scal-fm": 9.8897,
+  "cpp-vec": 10.427,
+  "cpp-vec-fm": 10.7073,
+  "cpp-vec-acc": 10.7881,
+  "ocpp": 6.8889,
+  "ocpp-fm": 6.2069,
+  "best-fm": 6.1965,
+  "ocpp48": 7.4588,
+  "best48-fm": 6.7586,
+  "llvm-scal": 12.3825,
+  "llvm-vec": 15.8943,
+  "llvm48": 12.592,
+  "cpp-scal-ieee": 10.9416,
+  "cpp-vec-ieee": 11.0348,
+  "ocpp-ieee": 8.043,
+  "ocpp48-ieee": 8.3287
  }
 }

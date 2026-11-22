@@ -35,6 +35,7 @@ CATS = [
                             ('mixer16', 'variant: all in sample, ins view')]),
     ('Delays and reverbs', [('freeverb', '8 combs + 4 allpasses'), ('fdn8', '8-line FDN, dense Hadamard'),
                                   ('diffuser32', '32 allpasses in series'), ('zita_rev', 're.zita_rev1_stereo')]),
+    ('Physical models', [('clarinet', 'pm.clarinet_ui_MIDI, gate held')]),
 ]
 VARIANTS = {'fir32', 'hoa_decoder', 'mixer16'}
 cols = [('onda', 'onda'), ('onda-fm', 'onda --fast-math'),

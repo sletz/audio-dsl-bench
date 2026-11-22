@@ -2,8 +2,9 @@
 
 Compares the native code of onda (AOT object, strict and `--fast-math`) with Faust C++
 (`-scal`/`-vec`, clang with its default contract, `-ffp-contract=off` and `-ffast-math`)
-and the Faust LLVM JIT (`-scal`/`-vec`), on 15 DSP programs written equivalently in both
-languages (`dsp/*.dsp` and `dsp/*.onda`), plus 3 alternative onda writings (fir32,
+and the Faust LLVM JIT (`-scal`/`-vec`), on 16 DSP programs written equivalently in both
+languages (`dsp/*.dsp` and `dsp/*.onda`), from oscillators to reverbs and a complete physical
+model (`pm.clarinet_ui_MIDI`), plus 3 alternative onda writings (fir32,
 hoa_decoder and mixer16, next to fir32c, hoa_decoder_x and mixer16_x) kept out of the means.
 One variant compiles Faust `-vec` with `-fveclib=Accelerate` (`cpp-vec-acc`). Six others come
 from the faust of the `master-dev-certification-4` branch (`tools/faust-cert4`, 2.92.5):
@@ -15,13 +16,13 @@ an Apple M5: `results/`; report: `report/onda-vs-faust.html`.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="report/chart-dark.svg">
-  <img alt="onda speedup over the best Faust build, per program, strict IEEE and fast-math, log scale. onda wins on additive64, tanh_drive, noise and zita_rev; Faust wins on freeverb, fdn8, diffuser32, peq10, biquad8 and fm_pad. Geometric mean x0.93 strict, x0.82 fast-math." src="report/chart-light.svg">
+  <img alt="onda speedup over the best Faust build, per program, strict IEEE and fast-math, log scale. onda wins on additive64, tanh_drive, noise and zita_rev; Faust wins on freeverb, fdn8, diffuser32, peq10, biquad8, fm_pad and clarinet. Geometric mean x0.92 strict, x0.79 fast-math." src="report/chart-light.svg">
 </picture>
 
-| onda against… (geometric mean, 15 programs) | strict IEEE | fast-math |
+| onda against… (geometric mean, 16 programs) | strict IEEE | fast-math |
 | --- | ---: | ---: |
-| Faust 2.95.1 (C++ and LLVM, every option) | ×1.15 | ×1.03 |
-| best Faust, master-dev-certification-4 included | ×0.93 | ×0.82 |
+| Faust 2.95.1 (C++ and LLVM, every option) | ×1.14 | ×1.02 |
+| best Faust, master-dev-certification-4 included | ×0.92 | ×0.79 |
 
 Above ×1 onda is faster. Full tables and analysis: `report/onda-vs-faust.html`.
 
@@ -55,7 +56,7 @@ deviation, maximum and relative RMS difference against `cpp-scal`, finiteness, R
 reference.
 
 ```bash
-./run_all.sh                         # the 18 programs in two passes, ~45 min
+./run_all.sh                         # the 19 programs in two passes, ~50 min
 ```
 
 `run_all.sh` regenerates `results/` and `report/onda-vs-faust.html`. The second pass
@@ -68,7 +69,7 @@ Measure on an idle machine, on AC power.
 | --- | --- |
 | `harness.cpp` | Links the 15 engines (16 input and output channels), compares the outputs over 4 s, then times interleaved, shuffled rounds |
 | `build.sh` | One program: onda objects, Faust C++ classes, harness |
-| `run_all.sh` | The 18 programs in two passes, then the report |
+| `run_all.sh` | The 19 programs in two passes, then the report and the chart |
 | `report/gen.py`, `report/template.html` | Merge the two passes (`results/results.json`) and generate the HTML report |
 | `report/readme_chart.py` | Draws `report/chart-light.svg` and `report/chart-dark.svg`, the README chart |
 | `tools/dumpir.cpp` | Writes the LLVM IR of a Faust LLVM factory (`writeDSPFactoryToIRFile`) |

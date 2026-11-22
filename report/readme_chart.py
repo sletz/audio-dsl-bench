@@ -10,7 +10,8 @@ CATS = [('Oscillators and sources', ['sine', 'fm_pad', 'additive64', 'noise']),
         ('Nonlinearities', ['tanh_drive']),
         ('Filters', ['biquad8', 'peq10', 'svf_mod', 'fir32c']),
         ('Matrices and mixing', ['hoa_decoder_x', 'mixer16_x']),
-        ('Delays and reverbs', ['freeverb', 'fdn8', 'diffuser32', 'zita_rev'])]
+        ('Delays and reverbs', ['freeverb', 'fdn8', 'diffuser32', 'zita_rev']),
+        ('Physical models', ['clarinet'])]
 NAMES = {'hoa_decoder_x': 'hoa_decoder', 'mixer16_x': 'mixer16'}
 IEEE = ['cpp-scal-ieee', 'cpp-vec-ieee', 'ocpp-ieee', 'ocpp48-ieee']
 FAST = ['cpp-scal-fm', 'cpp-vec-fm', 'cpp-vec-acc', 'llvm-scal', 'llvm-vec', 'llvm48', 'ocpp-fm', 'best-fm', 'best48-fm']
@@ -97,7 +98,7 @@ def svg(theme):
             weight = '600' if kind == 'geo' else '400'
             out.append(f'<text x="{tx:.1f}" y="{yy + 16}" font-size="11.5" font-weight="{weight}" text-anchor="{anchor}" fill="{t["ink2"]}">×{v:.2f}</text>')
     out.append(f'<text x="24" y="{H - 30}" font-size="11.5" fill="{t["ink2"]}">Best Faust build: fastest of 13 configurations (C++ scalar and vec, Accelerate, LLVM JIT, and from master-dev-certification-4:</text>')
-    out.append(f'<text x="24" y="{H - 14}" font-size="11.5" fill="{t["ink2"]}">ocpp and the options elected by fcautotool, each also with SR fixed at compile time). Means over 15 programs.</text>')
+    out.append(f'<text x="24" y="{H - 14}" font-size="11.5" fill="{t["ink2"]}">ocpp and the options elected by fcautotool, each also with SR fixed at compile time). Means over {len(progs)} programs.</text>')
     out.append('</svg>')
     return '\n'.join(out)
 

@@ -116,6 +116,7 @@ tr.variant td.best { background: transparent; }
     <div class="finding"><span class="tag f">peq10 ×1.6 strict, biquad8 ×1.5</span><h3>Order of operations and signal algebra</h3><p>On peq10, ocpp merges the stages (a stage's input memory is the delayed output of the previous one) and writes <code>fSlow13·y[0] + (past terms)</code>: a single multiply-add per stage on the critical path. 5.22 ns in IEEE and 3.48 with FMA contraction, against 8.47 for onda, which follows the source order and may not change it in strict mode. With <code>-ffast-math</code>, clang undoes that order (9.85 ns). On biquad8, Faust recognizes <code>b2 ≡ b0</code> and factors it: 2.77 ns with fast-math against 4.23.</p></div>
     <div class="finding"><span class="tag f">diffuser32 ×1.3 strict, ×1.9 at best</span><h3>Stage by stage rather than sample by sample</h3><p>Faust <code>-vec</code> computes each allpass over 32 samples before moving on to the next; since the delays (≥ 113) exceed the vector size, the iterations of a stage are independent and the processor overlaps them: 15.9 ns in IEEE. The <code>-lang ocpp -temp 4 -ls-fuse -ls-sched model</code> pick goes down to 11.5 ns. onda (21.4 ns) chains the 32 stages for every sample, a 32-link serial chain.</p></div>
     <div class="finding"><span class="tag f">fm_pad ×2.2</span><h3>Split loops and vector libm</h3><p>Faust <code>-vec</code> puts the four phase recurrences in short scalar loops and the 4 sin + 2 tanh in a recurrence-free loop, which clang vectorizes with Accelerate's <code>vsinf</code>/<code>vtanhf</code>: 6.4 ns against 14.2. onda keeps a single per-sample loop: the recurrence blocks vectorization and SLEEF does not come into play. Without Accelerate, no Faust configuration beats onda.</p></div>
+    <div class="finding"><span class="tag f">clarinet ×1.3 strict, ×2.0 fast-math</span><h3>A complete physical model</h3><p><code>pm.clarinet_ui_MIDI</code> ported line for line (reed table, two-way bore with 4th-order Lagrange fractional delays, bell reflection, blower with vibrato table oscillator and filtered breath noise): onda reproduces the Faust output to 5·10⁻⁷ relative RMS. onda (10.9 ns) is level with <code>-lang cpp</code> (10.7), ocpp is faster: 8.0 ns in IEEE, 6.1 with fast-math. Both loops have ~205 instructions, but onda makes twice as many memory accesses (47 against 26, struct state and the local tap array). With <code>--fast-math</code>, onda gets slower (12.2 ns).</p></div>
     <div class="finding"><span class="tag f">fir32c ×1.2</span><h3>Constant-tap FIR</h3><p>onda 4.43 ns against 3.71 for ocpp IEEE: the taps are reloaded from memory even from a <code>const</code> array, and the strict sum starts with <code>0.0 + …</code>, which IEEE forbids folding (−0). With fast-math the two meet (3.81 against 3.75).</p></div>
   </div>
   <h3>Writing pitfalls on the onda side</h3>
@@ -175,7 +176,7 @@ tr.variant td.best { background: transparent; }
 
 <section>
   <h2>Sources</h2>
-  <p class="prose note">The 18 programs, Faust on the left, Onda on the right, in table order.</p>
+  <p class="prose note">The 19 programs, Faust on the left, Onda on the right, in table order.</p>
 %%SOURCES%%
 </section>
 </main>

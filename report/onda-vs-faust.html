@@ -71,15 +71,15 @@ tr.variant td.best { background: transparent; }
 <header class="prose">
   <div class="eyebrow">Onda 0.9.2 · Faust 2.95.1 and branch master-dev-certification-4 · Apple M5 · f32 · 48 kHz · 256-frame blocks</div>
   <h1>Onda vs Faust</h1>
-  <p class="lede">15 DSP programs written equivalently in Faust and Onda, from oscillators to reverbs, measured on a common harness against 13 Faust configurations. The Onda compiler generates very good native code: against Faust 2.95.1 (C++ and LLVM, every option), it is on average <strong>1.15× faster</strong> under strict IEEE semantics and <strong>1.03× faster</strong> with fast-math. The <code>-lang ocpp</code> backend of the <code>master-dev-certification-4</code> branch, tuned by <code>fcautotool</code>, puts Faust ahead: onda <strong>×0.93</strong> strict and <strong>×0.82</strong> with fast-math.</p>
+  <p class="lede">16 DSP programs written equivalently in Faust and Onda, from oscillators to reverbs, measured on a common harness against 13 Faust configurations. The Onda compiler generates very good native code: against Faust 2.95.1 (C++ and LLVM, every option), it is on average <strong>1.14× faster</strong> under strict IEEE semantics and <strong>1.02× faster</strong> with fast-math. The <code>-lang ocpp</code> backend of the <code>master-dev-certification-4</code> branch, tuned by <code>fcautotool</code>, puts Faust ahead: onda <strong>×0.92</strong> strict and <strong>×0.79</strong> with fast-math.</p>
   <p class="lede">The gaps follow the kind of computation: onda dominates as soon as it vectorizes (oscillator banks, saturation), Faust cert-4 dominates delay lines and filter cascades, where it chooses the order of operations and reads delays ahead. Two onda pitfalls, easy to avoid once known, cost a factor of 30 to 50: the <code>ins[i]</code>/<code>outs[i]</code> views, and control-rate computations left in the per-sample loop.</p>
   <div class="kpis">
-    <div class="kpi"><b>×1.15</b><span>onda strict / Faust 2.95.1 IEEE</span></div>
-    <div class="kpi"><b>×0.93</b><span>onda strict / best Faust IEEE, cert-4 included</span></div>
-    <div class="kpi"><b>×0.82</b><span>onda fast-math / best Faust fast-math</span></div>
-    <div class="kpi"><b>4–3–8</b><span>onda wins, ties, losses in strict mode (fast-math: 4–5–6)</span></div>
+    <div class="kpi"><b>×1.14</b><span>onda strict / Faust 2.95.1 IEEE</span></div>
+    <div class="kpi"><b>×0.92</b><span>onda strict / best Faust IEEE, cert-4 included</span></div>
+    <div class="kpi"><b>×0.79</b><span>onda fast-math / best Faust fast-math</span></div>
+    <div class="kpi"><b>4–3–9</b><span>onda wins, ties, losses in strict mode (fast-math: 4–5–7)</span></div>
   </div>
-  <p class="note">Geometric means over the 15 programs, without the three alternative writings.</p>
+  <p class="note">Geometric means over the 16 programs, without the three alternative writings.</p>
 </header>
 
 <section>
@@ -112,6 +112,8 @@ tr.variant td.best { background: transparent; }
 <tr><th scope="row"><code>fdn8</code><span class="lab">8-line FDN, dense Hadamard</span></th><td>6.17</td><td>5.38</td><td>5.60</td><td>5.72</td><td>4.66</td><td>4.66</td><td>5.92</td><td>5.92</td><td>3.94</td><td>3.94</td><td>3.30</td><td class="best">2.34</td><td>2.35</td><td class="ratio loss">×0.64</td><td class="ratio loss">×0.44</td></tr>
 <tr><th scope="row"><code>diffuser32</code><span class="lab">32 allpasses in series</span></th><td>21.38</td><td>28.41</td><td>33.03</td><td>46.59</td><td>15.04</td><td>14.97</td><td>46.76</td><td>46.64</td><td>24.83</td><td>24.77</td><td>25.23</td><td class="best">11.45</td><td>11.46</td><td class="ratio loss">×0.74</td><td class="ratio loss">×0.40</td></tr>
 <tr><th scope="row"><code>zita_rev</code><span class="lab">re.zita_rev1_stereo</span></th><td>10.94</td><td class="best">10.38</td><td>23.05</td><td>20.82</td><td>17.68</td><td>17.69</td><td>22.23</td><td>20.92</td><td>12.44</td><td>12.19</td><td>10.77</td><td>10.65</td><td>12.24</td><td class="ratio win">×1.11</td><td class="ratio tie">×1.03</td></tr>
+<tr class="cat"><th colspan="16" scope="rowgroup">Physical models</th></tr>
+<tr><th scope="row"><code>clarinet</code><span class="lab">pm.clarinet_ui_MIDI, gate held</span></th><td>10.87</td><td>12.16</td><td>10.94</td><td>9.89</td><td>10.71</td><td>10.79</td><td>12.38</td><td>12.59</td><td>8.04</td><td>8.33</td><td>6.21</td><td class="best">6.20</td><td>6.76</td><td class="ratio loss">×0.74</td><td class="ratio loss">×0.51</td></tr>
       </tbody>
     </table>
   </div>
@@ -138,6 +140,7 @@ tr.variant td.best { background: transparent; }
     <div class="finding"><span class="tag f">peq10 ×1.6 strict, biquad8 ×1.5</span><h3>Order of operations and signal algebra</h3><p>On peq10, ocpp merges the stages (a stage's input memory is the delayed output of the previous one) and writes <code>fSlow13·y[0] + (past terms)</code>: a single multiply-add per stage on the critical path. 5.22 ns in IEEE and 3.48 with FMA contraction, against 8.47 for onda, which follows the source order and may not change it in strict mode. With <code>-ffast-math</code>, clang undoes that order (9.85 ns). On biquad8, Faust recognizes <code>b2 ≡ b0</code> and factors it: 2.77 ns with fast-math against 4.23.</p></div>
     <div class="finding"><span class="tag f">diffuser32 ×1.3 strict, ×1.9 at best</span><h3>Stage by stage rather than sample by sample</h3><p>Faust <code>-vec</code> computes each allpass over 32 samples before moving on to the next; since the delays (≥ 113) exceed the vector size, the iterations of a stage are independent and the processor overlaps them: 15.9 ns in IEEE. The <code>-lang ocpp -temp 4 -ls-fuse -ls-sched model</code> pick goes down to 11.5 ns. onda (21.4 ns) chains the 32 stages for every sample, a 32-link serial chain.</p></div>
     <div class="finding"><span class="tag f">fm_pad ×2.2</span><h3>Split loops and vector libm</h3><p>Faust <code>-vec</code> puts the four phase recurrences in short scalar loops and the 4 sin + 2 tanh in a recurrence-free loop, which clang vectorizes with Accelerate's <code>vsinf</code>/<code>vtanhf</code>: 6.4 ns against 14.2. onda keeps a single per-sample loop: the recurrence blocks vectorization and SLEEF does not come into play. Without Accelerate, no Faust configuration beats onda.</p></div>
+    <div class="finding"><span class="tag f">clarinet ×1.3 strict, ×2.0 fast-math</span><h3>A complete physical model</h3><p><code>pm.clarinet_ui_MIDI</code> ported line for line (reed table, two-way bore with 4th-order Lagrange fractional delays, bell reflection, blower with vibrato table oscillator and filtered breath noise): onda reproduces the Faust output to 5·10⁻⁷ relative RMS. onda (10.9 ns) is level with <code>-lang cpp</code> (10.7), ocpp is faster: 8.0 ns in IEEE, 6.1 with fast-math. Both loops have ~205 instructions, but onda makes twice as many memory accesses (47 against 26, struct state and the local tap array). With <code>--fast-math</code>, onda gets slower (12.2 ns).</p></div>
     <div class="finding"><span class="tag f">fir32c ×1.2</span><h3>Constant-tap FIR</h3><p>onda 4.43 ns against 3.71 for ocpp IEEE: the taps are reloaded from memory even from a <code>const</code> array, and the strict sum starts with <code>0.0 + …</code>, which IEEE forbids folding (−0). With fast-math the two meet (3.81 against 3.75).</p></div>
   </div>
   <h3>Writing pitfalls on the onda side</h3>
@@ -147,7 +150,7 @@ tr.variant td.best { background: transparent; }
   </div>
   <h3>Faust settings</h3>
   <div class="findings">
-    <div class="finding"><span class="tag f">ocpp ×1.35</span><h3>cert-4 and fcautotool</h3><p>Under the same IEEE contract, ocpp is on average 1.35× faster than the <code>-lang cpp</code> of 2.95.1 over the 15 programs; the options elected by <code>fcautotool</code> bring the gain to 1.60× with fast-math. The pick depends on the program: <code>-lsum</code> for tanh_drive and hoa_decoder, <code>-ss 8</code> for freeverb, <code>-ls-fuse</code> for fdn8 and peq10, <code>-rp</code> for zita_rev, and <code>-lang cpp</code> stays best on fir32c and svf_mod.</p></div>
+    <div class="finding"><span class="tag f">ocpp ×1.35</span><h3>cert-4 and fcautotool</h3><p>Under the same IEEE contract, ocpp is on average 1.35× faster than the <code>-lang cpp</code> of 2.95.1 over the 16 programs; the options elected by <code>fcautotool</code> bring the gain to 1.60× with fast-math. The pick depends on the program: <code>-lsum</code> for tanh_drive and hoa_decoder, <code>-ss 8</code> for freeverb, <code>-ls-fuse</code> for fdn8 and peq10, <code>-rp</code> for zita_rev, and <code>-lang cpp</code> stays best on fir32c and svf_mod.</p></div>
     <div class="finding"><span class="tag o">Fixed SR: ±4 %</span><h3>Fixing the sample rate changes almost nothing</h3><p>With <code>SR = 48000.0</code> in <code>platform.lib</code>, Faust folds the constants that depend on <code>fSampleRate</code>, but those computations already ran once at init or once per block. Differences ≤ 4 %, except zita_rev (−6 % for Faust LLVM, +15 % for the pick) and peq10 (ocpp IEEE −10 %, pick +8 %). onda gets no measurable advantage from compiling the sample rate in.</p></div>
     <div class="finding"><span class="tag o">Floating-point contract</span><h3>Comparing like with like</h3><p>onda emits neither FMA contraction nor reassociation without <code>--fast-math</code>. Apple clang contracts into FMA by default (<code>-ffp-contract=on</code>), which sometimes changes the result a lot (peq10 ocpp: 3.48 ns with FMA, 5.80 without), and Faust LLVM marks every operation <code>reassoc nnan ninf nsz arcp contract</code>. Hence the IEEE columns at <code>-ffp-contract=off</code>, and Faust LLVM ranked with fast-math.</p></div>
   </div>
@@ -182,6 +185,7 @@ tr.variant td.best { background: transparent; }
 <tr><th scope="row"><code>fdn8</code></th><td style="text-align:left"><code>-lang ocpp -ls-fuse -ls-sched model</code></td><td>2.17</td><td>5.24</td><td class="ratio">×2.41</td></tr>
 <tr><th scope="row"><code>diffuser32</code></th><td style="text-align:left"><code>-lang ocpp -temp 4 -ls-fuse -ls-sched model</code></td><td>10.68</td><td>28.20</td><td class="ratio">×2.64</td></tr>
 <tr><th scope="row"><code>zita_rev</code></th><td style="text-align:left"><code>-lang ocpp -rp</code></td><td>9.88</td><td>20.40</td><td class="ratio">×2.06</td></tr>
+<tr><th scope="row"><code>clarinet</code></th><td style="text-align:left"><code>-lang ocpp</code></td><td>5.66</td><td>8.86</td><td class="ratio">×1.57</td></tr>
       </tbody>
     </table>
   </div>
@@ -205,14 +209,14 @@ tr.variant td.best { background: transparent; }
     <dt>Fixed SR</dt><dd>Copy of the faustlibraries libraries where <code>platform.lib</code> defines <code>SR = 48000.0</code> (faust looks for <code>platform.lib</code> next to <code>maths.lib</code> first, hence the full copy).</dd>
     <dt>CPU targets</dt><dd>onda (LLVM 21) and Apple clang 21 target <code>apple-m4</code>: LLVM 21 does not know the M5. Only the Faust LLVM JIT, built with a newer LLVM, targets <code>apple-m5</code>.</dd>
     <dt>Harness</dt><dd>One executable per program links the 15 engines, with 16 input and output channels; same buffers, same input (deterministic white noise, 64 blocks cycled), 2000 warm-up blocks, then 21 rounds in shuffled order. Median reported; median absolute deviation below 2 % except additive64 (~2 %).</dd>
-    <dt>Corpus</dt><dd>15 hand-written programs, same algorithm in both languages (same equations, same delay lengths, same order of operations where possible), part of them chosen to exploit a Faust lever (loop splitting in <code>-vec</code>, control-rate computations lifted out of the loop, zero or repeated constants, many delay lines). Three alternative onda writings (fir32, hoa_decoder, mixer16) separate what belongs to the compiler from what belongs to the writing. zita_rev ports exactly <code>re.zita_rev1_stereo(60, f1, f2, t60dc, t60m, 48000)</code> of the checkout. Real idiomatic versions differ: in Faust, an oscillator would use <code>os.osc</code> (table), not <code>sin</code>.</dd>
+    <dt>Corpus</dt><dd>16 hand-written programs, same algorithm in both languages (same equations, same delay lengths, same order of operations where possible), part of them chosen to exploit a Faust lever (loop splitting in <code>-vec</code>, control-rate computations lifted out of the loop, zero or repeated constants, many delay lines). Three alternative onda writings (fir32, hoa_decoder, mixer16) separate what belongs to the compiler from what belongs to the writing. zita_rev ports exactly <code>re.zita_rev1_stereo(60, f1, f2, t60dc, t60m, 48000)</code> of the checkout. Real idiomatic versions differ: in Faust, an oscillator would use <code>os.osc</code> (table), not <code>sin</code>.</dd>
     <dt>Limits</dt><dd>A single machine (ARM64, 128-bit NEON); on x86 AVX2/AVX-512, the SLEEF gap should grow and the SLP gap change. Constant parameters (no automation). A single block size.</dd>
   </dl>
 </section>
 
 <section>
   <h2>Sources</h2>
-  <p class="prose note">The 18 programs, Faust on the left, Onda on the right, in table order.</p>
+  <p class="prose note">The 19 programs, Faust on the left, Onda on the right, in table order.</p>
 <details><summary><code>sine</code> — phasor + sin</summary><div class="pair">
 <figure><figcaption>Faust · sine.dsp</figcaption><pre><code>import(&quot;stdfaust.lib&quot;);
 freq = hslider(&quot;freq&quot;, 440, 20, 20000, 0.01);
@@ -1052,12 +1056,184 @@ block:
     out1 = (hp[1] + hp[2]) * t1
     out2 = (hp[1] - hp[2]) * t1
 </code></pre></figure></div></details>
+<details><summary><code>clarinet</code> — pm.clarinet_ui_MIDI, gate held</summary><div class="pair">
+<figure><figcaption>Faust · clarinet.dsp</figcaption><pre><code>import(&quot;stdfaust.lib&quot;);
+// pm.clarinet_ui_MIDI (examples/physicalModeling/clarinetMIDI.dsp), line for line, except the
+// gate: a slider held at 1 instead of a button, so that the benchmark plays a sustained note.
+f = hslider(&quot;freq&quot;, 440, 50, 1000, 0.01);
+bend = ba.semi2ratio(hslider(&quot;bend&quot;, 0, -2, 2, 0.01)) : si.polySmooth(gate, 0.999, 1);
+gain = hslider(&quot;gain&quot;, 0.6, 0, 1, 0.01);
+envAttack = hslider(&quot;envAttack&quot;, 1, 0, 30, 0.01)*0.001;
+s = hslider(&quot;sustain&quot;, 0, 0, 1, 1);
+reedStiffness = hslider(&quot;reedStiffness&quot;, 0.5, 0, 1, 0.01);
+bellOpening = hslider(&quot;bellOpening&quot;, 0.5, 0, 1, 0.01);
+vibratoFreq = hslider(&quot;vibratoFreq&quot;, 5, 1, 10, 0.01);
+vibratoGain = hslider(&quot;vibratoGain&quot;, 0.25, 0, 1, 0.01)*0.01;
+outGain = hslider(&quot;outGain&quot;, 0.5, 0, 1, 0.01);
+t = hslider(&quot;gate&quot;, 1, 0, 1, 1);
+
+gate = t+s : min(1);
+vibrato = 1+os.osc(vibratoFreq)*vibratoGain*envelope;
+freq = f*bend*vibrato;
+envelope = gate*gain : si.smooth(ba.tau2pole(envAttack));
+tubeLength = freq : pm.f2l;
+pressure = envelope;
+blow = pm.blower(pressure, 0.05, 2000, vibratoFreq, vibratoGain);
+process = pm.clarinetModel(tubeLength, blow, reedStiffness, bellOpening)*outGain &lt;: _, _;
+</code></pre></figure>
+<figure><figcaption>Onda · clarinet.onda</figcaption><pre><code># pm.clarinet_ui_MIDI of Faust&#x27;s physmodels.lib (examples/physicalModeling/clarinetMIDI.dsp)
+# ported to Onda, gate held at 1 like clarinet.dsp. Blower: pressure envelope + vibrato
+# (os.osc: 65536-point sine table, fixed-point phasor) + low-passed breath noise. Mouthpiece:
+# reed table. Bore: two fractional delay lines read by 4th-order Lagrange interpolation
+# (de.fdelay4). Bell: reflection through a one-pole smoother (si.smooth).
+outs 2
+
+params:
+  freq = 440.0 {50.0, 1000.0}
+  bend = 0.0 {-2.0, 2.0}
+  gain = 0.6 {0.0, 1.0}
+  envAttack = 1.0 {0.0, 30.0}
+  sustain = 0.0 {0.0, 1.0}
+  reedStiffness = 0.5 {0.0, 1.0}
+  bellOpening = 0.5 {0.0, 1.0}
+  vibratoFreq = 5.0 {1.0, 10.0}
+  vibratoGain = 0.25 {0.0, 1.0}
+  outGain = 0.5 {0.0, 1.0}
+  gate = 1.0 {0.0, 1.0}
+
+const C = 340.0                        # pm.speedOfSound
+const NMAX: i32 = 427                  # int(l2s(pm.maxLength) + 4), the de.fdelay4 bound at 48 kHz
+
+const def sine_table() -&gt; f32[65536]:  # os.osc&#x27;s table, sin(2 pi i / 65536)
+  t: f32[65536]
+  for i in 0..65536:
+    t[i] = sin(f32(i) * TWO_PI / 65536.0)
+  return t
+
+const SINE: f32[65536] = sine_table()
+
+# si.smooth (error form): y = x + e, e = pole * (e + x[n-1] - x)
+struct Smooth:
+  e = 0.0
+  xp = 0.0
+
+  def tick(self, x: f32, pole: f32):
+    self.e = pole * (self.e + (self.xp - x))
+    self.xp = x
+    return x + self.e
+
+# One bore direction: a delay line read by 4th-order Lagrange interpolation (de.fdelay4).
+struct Line:
+  buf: f32[2048]
+  w = 0 {2048, wrap}
+
+  def write(self, x: f32):
+    self.w += 1
+    self.buf[self.w] = x
+
+  def read4(self, taps: i32[5], fd: f32):
+    a = fd - 1.0
+    b = fd - 2.0
+    c = fd - 3.0
+    e = fd - 4.0
+    p1 = fd * a
+    p2 = p1 * b
+    p3 = p2 * c
+    x0 = self.buf[(self.w - taps[0]) &amp; 2047]
+    x1 = self.buf[(self.w - taps[1]) &amp; 2047]
+    x2 = self.buf[(self.w - taps[2]) &amp; 2047]
+    x3 = self.buf[(self.w - taps[3]) &amp; 2047]
+    x4 = self.buf[(self.w - taps[4]) &amp; 2047]
+    return e * (c * (b * (0.041666668 * x0 * a - 0.16666667 * fd * x1) + 0.25 * p1 * x2) - 0.16666667 * p2 * x3) + 0.041666668 * p3 * x4
+
+init:
+  bendSmooth = Smooth()
+  gatePrev = 0.0
+  env = Smooth()
+  phase = 0                            # os.osc phasor: 30-bit integer part ...
+  phaseFrac = 0                        # ... and 24-bit fraction
+  seed: i32 = 0                        # no.noise
+  s1 = 0.0                             # breath lowpass (fi.lowpass(2, 2000), TPT SVF)
+  s2 = 0.0
+  toMouth = Line()                     # wave travelling from the bell to the reed
+  toBell = Line()                      # wave travelling from the reed to the bell
+  bell = Smooth()
+  boreIn = 0.0                         # toMouth output, one sample late
+  mouth = 0.0                          # pressure at the reed, previous sample
+  bellOut = 0.0                        # toBell output reaching the bell
+  bellIn = 0.0                         # toBell output read this sample
+  # breath lowpass coefficients
+  g = tan(max(0.0, min(PI * 2000.0 / SR, 1.5676547)))
+  gk = g + 1.4142135
+  c1 = g * min(340282350000000000000000000000000000000.0, 1.0 / (g * gk + 1.0))
+
+block:
+  pb = pow(bellOpening, 44100.0 / SR)                       # bell pole
+  loopDelay = C / SR * (0.964 * (pb / max(1.0 - pb, 0.01)) + 5.99)
+  ratio = pow(2.0, 0.083333336 * bend)
+  gt = min(1.0, gate + sustain)
+  vg = 0.01 * vibratoGain
+  inc = 1073741824.0 * (1.0 / SR) * vibratoFreq            # 2^30 * f / SR
+  incInt = i32(floor(inc))
+  incFrac = i32(16777216.0 * (inc - floor(inc)))
+  target = gain * gt
+  tau = 0.001 * envAttack
+  envPole = 0.0
+  if abs(tau) &gt;= 0.00000011920929:
+    envPole = exp(-((1.0 / SR) / tau))
+  slope = 0.26 * reedStiffness - 0.44
+  sample:
+    # bell: the wave leaving the bore comes back through the smoother
+    toMouth.write(bell.tick(bellOut, pb))
+    # pitch: bend (si.polySmooth), vibrato (os.osc), envelope
+    hold = 0.0
+    if gt == gatePrev || gt == 0.0:
+      hold = 0.999
+    gatePrev = gt
+    bendRatio = bendSmooth.tick(ratio, hold)
+    vib = SINE[(phase &gt;&gt; 6) &gt;&gt; 8]
+    phaseFrac += incFrac
+    phase = (incInt + phase + (phaseFrac &gt;&gt; 24)) &amp; 1073741823
+    phaseFrac &amp;= 16777215
+    e = env.tick(target, envPole)
+    halfLength = 170.0 / freq / (bendRatio * (1.0 + vg * vib * e))
+    d = 0.0014705883 * SR * max(1020.0 / SR, halfLength - loopDelay)
+    # de.fdelay4 taps and fractional part
+    dmo = d - 1.499995
+    fl = floor(dmo)
+    id = i32(min(f32(NMAX), max(-4.0, dmo)))
+    taps: i32[5]
+    for i in 0..5:
+      taps[i] = 1 + min(NMAX, max(0, id + i))
+    fd = d - fl
+    fromBell = toMouth.read4(taps, fd)
+    # blower: pressure + vibrato + breath noise
+    seed = 12345 + 1103515245 * seed
+    n = 0.0000000004656613 * f32(seed)
+    t = n - (gk * s1 + s2)
+    v1 = s1 + c1 * t
+    lp = s2 + g * v1
+    s1 += 2.0 * c1 * t
+    s2 += 2.0 * g * v1
+    blow = e + vg * vib + 0.05 * e * lp
+    # mouthpiece: reed table on the pressure difference
+    p = blow + boreIn
+    toBell.write(blow - mouth * clamp(0.7 - slope * mouth, -1.0, 1.0))
+    mouth = p
+    boreIn = fromBell
+    # bell side: the toBell output reaches the bell one sample after it is read
+    bellOut = bellIn
+    bellIn = toBell.read4(taps, fd)
+    out = outGain * bellOut
+    out1 = out
+    out2 = out
+</code></pre></figure></div></details>
 </section>
 </main>
 
 <script>
 (function () {
-  const data = [{"n": "sine", "s": 0.997, "f": 1.001}, {"n": "fm_pad", "s": 1.008, "f": 0.433}, {"n": "additive64", "s": 3.394, "f": 2.38}, {"n": "noise", "s": 1.085, "f": 1.062}, {"n": "tanh_drive", "s": 1.605, "f": 1.415}, {"n": "biquad8", "s": 0.765, "f": 0.655}, {"n": "peq10", "s": 0.617, "f": 0.496}, {"n": "svf_mod", "s": 0.983, "f": 1.04}, {"n": "fir32c", "s": 0.838, "f": 0.984}, {"n": "hoa_decoder_x", "s": 0.587, "f": 0.976}, {"n": "mixer16_x", "s": 0.91, "f": 1.304}, {"n": "freeverb", "s": 0.535, "f": 0.422}, {"n": "fdn8", "s": 0.639, "f": 0.436}, {"n": "diffuser32", "s": 0.744, "f": 0.403}, {"n": "zita_rev", "s": 1.114, "f": 1.026}];
+  const data = [{"n": "sine", "s": 0.997, "f": 1.001}, {"n": "fm_pad", "s": 1.008, "f": 0.433}, {"n": "additive64", "s": 3.394, "f": 2.38}, {"n": "noise", "s": 1.085, "f": 1.062}, {"n": "tanh_drive", "s": 1.605, "f": 1.415}, {"n": "biquad8", "s": 0.765, "f": 0.655}, {"n": "peq10", "s": 0.617, "f": 0.496}, {"n": "svf_mod", "s": 0.983, "f": 1.04}, {"n": "fir32c", "s": 0.838, "f": 0.984}, {"n": "hoa_decoder_x", "s": 0.587, "f": 0.976}, {"n": "mixer16_x", "s": 0.91, "f": 1.304}, {"n": "freeverb", "s": 0.535, "f": 0.422}, {"n": "fdn8", "s": 0.639, "f": 0.436}, {"n": "diffuser32", "s": 0.744, "f": 0.403}, {"n": "zita_rev", "s": 1.114, "f": 1.026}, {"n": "clarinet", "s": 0.74, "f": 0.509}];
   const svg = document.getElementById('bars');
   const W = 760, rowH = 34, top = 30, left = 120, right = 24, H = top + data.length * rowH + 30;
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
