@@ -1,0 +1,12 @@
+params:
+  freq = 440.0 {20.0, 20000.0}
+
+init:
+  phase = 0.0
+
+block:
+  inc = freq / SR
+  sample:
+    phase += inc
+    phase -= floor(phase)
+    out1 = sin(TWO_PI * phase) * 0.5

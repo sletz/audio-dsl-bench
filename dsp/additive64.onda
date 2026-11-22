@@ -1,0 +1,19 @@
+params:
+  freq = 110.0 {20.0, 200.0}
+
+init:
+  phase: f32[64]
+  amp: f32[64]
+  for k in 0..64:
+    amp[k] = 1.0 / f32(k + 1)
+
+block:
+  inc = freq / SR
+  sample:
+    acc = 0.0
+    for k in 0..64:
+      p = phase[k] + inc * f32(k + 1)
+      p -= floor(p)
+      phase[k] = p
+      acc += sin(TWO_PI * p) * amp[k]
+    out1 = acc * 0.1

@@ -1,0 +1,46 @@
+ins 1
+params:
+  room = 0.84 {0.0, 0.99}
+  damp = 0.2 {0.0, 1.0}
+
+namespace fv<L = 2>:
+  struct Comb:
+    buf: f32[L]
+    idx: i32 {L, wrap}
+    s = 0.0
+
+    def tick(self, x: f32, fb: f32, damp: f32):
+      y = self.buf[self.idx]
+      self.buf[self.idx] = x + fb * self.s
+      self.s = (1.0 - damp) * y + damp * self.s
+      self.idx += 1
+      return y
+
+  struct Allpass:
+    buf: f32[L]
+    idx: i32 {L, wrap}
+
+    def tick(self, x: f32):
+      b = self.buf[self.idx]
+      self.buf[self.idx] = x + 0.5 * b
+      self.idx += 1
+      return b - x
+
+init:
+  c0 = fv<1116>::Comb()
+  c1 = fv<1188>::Comb()
+  c2 = fv<1277>::Comb()
+  c3 = fv<1356>::Comb()
+  c4 = fv<1422>::Comb()
+  c5 = fv<1491>::Comb()
+  c6 = fv<1557>::Comb()
+  c7 = fv<1617>::Comb()
+  a0 = fv<556>::Allpass()
+  a1 = fv<441>::Allpass()
+  a2 = fv<341>::Allpass()
+  a3 = fv<225>::Allpass()
+
+sample:
+  x = in1 * 0.1
+  y = c0.tick(x, room, damp) + c1.tick(x, room, damp) + c2.tick(x, room, damp) + c3.tick(x, room, damp) + c4.tick(x, room, damp) + c5.tick(x, room, damp) + c6.tick(x, room, damp) + c7.tick(x, room, damp)
+  out1 = a3.tick(a2.tick(a1.tick(a0.tick(y))))

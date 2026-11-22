@@ -1,0 +1,1086 @@
+<meta charset="utf-8">
+<title>Onda vs Faust</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600&display=swap">
+<style>
+/* Layout: one reading column (72ch) for prose, full-width scroll containers for the table, chart and sources. */
+:root {
+  --bg: #f7f8f7; --surface: #ffffff; --fg: #1d2421; --muted: #5d6763; --rule: #d9dedb;
+  --onda: #0f7a6c; --faust: #b4561f; --win: #0f7a6c; --loss: #b23a2a; --tie: #6b7570; --best: #e3f1ee;
+  --f-body: "IBM Plex Sans", system-ui, sans-serif; --f-head: "IBM Plex Sans Condensed", "IBM Plex Sans", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #141917; --surface: #1b2220; --fg: #e3e8e5; --muted: #9aa5a0; --rule: #2e3835;
+  --onda: #4cc3b0; --faust: #e8925a; --win: #4cc3b0; --loss: #f07a68; --tie: #95a09b; --best: #1f3a35; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #141917; --surface: #1b2220; --fg: #e3e8e5; --muted: #9aa5a0; --rule: #2e3835;
+  --onda: #4cc3b0; --faust: #e8925a; --win: #4cc3b0; --loss: #f07a68; --tie: #95a09b; --best: #1f3a35; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 15px/1.6 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 64px; }
+main { max-width: 1100px; margin: 0 auto; display: grid; gap: 40px; }
+.prose { max-width: 72ch; }
+h1, h2, h3 { font-family: var(--f-head); font-weight: 600; text-wrap: balance; line-height: 1.2; margin: 0 0 .5em; }
+h1 { font-size: 2.1rem; } h2 { font-size: 1.45rem; border-top: 1px solid var(--rule); padding-top: 24px; } h3 { font-size: 1.1rem; margin-top: 1.4em; }
+p, li { margin: 0 0 .7em; } ul { padding-left: 1.2em; margin: 0; }
+code { font-family: var(--f-mono); font-size: .88em; }
+.eyebrow { font: 500 .78rem var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.lede { font-size: 1.08rem; }
+.kpis { display: flex; flex-wrap: wrap; gap: 12px 36px; margin-top: 18px; }
+.kpi b { display: block; font: 600 1.9rem var(--f-head); font-variant-numeric: tabular-nums; color: var(--onda); }
+.kpi span { color: var(--muted); font-size: .9rem; }
+.scroll { overflow-x: auto; border: 1px solid var(--rule); background: var(--surface); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: .88rem; }
+th, td { padding: 7px 10px; text-align: right; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+thead th { font: 500 .74rem var(--f-mono); color: var(--muted); vertical-align: bottom; white-space: normal; min-width: 70px; }
+tbody th { text-align: left; font-weight: 500; }
+td.best { background: var(--best); font-weight: 600; }
+td.ratio { font-family: var(--f-mono); font-weight: 500; }
+td.win { color: var(--win); } td.loss { color: var(--loss); } td.tie { color: var(--tie); }
+.group-onda { color: var(--onda); } .group-faust { color: var(--faust); }
+.note { color: var(--muted); font-size: .86rem; }
+#chart svg { display: block; width: 100%; height: auto; }
+.findings { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.finding { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 14px 16px; min-width: 0; }
+.finding .tag { font: 500 .72rem var(--f-mono); letter-spacing: .05em; text-transform: uppercase; }
+.finding .tag.o { color: var(--onda); } .finding .tag.f { color: var(--faust); }
+.finding h3 { margin: .3em 0 .4em; font-size: 1.02rem; }
+.finding p { font-size: .92rem; margin: 0; }
+details { border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); margin-bottom: 10px; }
+summary { cursor: pointer; padding: 10px 14px; font-weight: 500; }
+summary:focus-visible, a:focus-visible { outline: 2px solid var(--onda); outline-offset: 2px; }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 0; border-top: 1px solid var(--rule); }
+.pair figure { margin: 0; min-width: 0; border-right: 1px solid var(--rule); }
+.pair figure:last-child { border-right: 0; }
+figcaption { font: 500 .74rem var(--f-mono); color: var(--muted); padding: 8px 14px 0; }
+pre { margin: 0; padding: 8px 14px 14px; overflow-x: auto; font: .8rem/1.5 var(--f-mono); }
+dl.method { display: grid; grid-template-columns: max-content 1fr; gap: 6px 18px; margin: 0; }
+dl.method dt { font: 500 .8rem var(--f-mono); color: var(--muted); padding-top: 2px; }
+dl.method dd { margin: 0; min-width: 0; }
+tr.cat th { text-align: left; font: 600 .78rem var(--f-mono); letter-spacing: .05em; text-transform: uppercase; color: var(--muted); background: var(--bg); padding-top: 14px; }
+tbody th .lab { display: block; font-size: .78rem; color: var(--muted); font-weight: 400; }
+tr.variant th, tr.variant td { color: var(--muted); font-style: italic; }
+tr.variant td.best { background: transparent; }
+.findgroup { display: grid; gap: 12px; }
+.findgroup > h3 { margin: 18px 0 0; font-size: 1.12rem; }
+@media (max-width: 560px) { dl.method { grid-template-columns: 1fr; } dl.method dt { padding-top: 8px; } }
+</style>
+
+<main>
+<header class="prose">
+  <div class="eyebrow">Onda 0.9.2 · Faust 2.95.1 and branch master-dev-certification-4 · Apple M5 · f32 · 48 kHz · 256-frame blocks</div>
+  <h1>Onda vs Faust</h1>
+  <p class="lede">15 DSP programs written equivalently in Faust and Onda, from oscillators to reverbs, measured on a common harness against 13 Faust configurations. The Onda compiler generates very good native code: against Faust 2.95.1 (C++ and LLVM, every option), it is on average <strong>1.15× faster</strong> under strict IEEE semantics and <strong>1.03× faster</strong> with fast-math. The <code>-lang ocpp</code> backend of the <code>master-dev-certification-4</code> branch, tuned by <code>fcautotool</code>, puts Faust ahead: onda <strong>×0.93</strong> strict and <strong>×0.82</strong> with fast-math.</p>
+  <p class="lede">The gaps follow the kind of computation: onda dominates as soon as it vectorizes (oscillator banks, saturation), Faust cert-4 dominates delay lines and filter cascades, where it chooses the order of operations and reads delays ahead. Two onda pitfalls, easy to avoid once known, cost a factor of 30 to 50: the <code>ins[i]</code>/<code>outs[i]</code> views, and control-rate computations left in the per-sample loop.</p>
+  <div class="kpis">
+    <div class="kpi"><b>×1.15</b><span>onda strict / Faust 2.95.1 IEEE</span></div>
+    <div class="kpi"><b>×0.93</b><span>onda strict / best Faust IEEE, cert-4 included</span></div>
+    <div class="kpi"><b>×0.82</b><span>onda fast-math / best Faust fast-math</span></div>
+    <div class="kpi"><b>4–3–8</b><span>onda wins, ties, losses in strict mode (fast-math: 4–5–6)</span></div>
+  </div>
+  <p class="note">Geometric means over the 15 programs, without the three alternative writings.</p>
+</header>
+
+<section>
+  <h2>Results</h2>
+  <p class="prose">Median time in <strong>ns per sample</strong> (lower is better), 21 interleaved and shuffled rounds of ~40 ms each. The highlighted cell is the fastest of the row. "C++" and "Faust LLVM": Faust 2.95.1. "ocpp" and "fcautotool pick": faust of the <code>master-dev-certification-4</code> branch. "Fixed SR": sample rate constant at compile time, as in onda. The last two columns compare like with like: <span class="group-onda">onda</span> strict against the best Faust IEEE build (C++ or ocpp, scalar or <code>-vec</code>, at <code>-ffp-contract=off</code>), and <span class="group-onda">onda --fast-math</span> against the best fast-math Faust build, Faust LLVM included (it always emits fast-math operations). Rows in italics are other ways of writing the program in Onda; they do not count in the means.</p>
+  <div class="scroll">
+    <table>
+      <thead><tr><th scope="col" style="text-align:left">Program</th><th scope="col">onda</th><th scope="col">onda --fast-math</th><th scope="col">C++ IEEE</th><th scope="col">C++ -ffast-math</th><th scope="col">C++ -vec -ffast-math</th><th scope="col">C++ -vec + Accelerate</th><th scope="col">Faust LLVM</th><th scope="col">Faust LLVM, fixed SR</th><th scope="col">ocpp IEEE</th><th scope="col">ocpp IEEE, fixed SR</th><th scope="col">ocpp -ffast-math</th><th scope="col">fcautotool pick</th><th scope="col">pick, fixed SR</th><th scope="col">Strict: best Faust IEEE / onda</th><th scope="col">Fast: best Faust / onda-fm</th></tr></thead>
+      <tbody>
+<tr class="cat"><th colspan="16" scope="rowgroup">Oscillators and sources</th></tr>
+<tr><th scope="row"><code>sine</code><span class="lab">phasor + sin</span></th><td>2.31</td><td class="best">2.26</td><td>2.81</td><td>2.77</td><td>2.54</td><td>2.54</td><td>2.85</td><td>2.85</td><td>2.33</td><td>2.30</td><td>2.28</td><td>2.27</td><td>2.26</td><td class="ratio tie">×1.00</td><td class="ratio tie">×1.00</td></tr>
+<tr><th scope="row"><code>fm_pad</code><span class="lab">2 FM voices + tanh</span></th><td>14.19</td><td>14.80</td><td>14.30</td><td>14.65</td><td>18.48</td><td class="best">6.41</td><td>14.54</td><td>14.39</td><td>14.40</td><td>14.38</td><td>14.95</td><td>14.39</td><td>14.38</td><td class="ratio tie">×1.01</td><td class="ratio loss">×0.43</td></tr>
+<tr><th scope="row"><code>additive64</code><span class="lab">64 sine partials</span></th><td>49.11</td><td class="best">33.93</td><td>181.5</td><td>184.5</td><td>241.2</td><td>80.76</td><td>183.5</td><td>182.0</td><td>170.4</td><td>166.7</td><td>158.3</td><td>152.2</td><td>153.3</td><td class="ratio win">×3.39</td><td class="ratio win">×2.38</td></tr>
+<tr><th scope="row"><code>noise</code><span class="lab">LCG + one-pole lowpass</span></th><td>1.23</td><td class="best">1.18</td><td>3.19</td><td>3.38</td><td>1.53</td><td>1.53</td><td>1.39</td><td>1.39</td><td>1.33</td><td>1.33</td><td>1.26</td><td>1.26</td><td>1.26</td><td class="ratio win">×1.09</td><td class="ratio win">×1.06</td></tr>
+<tr class="cat"><th colspan="16" scope="rowgroup">Nonlinearities</th></tr>
+<tr><th scope="row"><code>tanh_drive</code><span class="lab">tanh saturation</span></th><td>1.02</td><td class="best">1.01</td><td>1.88</td><td>1.91</td><td>1.73</td><td>1.74</td><td>1.93</td><td>2.01</td><td>1.84</td><td>1.78</td><td>1.89</td><td>1.90</td><td>1.88</td><td class="ratio win">×1.60</td><td class="ratio win">×1.41</td></tr>
+<tr class="cat"><th colspan="16" scope="rowgroup">Filters</th></tr>
+<tr><th scope="row"><code>biquad8</code><span class="lab">8 RBJ biquads in series</span></th><td>5.61</td><td>4.23</td><td>8.07</td><td>5.47</td><td>11.76</td><td>11.75</td><td>3.10</td><td>3.15</td><td>4.29</td><td>4.29</td><td>2.81</td><td>2.87</td><td class="best">2.77</td><td class="ratio loss">×0.76</td><td class="ratio loss">×0.65</td></tr>
+<tr><th scope="row"><code>peq10</code><span class="lab">10-band parametric EQ</span></th><td>8.47</td><td>9.55</td><td>10.47</td><td>9.16</td><td>16.74</td><td>18.61</td><td>9.69</td><td>9.49</td><td>5.80</td><td>5.22</td><td>9.85</td><td class="best">4.74</td><td>5.14</td><td class="ratio loss">×0.62</td><td class="ratio loss">×0.50</td></tr>
+<tr><th scope="row"><code>svf_mod</code><span class="lab">TPT SVF, cutoff modulated per sample</span></th><td>5.89</td><td class="best">5.08</td><td>5.93</td><td>8.05</td><td>8.32</td><td>7.56</td><td>5.62</td><td>5.61</td><td>5.79</td><td>5.79</td><td>5.30</td><td>5.29</td><td>5.30</td><td class="ratio tie">×0.98</td><td class="ratio tie">×1.04</td></tr>
+<tr><th scope="row"><code>fir32c</code><span class="lab">32-tap FIR (const def)</span></th><td>4.43</td><td>3.81</td><td>3.93</td><td>3.75</td><td>3.93</td><td>3.93</td><td>3.96</td><td>3.95</td><td class="best">3.71</td><td>3.72</td><td>4.05</td><td>3.75</td><td>3.76</td><td class="ratio loss">×0.84</td><td class="ratio tie">×0.98</td></tr>
+<tr class="variant"><th scope="row"><code>fir32</code><span class="lab">variant: taps computed at init</span></th><td>4.82</td><td>3.82</td><td>3.91</td><td>3.75</td><td>3.93</td><td>3.93</td><td>3.96</td><td>3.96</td><td class="best">3.71</td><td>3.73</td><td>4.02</td><td>3.75</td><td>3.74</td><td class="ratio loss">×0.77</td><td class="ratio tie">×0.98</td></tr>
+<tr class="cat"><th colspan="16" scope="rowgroup">Matrices and mixing</th></tr>
+<tr><th scope="row"><code>hoa_decoder_x</code><span class="lab">2D HOA decoder, order 3, 7→8</span></th><td>1.10</td><td>0.67</td><td>0.65</td><td>0.66</td><td>4.29</td><td>4.30</td><td>2.14</td><td>2.14</td><td class="best">0.65</td><td>0.65</td><td>0.67</td><td>0.67</td><td>0.67</td><td class="ratio loss">×0.59</td><td class="ratio tie">×0.98</td></tr>
+<tr class="variant"><th scope="row"><code>hoa_decoder</code><span class="lab">variant: dynamic ins/outs views</span></th><td>31.92</td><td>31.71</td><td class="best">0.63</td><td>0.65</td><td>4.30</td><td>4.30</td><td>2.14</td><td>2.14</td><td>0.63</td><td>0.63</td><td>0.67</td><td>0.67</td><td>0.66</td><td class="ratio loss">×0.02</td><td class="ratio loss">×0.02</td></tr>
+<tr><th scope="row"><code>mixer16_x</code><span class="lab">16-channel mixer, dB gain + pan</span></th><td>1.34</td><td class="best">0.93</td><td>1.28</td><td>1.24</td><td>1.32</td><td>1.29</td><td>3.98</td><td>3.98</td><td>1.22</td><td>1.22</td><td>1.23</td><td>1.21</td><td>1.21</td><td class="ratio loss">×0.91</td><td class="ratio win">×1.30</td></tr>
+<tr class="variant"><th scope="row"><code>mixer16</code><span class="lab">variant: all in sample, ins view</span></th><td>49.21</td><td>33.93</td><td>1.28</td><td>1.23</td><td>1.33</td><td>1.29</td><td>3.97</td><td>3.97</td><td>1.22</td><td>1.20</td><td>1.21</td><td class="best">1.19</td><td>1.19</td><td class="ratio loss">×0.02</td><td class="ratio loss">×0.04</td></tr>
+<tr class="cat"><th colspan="16" scope="rowgroup">Delays and reverbs</th></tr>
+<tr><th scope="row"><code>freeverb</code><span class="lab">8 combs + 4 allpasses</span></th><td>6.58</td><td>6.47</td><td>7.46</td><td>7.26</td><td>12.94</td><td>12.94</td><td>7.70</td><td>7.69</td><td>3.52</td><td>3.52</td><td>2.76</td><td class="best">2.73</td><td>2.73</td><td class="ratio loss">×0.54</td><td class="ratio loss">×0.42</td></tr>
+<tr><th scope="row"><code>fdn8</code><span class="lab">8-line FDN, dense Hadamard</span></th><td>6.17</td><td>5.38</td><td>5.60</td><td>5.72</td><td>4.66</td><td>4.66</td><td>5.92</td><td>5.92</td><td>3.94</td><td>3.94</td><td>3.30</td><td class="best">2.34</td><td>2.35</td><td class="ratio loss">×0.64</td><td class="ratio loss">×0.44</td></tr>
+<tr><th scope="row"><code>diffuser32</code><span class="lab">32 allpasses in series</span></th><td>21.38</td><td>28.41</td><td>33.03</td><td>46.59</td><td>15.04</td><td>14.97</td><td>46.76</td><td>46.64</td><td>24.83</td><td>24.77</td><td>25.23</td><td class="best">11.45</td><td>11.46</td><td class="ratio loss">×0.74</td><td class="ratio loss">×0.40</td></tr>
+<tr><th scope="row"><code>zita_rev</code><span class="lab">re.zita_rev1_stereo</span></th><td>10.94</td><td class="best">10.38</td><td>23.05</td><td>20.82</td><td>17.68</td><td>17.69</td><td>22.23</td><td>20.92</td><td>12.44</td><td>12.19</td><td>10.77</td><td>10.65</td><td>12.24</td><td class="ratio win">×1.11</td><td class="ratio tie">×1.03</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">Outputs compared over 4 s with C++ -O3: relative RMS difference ≤ 3·10⁻⁶, except sine (7·10⁻⁵), fm_pad and additive64 (5 to 8·10⁻⁴, f32 phase drift) and peq10 (6·10⁻⁴, low poles in f32), the same order as between the Faust builds themselves. noise is bit-identical between onda and C++ IEEE.</p>
+</section>
+
+<section id="chart">
+  <h2>onda speedup, like for like</h2>
+  <p class="prose note">Logarithmic scale. Right of 1, onda is faster.</p>
+  <div class="scroll" style="padding:12px 8px"><svg id="bars" role="img" aria-label="Speed ratio onda / best Faust per program"></svg></div>
+</section>
+
+<section>
+  <h2>What the generated code shows</h2>
+  <div class="findgroup">
+  <h3>Where onda wins</h3>
+  <div class="findings">
+    <div class="finding"><span class="tag o">additive64 ×3.4, tanh_drive ×1.6 (strict)</span><h3>Vectorization and built-in SLEEF</h3><p>Written as arrays, the 64 partials of additive64 are updated in SIMD and go through <code>Sleef_sinf4</code> (16 calls instead of 64 <code>sinf</code>): 34 ns with fast-math against 152 for the ocpp pick and 81 for the best Faust build (<code>-vec</code> + Accelerate). tanh_drive goes through <code>Sleef_tanhf4</code>. The Faust C++ backends call scalar libm, and their <code>-vec</code> mode does not vectorize a phase recurrence.</p></div>
+    <div class="finding"><span class="tag o">noise ×2.6, zita_rev ×2.1 against -lang cpp</span><h3>State in registers, Hadamard kept whole</h3><p>onda loads the state on entry to <code>onda_process</code> and writes it back on exit (noise loop: 8 instructions, 1 memory access). <code>-lang cpp</code> copies every <code>fRec[0]/[1]</code> through memory at each sample: moving the noise recursion into a local variable takes the C++ from 3.20 to 1.20 ns. On zita_rev, the normalizer flattens the allpasses into the Hadamard (16-term sums, ~120 additions instead of 32): 570 instructions per sample against 236. ocpp fixes both: 1.33 ns on noise, 10.7 on zita_rev with fast-math against 10.4 for onda.</p></div>
+  </div>
+  <h3>Where Faust wins</h3>
+  <div class="findings">
+    <div class="finding"><span class="tag f">freeverb ×2.4, fdn8 ×2.3</span><h3>Delay lines read one sample ahead</h3><p>ocpp reads the next sample's delay line at the end of the current iteration (<code>fTemp0 = fVeeec0; fVeeec0 = buf[(IOTA-224)&amp;255];</code>), which takes the load latency off the critical path, and keeps the state in scalars with a single masked <code>IOTA</code>. freeverb: 2.73 ns against 6.47 for onda, which recomputes a circular index per line. fdn8, with the <code>-ls-fuse -ls-sched model</code> pick: 2.34 ns against 5.38.</p></div>
+    <div class="finding"><span class="tag f">peq10 ×1.6 strict, biquad8 ×1.5</span><h3>Order of operations and signal algebra</h3><p>On peq10, ocpp merges the stages (a stage's input memory is the delayed output of the previous one) and writes <code>fSlow13·y[0] + (past terms)</code>: a single multiply-add per stage on the critical path. 5.22 ns in IEEE and 3.48 with FMA contraction, against 8.47 for onda, which follows the source order and may not change it in strict mode. With <code>-ffast-math</code>, clang undoes that order (9.85 ns). On biquad8, Faust recognizes <code>b2 ≡ b0</code> and factors it: 2.77 ns with fast-math against 4.23.</p></div>
+    <div class="finding"><span class="tag f">diffuser32 ×1.3 strict, ×1.9 at best</span><h3>Stage by stage rather than sample by sample</h3><p>Faust <code>-vec</code> computes each allpass over 32 samples before moving on to the next; since the delays (≥ 113) exceed the vector size, the iterations of a stage are independent and the processor overlaps them: 15.9 ns in IEEE. The <code>-lang ocpp -temp 4 -ls-fuse -ls-sched model</code> pick goes down to 11.5 ns. onda (21.4 ns) chains the 32 stages for every sample, a 32-link serial chain.</p></div>
+    <div class="finding"><span class="tag f">fm_pad ×2.2</span><h3>Split loops and vector libm</h3><p>Faust <code>-vec</code> puts the four phase recurrences in short scalar loops and the 4 sin + 2 tanh in a recurrence-free loop, which clang vectorizes with Accelerate's <code>vsinf</code>/<code>vtanhf</code>: 6.4 ns against 14.2. onda keeps a single per-sample loop: the recurrence blocks vectorization and SLEEF does not come into play. Without Accelerate, no Faust configuration beats onda.</p></div>
+    <div class="finding"><span class="tag f">fir32c ×1.2</span><h3>Constant-tap FIR</h3><p>onda 4.43 ns against 3.71 for ocpp IEEE: the taps are reloaded from memory even from a <code>const</code> array, and the strict sum starts with <code>0.0 + …</code>, which IEEE forbids folding (−0). With fast-math the two meet (3.81 against 3.75).</p></div>
+  </div>
+  <h3>Writing pitfalls on the onda side</h3>
+  <div class="findings">
+    <div class="finding"><span class="tag f">hoa_decoder: ×50 → ×1.7 strict</span><h3>The <code>ins[i]</code>/<code>outs[i]</code> views</h3><p>Written with <code>ins[j]</code>/<code>outs[k]</code>, as onda's documentation shows, every access becomes a tree of comparisons and <code>fcsel</code>; nothing is unrolled or vectorized: 32 ns against 0.65. With named ports gathered in a local array, onda vectorizes: 1.10 ns strict, 0.67 with fast-math, on par with Faust. The remaining strict gap comes from the 16 zero coefficients of the matrix: Faust removes them, LLVM may not in IEEE (<code>x·0</code> is NaN or −0).</p></div>
+    <div class="finding"><span class="tag f">mixer16: ×40 → ×1.1 strict</span><h3>Control-rate computations left in the loop</h3><p><code>pow</code>, <code>cos</code>, <code>sin</code> of parameters written in <code>sample:</code> stay per sample (16 <code>powf</code> + 16 <code>sincosf</code>); Faust computes <code>gain·pan·master</code> once per block. With the coefficients in <code>block:</code> and named ports, onda takes 1.34 ns strict (1.22 for ocpp) and 0.93 with fast-math, ahead of Faust (1.19).</p></div>
+  </div>
+  <h3>Faust settings</h3>
+  <div class="findings">
+    <div class="finding"><span class="tag f">ocpp ×1.35</span><h3>cert-4 and fcautotool</h3><p>Under the same IEEE contract, ocpp is on average 1.35× faster than the <code>-lang cpp</code> of 2.95.1 over the 15 programs; the options elected by <code>fcautotool</code> bring the gain to 1.60× with fast-math. The pick depends on the program: <code>-lsum</code> for tanh_drive and hoa_decoder, <code>-ss 8</code> for freeverb, <code>-ls-fuse</code> for fdn8 and peq10, <code>-rp</code> for zita_rev, and <code>-lang cpp</code> stays best on fir32c and svf_mod.</p></div>
+    <div class="finding"><span class="tag o">Fixed SR: ±4 %</span><h3>Fixing the sample rate changes almost nothing</h3><p>With <code>SR = 48000.0</code> in <code>platform.lib</code>, Faust folds the constants that depend on <code>fSampleRate</code>, but those computations already ran once at init or once per block. Differences ≤ 4 %, except zita_rev (−6 % for Faust LLVM, +15 % for the pick) and peq10 (ocpp IEEE −10 %, pick +8 %). onda gets no measurable advantage from compiling the sample rate in.</p></div>
+    <div class="finding"><span class="tag o">Floating-point contract</span><h3>Comparing like with like</h3><p>onda emits neither FMA contraction nor reassociation without <code>--fast-math</code>. Apple clang contracts into FMA by default (<code>-ffp-contract=on</code>), which sometimes changes the result a lot (peq10 ocpp: 3.48 ns with FMA, 5.80 without), and Faust LLVM marks every operation <code>reassoc nnan ninf nsz arcp contract</code>. Hence the IEEE columns at <code>-ffp-contract=off</code>, and Faust LLVM ranked with fast-math.</p></div>
+  </div>
+  <h3>onda's implementation</h3>
+  <div class="findings">
+    <div class="finding"><span class="tag o">Proven bounds, JIT = AOT</span><h3>What works well</h3><p>No index clamp in the loops of fir, fdn8 and zita_rev: the <code>{N, wrap}</code> domains and the MIR bounds proofs remove the checks. State arrays vectorize (SLP across the 8 damping filters of zita_rev). The AOT object and the ORC JIT give the same times within 5 %. Compilation: 40 to 80 ms (full CLI) against ~1 s for faust + clang -O3 and 5 to 70 ms for the Faust LLVM JIT.</p></div>
+    <div class="finding"><span class="tag f">Rough edges</span><h3>Language and build</h3><p>No scientific-notation literals (<code>1e-20</code> is rejected). The build requires exactly LLVM 21, and the <code>target.cpp</code> shim initializes every target of the LLVM installation: linking fails with a distribution LLVM (AMDGPU…), a prefix limited to 4 targets was needed. LLVM 21 does not know the Apple M5: onda targets apple-m4.</p></div>
+  </div>
+  </div>
+</section>
+
+<section>
+  <h2>Options elected by fcautotool</h2>
+  <p class="prose">On each program, <code>fcautotool</code> races the ocpp option sets the cert-4 faust accepts, plus <code>-lang cpp</code>, <code>-vec</code> and <code>-mcd 0</code> as references, timed with <code>-O3 -ffast-math -mcpu=native</code>, and only elects a candidate that reproduces the reference response. These options are used in the "fcautotool pick" column.</p>
+  <div class="scroll">
+    <table>
+      <thead><tr><th scope="col" style="text-align:left">Program</th><th scope="col" style="text-align:left">Elected options</th><th scope="col">fcautotool (ns)</th><th scope="col"><code>-lang cpp</code> (ns)</th><th scope="col">Gain</th></tr></thead>
+      <tbody>
+<tr><th scope="row"><code>sine</code></th><td style="text-align:left"><code>-lang cpp -mcd 0</code></td><td>2.27</td><td>2.42</td><td class="ratio">×1.07</td></tr>
+<tr><th scope="row"><code>fm_pad</code></th><td style="text-align:left"><code>-lang cpp</code></td><td>13.12</td><td>13.12</td><td class="ratio">×1.00</td></tr>
+<tr><th scope="row"><code>additive64</code></th><td style="text-align:left"><code>-lang ocpp -ss 9 -ls-R 32 -ls-U 4</code></td><td>113.08</td><td>160.40</td><td class="ratio">×1.42</td></tr>
+<tr><th scope="row"><code>noise</code></th><td style="text-align:left"><code>-lang ocpp -ss 8</code></td><td>1.22</td><td>2.67</td><td class="ratio">×2.18</td></tr>
+<tr><th scope="row"><code>tanh_drive</code></th><td style="text-align:left"><code>-lang ocpp -lsum</code></td><td>1.29</td><td>1.30</td><td class="ratio">×1.00</td></tr>
+<tr><th scope="row"><code>biquad8</code></th><td style="text-align:left"><code>-lang ocpp</code></td><td>2.69</td><td>8.70</td><td class="ratio">×3.23</td></tr>
+<tr><th scope="row"><code>peq10</code></th><td style="text-align:left"><code>-lang ocpp -ls-fuse -ls-sched model</code></td><td>4.40</td><td>8.76</td><td class="ratio">×1.99</td></tr>
+<tr><th scope="row"><code>svf_mod</code></th><td style="text-align:left"><code>-lang cpp</code></td><td>4.85</td><td>4.85</td><td class="ratio">×1.00</td></tr>
+<tr><th scope="row"><code>fir32c</code></th><td style="text-align:left"><code>-lang cpp</code></td><td>3.47</td><td>3.47</td><td class="ratio">×1.00</td></tr>
+<tr><th scope="row"><code>fir32</code></th><td style="text-align:left"><code>-lang cpp</code></td><td>3.47</td><td>3.47</td><td class="ratio">×1.00</td></tr>
+<tr><th scope="row"><code>hoa_decoder</code></th><td style="text-align:left"><code>-lang ocpp -lsum</code></td><td>0.36</td><td>0.43</td><td class="ratio">×1.19</td></tr>
+<tr><th scope="row"><code>mixer16</code></th><td style="text-align:left"><code>-lang ocpp -ss 12 -ls-R 32 -ls-U 8</code></td><td>0.91</td><td>0.92</td><td class="ratio">×1.02</td></tr>
+<tr><th scope="row"><code>freeverb</code></th><td style="text-align:left"><code>-lang ocpp -ss 8</code></td><td>2.53</td><td>6.18</td><td class="ratio">×2.44</td></tr>
+<tr><th scope="row"><code>fdn8</code></th><td style="text-align:left"><code>-lang ocpp -ls-fuse -ls-sched model</code></td><td>2.17</td><td>5.24</td><td class="ratio">×2.41</td></tr>
+<tr><th scope="row"><code>diffuser32</code></th><td style="text-align:left"><code>-lang ocpp -temp 4 -ls-fuse -ls-sched model</code></td><td>10.68</td><td>28.20</td><td class="ratio">×2.64</td></tr>
+<tr><th scope="row"><code>zita_rev</code></th><td style="text-align:left"><code>-lang ocpp -rp</code></td><td>9.88</td><td>20.40</td><td class="ratio">×2.06</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">Times measured by fcautotool with its own harness: they rank the candidates against each other; the results table gives the times of the common harness. The <code>_x</code> variants share their original's Faust source, hence its election.</p>
+</section>
+
+<section class="prose">
+  <h2>The compiler in brief</h2>
+  <p>onda is a Rust compiler of about 400,000 lines. The frontend (PEG grammar) and the semantic analysis (typing, overloads, generic specialization, lowering of processors and graphs) produce a <strong>typed, validated MIR</strong>: structured control flow, explicit storage and effects, integer range facts, bounds proofs, memory origins for aliasing, loop analyses. Two backends consume it: LLVM (ORC JIT and AOT objects, O3, <code>noalias</code> attributes and alias scopes, 64-byte alignment, SLEEF linked into the code) and Binaryen (Wasm). Block size and sample rate are compile-time constants.</p>
+  <p>The code quality comes from these proofs handed to LLVM, not from DSP-specific optimizations: onda has no equivalent of Faust's signal normalization. The code therefore stays close to what the author writes. An array of delay lines gets vectorized, eight separate variables would not. Conversely, Faust optimizes forms the author did not factor, but can also undo a factorization (zita's FWHT).</p>
+</section>
+
+<section class="prose">
+  <h2>Method</h2>
+  <dl class="method">
+    <dt>Machine</dt><dd>Apple M5, macOS 26.6, on AC power, thread at user-interactive QoS.</dd>
+    <dt>onda</dt><dd>0.9.2, built against MacPorts LLVM 21.1.8 (the project pins 21.1.2). AOT object <code>--emit obj --target-cpu host -b 256 --sr 48000</code>, with and without <code>--fast-math</code>, called through the raw ABI (<code>onda_process</code>).</dd>
+    <dt>Faust C++</dt><dd><code>faust -lang cpp</code> 2.95.1 (<code>-scal</code> and <code>-vec -vs 32</code>) with the libraries of the faustlibraries checkout, Apple clang <code>-O3 -mcpu=native</code>, three contracts: default (FMA), <code>-ffp-contract=off</code>, <code>-ffast-math</code>; plus <code>-vec</code> with <code>-fveclib=Accelerate</code>.</dd>
+    <dt>Faust LLVM</dt><dd><code>libfaustwithllvm</code> (2.95.1), <code>createDSPFactoryFromFile</code>, opt −1 (max), <code>-scal</code> and <code>-vec -vs 32</code>, plus <code>-scal</code> with a fixed SR.</dd>
+    <dt>Faust cert-4</dt><dd>Branch <code>master-dev-certification-4</code> (106dda74a, 2.92.5), exported with <code>git archive</code> and built with the Makefile of <code>build/</code>. <code>-lang ocpp</code> in IEEE (<code>-ffp-contract=off</code>), with the default contract and with <code>-ffast-math</code>; options elected by <code>fcautotool</code> compiled with <code>-O3 -ffast-math</code>, as during the election.</dd>
+    <dt>Fixed SR</dt><dd>Copy of the faustlibraries libraries where <code>platform.lib</code> defines <code>SR = 48000.0</code> (faust looks for <code>platform.lib</code> next to <code>maths.lib</code> first, hence the full copy).</dd>
+    <dt>CPU targets</dt><dd>onda (LLVM 21) and Apple clang 21 target <code>apple-m4</code>: LLVM 21 does not know the M5. Only the Faust LLVM JIT, built with a newer LLVM, targets <code>apple-m5</code>.</dd>
+    <dt>Harness</dt><dd>One executable per program links the 15 engines, with 16 input and output channels; same buffers, same input (deterministic white noise, 64 blocks cycled), 2000 warm-up blocks, then 21 rounds in shuffled order. Median reported; median absolute deviation below 2 % except additive64 (~2 %).</dd>
+    <dt>Corpus</dt><dd>15 hand-written programs, same algorithm in both languages (same equations, same delay lengths, same order of operations where possible), part of them chosen to exploit a Faust lever (loop splitting in <code>-vec</code>, control-rate computations lifted out of the loop, zero or repeated constants, many delay lines). Three alternative onda writings (fir32, hoa_decoder, mixer16) separate what belongs to the compiler from what belongs to the writing. zita_rev ports exactly <code>re.zita_rev1_stereo(60, f1, f2, t60dc, t60m, 48000)</code> of the checkout. Real idiomatic versions differ: in Faust, an oscillator would use <code>os.osc</code> (table), not <code>sin</code>.</dd>
+    <dt>Limits</dt><dd>A single machine (ARM64, 128-bit NEON); on x86 AVX2/AVX-512, the SLEEF gap should grow and the SLP gap change. Constant parameters (no automation). A single block size.</dd>
+  </dl>
+</section>
+
+<section>
+  <h2>Sources</h2>
+  <p class="prose note">The 18 programs, Faust on the left, Onda on the right, in table order.</p>
+<details><summary><code>sine</code> — phasor + sin</summary><div class="pair">
+<figure><figcaption>Faust · sine.dsp</figcaption><pre><code>import(&quot;stdfaust.lib&quot;);
+freq = hslider(&quot;freq&quot;, 440, 20, 20000, 0.01);
+wrap(x) = x - floor(x);
+phase = (+(freq/ma.SR) : wrap) ~ _;
+process = sin(2*ma.PI*phase) * 0.5;
+</code></pre></figure>
+<figure><figcaption>Onda · sine.onda</figcaption><pre><code>params:
+  freq = 440.0 {20.0, 20000.0}
+
+init:
+  phase = 0.0
+
+block:
+  inc = freq / SR
+  sample:
+    phase += inc
+    phase -= floor(phase)
+    out1 = sin(TWO_PI * phase) * 0.5
+</code></pre></figure></div></details>
+<details><summary><code>fm_pad</code> — 2 FM voices + tanh</summary><div class="pair">
+<figure><figcaption>Faust · fm_pad.dsp</figcaption><pre><code>import(&quot;stdfaust.lib&quot;);
+// Two detuned 2-operator FM voices through a tanh shaper: cheap phase recursions,
+// heavy recursion-free math (4 sin + 2 tanh per sample).
+freq = hslider(&quot;freq&quot;, 220, 20, 2000, 0.01);
+ratio = hslider(&quot;ratio&quot;, 1.5, 0.25, 8, 0.01);
+index = hslider(&quot;index&quot;, 3, 0, 10, 0.01);
+drive = hslider(&quot;drive&quot;, 2, 1, 10, 0.01);
+detune = hslider(&quot;detune&quot;, 1.003, 1, 1.02, 0.0001);
+wrap(x) = x - floor(x);
+ph(inc) = (+(inc) : wrap) ~ _;
+op(f) = ma.tanh(drive * sin(2*ma.PI*ph(f/ma.SR) + index*sin(2*ma.PI*ph(f*ratio/ma.SR))));
+process = (op(freq) + op(freq*detune)) * 0.25;
+</code></pre></figure>
+<figure><figcaption>Onda · fm_pad.onda</figcaption><pre><code># Two detuned 2-operator FM voices through a tanh shaper: cheap phase recursions,
+# heavy recursion-free math (4 sin + 2 tanh per sample).
+params:
+  freq = 220.0 {20.0, 2000.0}
+  ratio = 1.5 {0.25, 8.0}
+  index = 3.0 {0.0, 10.0}
+  drive = 2.0 {1.0, 10.0}
+  detune = 1.003 {1.0, 1.02}
+
+init:
+  pc1 = 0.0
+  pm1 = 0.0
+  pc2 = 0.0
+  pm2 = 0.0
+
+block:
+  ic1 = freq / SR
+  im1 = freq * ratio / SR
+  ic2 = freq * detune / SR
+  im2 = freq * detune * ratio / SR
+  sample:
+    pc1 += ic1
+    pc1 -= floor(pc1)
+    pm1 += im1
+    pm1 -= floor(pm1)
+    pc2 += ic2
+    pc2 -= floor(pc2)
+    pm2 += im2
+    pm2 -= floor(pm2)
+    v1 = tanh(drive * sin(TWO_PI * pc1 + index * sin(TWO_PI * pm1)))
+    v2 = tanh(drive * sin(TWO_PI * pc2 + index * sin(TWO_PI * pm2)))
+    out1 = (v1 + v2) * 0.25
+</code></pre></figure></div></details>
+<details><summary><code>additive64</code> — 64 sine partials</summary><div class="pair">
+<figure><figcaption>Faust · additive64.dsp</figcaption><pre><code>import(&quot;stdfaust.lib&quot;);
+freq = hslider(&quot;freq&quot;, 110, 20, 200, 0.01);
+wrap(x) = x - floor(x);
+partial(k) = sin(2*ma.PI*ph) * (1.0/(k+1)) with { ph = (+(freq/ma.SR*(k+1)) : wrap) ~ _; };
+process = sum(k, 64, partial(k)) * 0.1;
+</code></pre></figure>
+<figure><figcaption>Onda · additive64.onda</figcaption><pre><code>params:
+  freq = 110.0 {20.0, 200.0}
+
+init:
+  phase: f32[64]
+  amp: f32[64]
+  for k in 0..64:
+    amp[k] = 1.0 / f32(k + 1)
+
+block:
+  inc = freq / SR
+  sample:
+    acc = 0.0
+    for k in 0..64:
+      p = phase[k] + inc * f32(k + 1)
+      p -= floor(p)
+      phase[k] = p
+      acc += sin(TWO_PI * p) * amp[k]
+    out1 = acc * 0.1
+</code></pre></figure></div></details>
+<details><summary><code>noise</code> — LCG + one-pole lowpass</summary><div class="pair">
+<figure><figcaption>Faust · noise.dsp</figcaption><pre><code>damp = hslider(&quot;damp&quot;, 0.9, 0, 0.999, 0.001);
+rnd = +(12345) ~ *(1103515245);
+noise = float(rnd) * (1.0/2147483647.0);
+process = noise : *(1 - damp) : + ~ *(damp);
+</code></pre></figure>
+<figure><figcaption>Onda · noise.onda</figcaption><pre><code>params:
+  damp = 0.9 {0.0, 0.999}
+
+init:
+  seed: i32 = 0
+  lp = 0.0
+
+sample:
+  seed = seed * 1103515245 + 12345
+  x = f32(seed) * (1.0 / 2147483647.0)
+  lp = x * (1.0 - damp) + lp * damp
+  out1 = lp
+</code></pre></figure></div></details>
+<details><summary><code>tanh_drive</code> — tanh saturation</summary><div class="pair">
+<figure><figcaption>Faust · tanh_drive.dsp</figcaption><pre><code>import(&quot;stdfaust.lib&quot;);
+drive = hslider(&quot;drive&quot;, 4, 1, 20, 0.01);
+process = _ * drive : ma.tanh : *(0.5);
+</code></pre></figure>
+<figure><figcaption>Onda · tanh_drive.onda</figcaption><pre><code>ins 1
+params:
+  drive = 4.0 {1.0, 20.0}
+
+sample:
+  out1 = tanh(in1 * drive) * 0.5
+</code></pre></figure></div></details>
+<details><summary><code>biquad8</code> — 8 RBJ biquads in series</summary><div class="pair">
+<figure><figcaption>Faust · biquad8.dsp</figcaption><pre><code>import(&quot;stdfaust.lib&quot;);
+cutoff = hslider(&quot;cutoff&quot;, 1000, 20, 20000, 0.01);
+q = hslider(&quot;q&quot;, 0.707, 0.1, 10, 0.001);
+w0 = 2*ma.PI*cutoff/ma.SR;
+alpha = sin(w0)/(2*q);
+cw = cos(w0);
+a0 = 1 + alpha;
+b0 = (1 - cw)*0.5/a0;
+b1 = (1 - cw)/a0;
+b2 = b0;
+a1 = -2*cw/a0;
+a2 = (1 - alpha)/a0;
+bq = (+ ~ (\(w).(-a1*w - a2*w&#x27;))) : (\(w).(b0*w + b1*w&#x27; + b2*w&#x27;&#x27;));
+process = seq(i, 8, bq);
+</code></pre></figure>
+<figure><figcaption>Onda · biquad8.onda</figcaption><pre><code>ins 1
+params:
+  cutoff = 1000.0 {20.0, 20000.0}
+  q = 0.707 {0.1, 10.0}
+
+init:
+  w1: f32[8]
+  w2: f32[8]
+
+block:
+  w0 = TWO_PI * cutoff / SR
+  alpha = sin(w0) / (2.0 * q)
+  cw = cos(w0)
+  a0 = 1.0 + alpha
+  b0 = (1.0 - cw) * 0.5 / a0
+  b1 = (1.0 - cw) / a0
+  b2 = b0
+  a1 = -2.0 * cw / a0
+  a2 = (1.0 - alpha) / a0
+  sample:
+    x = in1
+    for i in 0..8:
+      w = x + (-a1 * w1[i] - a2 * w2[i])
+      x = b0 * w + b1 * w1[i] + b2 * w2[i]
+      w2[i] = w1[i]
+      w1[i] = w
+    out1 = x
+</code></pre></figure></div></details>
+<details><summary><code>peq10</code> — 10-band parametric EQ</summary><div class="pair">
+<figure><figcaption>Faust · peq10.dsp</figcaption><pre><code>import(&quot;stdfaust.lib&quot;);
+// 10-band parametric EQ (RBJ peaking, octave bands from 31.25 Hz, Q = 1.41), direct form I.
+fr(k) = 31.25 * pow(2, k);
+gdb(k) = hslider(&quot;g%k&quot;, ba.take(k+1, (3, -2, 4, -3, 2, -4, 3, -2, 1, -1)), -12, 12, 0.1);
+peq(k) = df1 with {
+  A = pow(10, gdb(k)/40);
+  w0 = 2*ma.PI*fr(k)/ma.SR;
+  al = sin(w0)/(2*1.41);
+  cw = cos(w0);
+  a0 = 1 + al/A;
+  b0 = (1 + al*A)/a0;
+  b1 = -2*cw/a0;
+  b2 = (1 - al*A)/a0;
+  a1 = -2*cw/a0;
+  a2 = (1 - al/A)/a0;
+  df1(x) = (b0*x + b1*x&#x27; + b2*x&#x27;&#x27;) : (+ ~ (\(y).(-a1*y - a2*y&#x27;)));
+};
+process = seq(k, 10, peq(k));
+</code></pre></figure>
+<figure><figcaption>Onda · peq10.onda</figcaption><pre><code># 10-band parametric EQ (RBJ peaking, octave bands from 31.25 Hz, Q = 1.41), direct form I.
+ins 1
+
+params:
+  gains: f32[10] = [3.0, -2.0, 4.0, -3.0, 2.0, -4.0, 3.0, -2.0, 1.0, -1.0] {-12.0, 12.0}
+
+init:
+  x1: f32[10]
+  x2: f32[10]
+  y1: f32[10]
+  y2: f32[10]
+
+block:
+  b0: f32[10]
+  b1: f32[10]
+  b2: f32[10]
+  a1: f32[10]
+  a2: f32[10]
+  for k in 0..10:
+    A = pow(10.0, gains[k] / 40.0)
+    w0 = TWO_PI * 31.25 * pow(2.0, f32(k)) / SR
+    al = sin(w0) / (2.0 * 1.41)
+    cw = cos(w0)
+    a0 = 1.0 + al / A
+    b0[k] = (1.0 + al * A) / a0
+    b1[k] = -2.0 * cw / a0
+    b2[k] = (1.0 - al * A) / a0
+    a1[k] = -2.0 * cw / a0
+    a2[k] = (1.0 - al / A) / a0
+  sample:
+    x = in1
+    for k in 0..10:
+      y = b0[k] * x + b1[k] * x1[k] + b2[k] * x2[k] + (-a1[k] * y1[k] - a2[k] * y2[k])
+      x2[k] = x1[k]
+      x1[k] = x
+      y2[k] = y1[k]
+      y1[k] = y
+      x = y
+    out1 = x
+</code></pre></figure></div></details>
+<details><summary><code>svf_mod</code> — TPT SVF, cutoff modulated per sample</summary><div class="pair">
+<figure><figcaption>Faust · svf_mod.dsp</figcaption><pre><code>import(&quot;stdfaust.lib&quot;);
+base = hslider(&quot;base&quot;, 800, 50, 5000, 0.01);
+depth = hslider(&quot;depth&quot;, 2, 0, 4, 0.001);
+rate = hslider(&quot;rate&quot;, 0.5, 0.01, 20, 0.001);
+q = hslider(&quot;q&quot;, 2, 0.5, 20, 0.001);
+wrap(x) = x - floor(x);
+lfo = sin(2*ma.PI*ph) with { ph = (+(rate/ma.SR) : wrap) ~ _; };
+fc = base * pow(2.0, depth*lfo);
+g = tan(ma.PI*fc/ma.SR);
+k = 1.0/q;
+a1 = 1.0/(1.0 + g*(g + k));
+a2 = g*a1;
+a3 = g*a2;
+svf(x) = (step ~ (_,_)) : (!,!,_) with {
+  step(ic1, ic2) = 2*v1 - ic1, 2*v2 - ic2, v2 with {
+    v3 = x - ic2;
+    v1 = a1*ic1 + a2*v3;
+    v2 = ic2 + a2*ic1 + a3*v3;
+  };
+};
+process = svf;
+</code></pre></figure>
+<figure><figcaption>Onda · svf_mod.onda</figcaption><pre><code>ins 1
+params:
+  base = 800.0 {50.0, 5000.0}
+  depth = 2.0 {0.0, 4.0}
+  rate = 0.5 {0.01, 20.0}
+  q = 2.0 {0.5, 20.0}
+
+init:
+  ph = 0.0
+  ic1 = 0.0
+  ic2 = 0.0
+
+block:
+  inc = rate / SR
+  k = 1.0 / q
+  sample:
+    ph += inc
+    ph -= floor(ph)
+    lfo = sin(TWO_PI * ph)
+    fc = base * pow(2.0, depth * lfo)
+    g = tan(PI * fc / SR)
+    a1 = 1.0 / (1.0 + g * (g + k))
+    a2 = g * a1
+    a3 = g * a2
+    v3 = in1 - ic2
+    v1 = a1 * ic1 + a2 * v3
+    v2 = ic2 + a2 * ic1 + a3 * v3
+    ic1 = 2.0 * v1 - ic1
+    ic2 = 2.0 * v2 - ic2
+    out1 = v2
+</code></pre></figure></div></details>
+<details><summary><code>fir32c</code> — 32-tap FIR (const def)</summary><div class="pair">
+<figure><figcaption>Faust · fir32c.dsp</figcaption><pre><code>import(&quot;stdfaust.lib&quot;);
+c(i) = sin(0.3*(i+1))/(i+1);
+process = _ &lt;: sum(i, 32, c(i) * (_@i));
+</code></pre></figure>
+<figure><figcaption>Onda · fir32c.onda</figcaption><pre><code>ins 1
+
+const def coeffs() -&gt; f32[32]:
+  values: f32[32]
+  for i in 0..32:
+    values[i] = sin(0.3 * f32(i + 1)) / f32(i + 1)
+  return values
+
+const C: f32[32] = coeffs()
+
+init:
+  h: f32[32]
+  idx = 0 {32, wrap}
+
+sample:
+  h[idx] = in1
+  acc = 0.0
+  for i in 0..32:
+    acc += C[i] * h[(idx - i) &amp; 31]
+  idx += 1
+  out1 = acc
+</code></pre></figure></div></details>
+<details><summary><code>fir32</code> — variant: taps computed at init</summary><div class="pair">
+<figure><figcaption>Faust · fir32.dsp</figcaption><pre><code>import(&quot;stdfaust.lib&quot;);
+c(i) = sin(0.3*(i+1))/(i+1);
+process = _ &lt;: sum(i, 32, c(i) * (_@i));
+</code></pre></figure>
+<figure><figcaption>Onda · fir32.onda</figcaption><pre><code>ins 1
+
+init:
+  c: f32[32]
+  for i in 0..32:
+    c[i] = sin(0.3 * f32(i + 1)) / f32(i + 1)
+  h: f32[32]
+  idx = 0 {32, wrap}
+
+sample:
+  h[idx] = in1
+  acc = 0.0
+  for i in 0..32:
+    acc += c[i] * h[(idx - i) &amp; 31]
+  idx += 1
+  out1 = acc
+</code></pre></figure></div></details>
+<details><summary><code>hoa_decoder_x</code> — 2D HOA decoder, order 3, 7→8</summary><div class="pair">
+<figure><figcaption>Faust · hoa_decoder_x.dsp</figcaption><pre><code>import(&quot;stdfaust.lib&quot;);
+// 2D ambisonic decoder, order 3 (7 channels: W, C1, S1, C2, S2, C3, S3) to 8 speakers,
+// max-rE weights, matrix as literal constants as generated by a decoder toolbox.
+row0 = (0.125, 0.230969883, 0.0, 0.176776695, 0.0, 0.095670858, 0.0);
+row1 = (0.125, 0.163320371, 0.163320371, 0.0, 0.176776695, -0.067649513, 0.067649513);
+row2 = (0.125, 0.0, 0.230969883, -0.176776695, 0.0, 0.0, -0.095670858);
+row3 = (0.125, -0.163320371, 0.163320371, 0.0, -0.176776695, 0.067649513, 0.067649513);
+row4 = (0.125, -0.230969883, 0.0, 0.176776695, 0.0, -0.095670858, 0.0);
+row5 = (0.125, -0.163320371, -0.163320371, 0.0, 0.176776695, 0.067649513, -0.067649513);
+row6 = (0.125, 0.0, -0.230969883, -0.176776695, 0.0, 0.0, 0.095670858);
+row7 = (0.125, 0.163320371, -0.163320371, 0.0, -0.176776695, -0.067649513, -0.067649513);
+dec(row) = par(j, 7, *(ba.take(j+1, row))) :&gt; _;
+process = si.bus(7) &lt;: dec(row0), dec(row1), dec(row2), dec(row3), dec(row4), dec(row5), dec(row6), dec(row7);
+</code></pre></figure>
+<figure><figcaption>Onda · hoa_decoder_x.onda</figcaption><pre><code># Expert variant: named ports gathered in a local array instead of the dynamic ins/outs views.
+# 2D ambisonic decoder, order 3 (7 channels: W, C1, S1, C2, S2, C3, S3) to 8 speakers,
+# max-rE weights, matrix as literal constants as generated by a decoder toolbox.
+ins 7
+outs 8
+
+const M: f32[56] = [
+  0.125, 0.230969883, 0.0, 0.176776695, 0.0, 0.095670858, 0.0,
+  0.125, 0.163320371, 0.163320371, 0.0, 0.176776695, -0.067649513, 0.067649513,
+  0.125, 0.0, 0.230969883, -0.176776695, 0.0, 0.0, -0.095670858,
+  0.125, -0.163320371, 0.163320371, 0.0, -0.176776695, 0.067649513, 0.067649513,
+  0.125, -0.230969883, 0.0, 0.176776695, 0.0, -0.095670858, 0.0,
+  0.125, -0.163320371, -0.163320371, 0.0, 0.176776695, 0.067649513, -0.067649513,
+  0.125, 0.0, -0.230969883, -0.176776695, 0.0, 0.0, 0.095670858,
+  0.125, 0.163320371, -0.163320371, 0.0, -0.176776695, -0.067649513, -0.067649513
+]
+
+sample:
+  x = [in1, in2, in3, in4, in5, in6, in7]
+  y: f32[8]
+  for k in 0..8:
+    acc = M[k * 7] * x[0]
+    for j in 1..7:
+      acc += M[k * 7 + j] * x[j]
+    y[k] = acc
+  out1 = y[0]
+  out2 = y[1]
+  out3 = y[2]
+  out4 = y[3]
+  out5 = y[4]
+  out6 = y[5]
+  out7 = y[6]
+  out8 = y[7]
+</code></pre></figure></div></details>
+<details><summary><code>hoa_decoder</code> — variant: dynamic ins/outs views</summary><div class="pair">
+<figure><figcaption>Faust · hoa_decoder.dsp</figcaption><pre><code>import(&quot;stdfaust.lib&quot;);
+// 2D ambisonic decoder, order 3 (7 channels: W, C1, S1, C2, S2, C3, S3) to 8 speakers,
+// max-rE weights, matrix as literal constants as generated by a decoder toolbox.
+row0 = (0.125, 0.230969883, 0.0, 0.176776695, 0.0, 0.095670858, 0.0);
+row1 = (0.125, 0.163320371, 0.163320371, 0.0, 0.176776695, -0.067649513, 0.067649513);
+row2 = (0.125, 0.0, 0.230969883, -0.176776695, 0.0, 0.0, -0.095670858);
+row3 = (0.125, -0.163320371, 0.163320371, 0.0, -0.176776695, 0.067649513, 0.067649513);
+row4 = (0.125, -0.230969883, 0.0, 0.176776695, 0.0, -0.095670858, 0.0);
+row5 = (0.125, -0.163320371, -0.163320371, 0.0, 0.176776695, 0.067649513, -0.067649513);
+row6 = (0.125, 0.0, -0.230969883, -0.176776695, 0.0, 0.0, 0.095670858);
+row7 = (0.125, 0.163320371, -0.163320371, 0.0, -0.176776695, -0.067649513, -0.067649513);
+dec(row) = par(j, 7, *(ba.take(j+1, row))) :&gt; _;
+process = si.bus(7) &lt;: dec(row0), dec(row1), dec(row2), dec(row3), dec(row4), dec(row5), dec(row6), dec(row7);
+</code></pre></figure>
+<figure><figcaption>Onda · hoa_decoder.onda</figcaption><pre><code># 2D ambisonic decoder, order 3 (7 channels: W, C1, S1, C2, S2, C3, S3) to 8 speakers,
+# max-rE weights, matrix as literal constants as generated by a decoder toolbox.
+ins 7
+outs 8
+
+const M: f32[56] = [
+  0.125, 0.230969883, 0.0, 0.176776695, 0.0, 0.095670858, 0.0,
+  0.125, 0.163320371, 0.163320371, 0.0, 0.176776695, -0.067649513, 0.067649513,
+  0.125, 0.0, 0.230969883, -0.176776695, 0.0, 0.0, -0.095670858,
+  0.125, -0.163320371, 0.163320371, 0.0, -0.176776695, 0.067649513, 0.067649513,
+  0.125, -0.230969883, 0.0, 0.176776695, 0.0, -0.095670858, 0.0,
+  0.125, -0.163320371, -0.163320371, 0.0, 0.176776695, 0.067649513, -0.067649513,
+  0.125, 0.0, -0.230969883, -0.176776695, 0.0, 0.0, 0.095670858,
+  0.125, 0.163320371, -0.163320371, 0.0, -0.176776695, -0.067649513, -0.067649513
+]
+
+sample:
+  for k in 0..8:
+    acc = M[k * 7] * ins[0]
+    for j in 1..7:
+      acc += M[k * 7 + j] * ins[j]
+    outs[k] = acc
+</code></pre></figure></div></details>
+<details><summary><code>mixer16_x</code> — 16-channel mixer, dB gain + pan</summary><div class="pair">
+<figure><figcaption>Faust · mixer16_x.dsp</figcaption><pre><code>import(&quot;stdfaust.lib&quot;);
+// 16-channel mixer: dB gain and constant-power pan per channel, master gain.
+g(i) = hslider(&quot;gain%i&quot;, -6, -60, 12, 0.1);
+p(i) = hslider(&quot;pan%i&quot;, i/15.0, 0, 1, 0.001);
+master = hslider(&quot;master&quot;, -3, -60, 12, 0.1);
+ch(i) = *(ba.db2linear(g(i))) &lt;: *(cos(p(i)*ma.PI*0.5)), *(sin(p(i)*ma.PI*0.5));
+process = par(i, 16, ch(i)) :&gt; *(ba.db2linear(master)), *(ba.db2linear(master));
+</code></pre></figure>
+<figure><figcaption>Onda · mixer16_x.onda</figcaption><pre><code># 16-channel mixer: dB gain and constant-power pan per channel, master gain,
+# Expert variant: control-rate coefficients computed once per block, and named ports
+# gathered in a local array instead of the dynamic ins view.
+ins 16
+outs 2
+
+params:
+  gain: f32[16] = -6.0 {-60.0, 12.0}
+  pan: f32[16] = [0.000000000, 0.066666667, 0.133333333, 0.200000000, 0.266666667, 0.333333333, 0.400000000, 0.466666667, 0.533333333, 0.600000000, 0.666666667, 0.733333333, 0.800000000, 0.866666667, 0.933333333, 1.000000000] {0.0, 1.0}
+  master = -3.0 {-60.0, 12.0}
+
+block:
+  m = pow(10.0, master / 20.0)
+  gl: f32[16]
+  gr: f32[16]
+  for i in 0..16:
+    g = pow(10.0, gain[i] / 20.0) * m
+    gl[i] = g * cos(pan[i] * PI * 0.5)
+    gr[i] = g * sin(pan[i] * PI * 0.5)
+  sample:
+    x = [in1, in2, in3, in4, in5, in6, in7, in8, in9, in10, in11, in12, in13, in14, in15, in16]
+    l = 0.0
+    r = 0.0
+    for i in 0..16:
+      l += x[i] * gl[i]
+      r += x[i] * gr[i]
+    out1 = l
+    out2 = r
+</code></pre></figure></div></details>
+<details><summary><code>mixer16</code> — variant: all in sample, ins view</summary><div class="pair">
+<figure><figcaption>Faust · mixer16.dsp</figcaption><pre><code>import(&quot;stdfaust.lib&quot;);
+// 16-channel mixer: dB gain and constant-power pan per channel, master gain.
+g(i) = hslider(&quot;gain%i&quot;, -6, -60, 12, 0.1);
+p(i) = hslider(&quot;pan%i&quot;, i/15.0, 0, 1, 0.001);
+master = hslider(&quot;master&quot;, -3, -60, 12, 0.1);
+ch(i) = *(ba.db2linear(g(i))) &lt;: *(cos(p(i)*ma.PI*0.5)), *(sin(p(i)*ma.PI*0.5));
+process = par(i, 16, ch(i)) :&gt; *(ba.db2linear(master)), *(ba.db2linear(master));
+</code></pre></figure>
+<figure><figcaption>Onda · mixer16.onda</figcaption><pre><code># 16-channel mixer: dB gain and constant-power pan per channel, master gain,
+# written the direct way, everything in the sample loop.
+ins 16
+outs 2
+
+params:
+  gain: f32[16] = -6.0 {-60.0, 12.0}
+  pan: f32[16] = [0.000000000, 0.066666667, 0.133333333, 0.200000000, 0.266666667, 0.333333333, 0.400000000, 0.466666667, 0.533333333, 0.600000000, 0.666666667, 0.733333333, 0.800000000, 0.866666667, 0.933333333, 1.000000000] {0.0, 1.0}
+  master = -3.0 {-60.0, 12.0}
+
+sample:
+  l = 0.0
+  r = 0.0
+  for i in 0..16:
+    x = ins[i] * pow(10.0, gain[i] / 20.0)
+    l += x * cos(pan[i] * PI * 0.5)
+    r += x * sin(pan[i] * PI * 0.5)
+  m = pow(10.0, master / 20.0)
+  out1 = l * m
+  out2 = r * m
+</code></pre></figure></div></details>
+<details><summary><code>freeverb</code> — 8 combs + 4 allpasses</summary><div class="pair">
+<figure><figcaption>Faust · freeverb.dsp</figcaption><pre><code>import(&quot;stdfaust.lib&quot;);
+room = hslider(&quot;room&quot;, 0.84, 0, 0.99, 0.001);
+damp = hslider(&quot;damp&quot;, 0.2, 0, 1, 0.001);
+C(i) = ba.take(i+1, (1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617));
+A(i) = ba.take(i+1, (556, 441, 341, 225));
+comb(L) = (+ : @(L)) ~ (*(1-damp) : (+ ~ *(damp)) : *(room));
+ap(L) = _ &lt;: ((((+ : @(L-1)) ~ *(0.5)) : mem), *(-1)) :&gt; _;
+process = *(0.1) &lt;: par(i, 8, comb(C(i))) :&gt; seq(i, 4, ap(A(i)));
+</code></pre></figure>
+<figure><figcaption>Onda · freeverb.onda</figcaption><pre><code>ins 1
+params:
+  room = 0.84 {0.0, 0.99}
+  damp = 0.2 {0.0, 1.0}
+
+namespace fv&lt;L = 2&gt;:
+  struct Comb:
+    buf: f32[L]
+    idx: i32 {L, wrap}
+    s = 0.0
+
+    def tick(self, x: f32, fb: f32, damp: f32):
+      y = self.buf[self.idx]
+      self.buf[self.idx] = x + fb * self.s
+      self.s = (1.0 - damp) * y + damp * self.s
+      self.idx += 1
+      return y
+
+  struct Allpass:
+    buf: f32[L]
+    idx: i32 {L, wrap}
+
+    def tick(self, x: f32):
+      b = self.buf[self.idx]
+      self.buf[self.idx] = x + 0.5 * b
+      self.idx += 1
+      return b - x
+
+init:
+  c0 = fv&lt;1116&gt;::Comb()
+  c1 = fv&lt;1188&gt;::Comb()
+  c2 = fv&lt;1277&gt;::Comb()
+  c3 = fv&lt;1356&gt;::Comb()
+  c4 = fv&lt;1422&gt;::Comb()
+  c5 = fv&lt;1491&gt;::Comb()
+  c6 = fv&lt;1557&gt;::Comb()
+  c7 = fv&lt;1617&gt;::Comb()
+  a0 = fv&lt;556&gt;::Allpass()
+  a1 = fv&lt;441&gt;::Allpass()
+  a2 = fv&lt;341&gt;::Allpass()
+  a3 = fv&lt;225&gt;::Allpass()
+
+sample:
+  x = in1 * 0.1
+  y = c0.tick(x, room, damp) + c1.tick(x, room, damp) + c2.tick(x, room, damp) + c3.tick(x, room, damp) + c4.tick(x, room, damp) + c5.tick(x, room, damp) + c6.tick(x, room, damp) + c7.tick(x, room, damp)
+  out1 = a3.tick(a2.tick(a1.tick(a0.tick(y))))
+</code></pre></figure></div></details>
+<details><summary><code>fdn8</code> — 8-line FDN, dense Hadamard</summary><div class="pair">
+<figure><figcaption>Faust · fdn8.dsp</figcaption><pre><code>import(&quot;stdfaust.lib&quot;);
+g = hslider(&quot;g&quot;, 0.9, 0, 0.999, 0.001) / sqrt(8.0);
+damp = hslider(&quot;damp&quot;, 0.3, 0, 0.99, 0.001);
+L(i) = ba.take(i+1, (1009, 1151, 1279, 1381, 1499, 1607, 1733, 1861));
+lp = *(1 - damp) : + ~ *(damp);
+sgn(i,j) = (1-2*((i%2)*(j%2))) * (1-2*((int(i/2)%2)*(int(j/2)%2))) * (1-2*((int(i/4)%2)*(int(j/4)%2)));
+had = si.bus(8) &lt;: par(i, 8, (par(j, 8, *(sgn(i,j))) :&gt; _));
+inmix = (si.bus(8), (_ &lt;: si.bus(8))) :&gt; par(i, 8, @(L(i)-1));
+process = (inmix ~ (par(i, 8, lp) : had : par(i, 8, *(g)))) :&gt; *(0.25);
+</code></pre></figure>
+<figure><figcaption>Onda · fdn8.onda</figcaption><pre><code>ins 1
+params:
+  g = 0.9 {0.0, 0.999}
+  damp = 0.3 {0.0, 0.99}
+
+namespace ln&lt;M = 2&gt;:
+  struct Line:
+    buf: f32[M]
+    idx: i32 {M, wrap}
+
+    def tick(self, w: f32):
+      y = self.buf[self.idx]
+      self.buf[self.idx] = w
+      self.idx += 1
+      return y
+
+init:
+  d0 = ln&lt;1008&gt;::Line()
+  d1 = ln&lt;1150&gt;::Line()
+  d2 = ln&lt;1278&gt;::Line()
+  d3 = ln&lt;1380&gt;::Line()
+  d4 = ln&lt;1498&gt;::Line()
+  d5 = ln&lt;1606&gt;::Line()
+  d6 = ln&lt;1732&gt;::Line()
+  d7 = ln&lt;1860&gt;::Line()
+  yp: f32[8]
+  s: f32[8]
+
+block:
+  gn = g / sqrt(8.0)
+  sample:
+    for i in 0..8:
+      s[i] = (1.0 - damp) * yp[i] + damp * s[i]
+    v: f32[8]
+    for i in 0..8:
+      acc = s[0]
+      for j in 1..8:
+        p = i &amp; j
+        par = (p ^ (p &gt;&gt; 1) ^ (p &gt;&gt; 2)) &amp; 1
+        acc += (1.0 - 2.0 * f32(par)) * s[j]
+      v[i] = acc * gn
+    x = in1
+    yp[0] = d0.tick(v[0] + x)
+    yp[1] = d1.tick(v[1] + x)
+    yp[2] = d2.tick(v[2] + x)
+    yp[3] = d3.tick(v[3] + x)
+    yp[4] = d4.tick(v[4] + x)
+    yp[5] = d5.tick(v[5] + x)
+    yp[6] = d6.tick(v[6] + x)
+    yp[7] = d7.tick(v[7] + x)
+    out1 = (yp[0] + yp[1] + yp[2] + yp[3] + yp[4] + yp[5] + yp[6] + yp[7]) * 0.25
+</code></pre></figure></div></details>
+<details><summary><code>diffuser32</code> — 32 allpasses in series</summary><div class="pair">
+<figure><figcaption>Faust · diffuser32.dsp</figcaption><pre><code>import(&quot;stdfaust.lib&quot;);
+// 32 Schroeder allpass combs in series (fi.allpass_comb), alternating +-0.6.
+L(i) = ba.take(i+1, (113, 127, 137, 149, 157, 173, 191, 211, 223, 239, 263, 283, 307, 337, 367, 397, 431, 467, 509, 557, 599, 653, 709, 769, 839, 911, 991, 1087, 1171, 1277, 1381, 1499));
+g(i) = select2(i % 2, 0.6, -0.6);
+process = seq(i, 32, fi.allpass_comb(2048, L(i), g(i)));
+</code></pre></figure>
+<figure><figcaption>Onda · diffuser32.onda</figcaption><pre><code># 32 Schroeder allpass combs in series (as fi.allpass_comb), alternating +-0.6.
+ins 1
+
+namespace df&lt;M = 2&gt;:
+  struct Allpass:
+    buf: f32[M]
+    idx: i32 {M, wrap}
+
+    def tick(self, x: f32, a: f32):
+      r = self.buf[self.idx]
+      u = x - a * r
+      self.buf[self.idx] = u
+      self.idx += 1
+      return r + a * u
+
+init:
+  ap0 = df&lt;113&gt;::Allpass()
+  ap1 = df&lt;127&gt;::Allpass()
+  ap2 = df&lt;137&gt;::Allpass()
+  ap3 = df&lt;149&gt;::Allpass()
+  ap4 = df&lt;157&gt;::Allpass()
+  ap5 = df&lt;173&gt;::Allpass()
+  ap6 = df&lt;191&gt;::Allpass()
+  ap7 = df&lt;211&gt;::Allpass()
+  ap8 = df&lt;223&gt;::Allpass()
+  ap9 = df&lt;239&gt;::Allpass()
+  ap10 = df&lt;263&gt;::Allpass()
+  ap11 = df&lt;283&gt;::Allpass()
+  ap12 = df&lt;307&gt;::Allpass()
+  ap13 = df&lt;337&gt;::Allpass()
+  ap14 = df&lt;367&gt;::Allpass()
+  ap15 = df&lt;397&gt;::Allpass()
+  ap16 = df&lt;431&gt;::Allpass()
+  ap17 = df&lt;467&gt;::Allpass()
+  ap18 = df&lt;509&gt;::Allpass()
+  ap19 = df&lt;557&gt;::Allpass()
+  ap20 = df&lt;599&gt;::Allpass()
+  ap21 = df&lt;653&gt;::Allpass()
+  ap22 = df&lt;709&gt;::Allpass()
+  ap23 = df&lt;769&gt;::Allpass()
+  ap24 = df&lt;839&gt;::Allpass()
+  ap25 = df&lt;911&gt;::Allpass()
+  ap26 = df&lt;991&gt;::Allpass()
+  ap27 = df&lt;1087&gt;::Allpass()
+  ap28 = df&lt;1171&gt;::Allpass()
+  ap29 = df&lt;1277&gt;::Allpass()
+  ap30 = df&lt;1381&gt;::Allpass()
+  ap31 = df&lt;1499&gt;::Allpass()
+
+sample:
+  x = in1
+  x = ap0.tick(x, 0.6)
+  x = ap1.tick(x, -0.6)
+  x = ap2.tick(x, 0.6)
+  x = ap3.tick(x, -0.6)
+  x = ap4.tick(x, 0.6)
+  x = ap5.tick(x, -0.6)
+  x = ap6.tick(x, 0.6)
+  x = ap7.tick(x, -0.6)
+  x = ap8.tick(x, 0.6)
+  x = ap9.tick(x, -0.6)
+  x = ap10.tick(x, 0.6)
+  x = ap11.tick(x, -0.6)
+  x = ap12.tick(x, 0.6)
+  x = ap13.tick(x, -0.6)
+  x = ap14.tick(x, 0.6)
+  x = ap15.tick(x, -0.6)
+  x = ap16.tick(x, 0.6)
+  x = ap17.tick(x, -0.6)
+  x = ap18.tick(x, 0.6)
+  x = ap19.tick(x, -0.6)
+  x = ap20.tick(x, 0.6)
+  x = ap21.tick(x, -0.6)
+  x = ap22.tick(x, 0.6)
+  x = ap23.tick(x, -0.6)
+  x = ap24.tick(x, 0.6)
+  x = ap25.tick(x, -0.6)
+  x = ap26.tick(x, 0.6)
+  x = ap27.tick(x, -0.6)
+  x = ap28.tick(x, 0.6)
+  x = ap29.tick(x, -0.6)
+  x = ap30.tick(x, 0.6)
+  x = ap31.tick(x, -0.6)
+  out1 = x
+</code></pre></figure></div></details>
+<details open><summary><code>zita_rev</code> — re.zita_rev1_stereo</summary><div class="pair">
+<figure><figcaption>Faust · zita_rev.dsp</figcaption><pre><code>import(&quot;stdfaust.lib&quot;);
+f1 = hslider(&quot;f1&quot;, 200, 50, 1000, 1);
+f2 = hslider(&quot;f2&quot;, 6000, 1500, 23520, 1);
+t60dc = hslider(&quot;t60dc&quot;, 3, 1, 8, 0.1);
+t60m = hslider(&quot;t60m&quot;, 2, 1, 8, 0.1);
+process = re.zita_rev1_stereo(60, f1, f2, t60dc, t60m, 48000);
+</code></pre></figure>
+<figure><figcaption>Onda · zita_rev.onda</figcaption><pre><code># Port of re.zita_rev1_stereo(60, f1, f2, t60dc, t60m, fsmax) from faustlibraries,
+# delay lengths computed for 48 kHz exactly as reverbs.lib does (floor(0.5 + SR*t)).
+ins 2
+outs 2
+
+params:
+  f1 = 200.0 {50.0, 1000.0}
+  f2 = 6000.0 {1500.0, 23520.0}
+  t60dc = 3.0 {1.0, 8.0}
+  t60m = 2.0 {1.0, 8.0}
+
+namespace zr&lt;M = 2&gt;:
+  struct Line:
+    buf: f32[M]
+    idx: i32 {M, wrap}
+
+    def tick(self, w: f32):
+      y = self.buf[self.idx]
+      self.buf[self.idx] = w
+      self.idx += 1
+      return y
+
+  # Schroeder allpass comb (fi.allpass_comb): u = x - a*u[n-M], y = u[n-M] + a*u
+  struct Allpass:
+    buf: f32[M]
+    idx: i32 {M, wrap}
+
+    def tick(self, x: f32, a: f32):
+      r = self.buf[self.idx]
+      u = x - a * r
+      self.buf[self.idx] = u
+      self.idx += 1
+      return r + a * u
+
+init:
+  dl = zr&lt;1920&gt;::Line()        # input delay rdel - 20 = 40 ms
+  dr = zr&lt;1920&gt;::Line()
+  ap0 = zr&lt;977&gt;::Allpass()
+  ap1 = zr&lt;1172&gt;::Allpass()
+  ap2 = zr&lt;1517&gt;::Allpass()
+  ap3 = zr&lt;1312&gt;::Allpass()
+  ap4 = zr&lt;1099&gt;::Allpass()
+  ap5 = zr&lt;1406&gt;::Allpass()
+  ap6 = zr&lt;646&gt;::Allpass()
+  ap7 = zr&lt;918&gt;::Allpass()
+  fb0 = zr&lt;6372&gt;::Line()       # tdelay - apdelay - 1 (the loop adds one sample)
+  fb1 = zr&lt;8926&gt;::Line()
+  fb2 = zr&lt;4618&gt;::Line()
+  fb3 = zr&lt;11018&gt;::Line()
+  fb4 = zr&lt;7286&gt;::Line()
+  fb5 = zr&lt;7824&gt;::Line()
+  fb6 = zr&lt;5353&gt;::Line()
+  fb7 = zr&lt;9641&gt;::Line()
+  tdel: f32[8] = [7350.0, 10099.0, 6136.0, 12331.0, 8386.0, 9231.0, 6000.0, 10560.0]
+  hp: f32[8]     # Hadamard outputs of the previous sample
+  s1: f32[8]     # one-pole TPT lowpass states (low shelf)
+  e: f32[8]      # si.smooth error states
+  xp: f32[8]     # si.smooth previous inputs
+
+block:
+  g1 = tan(max(0.0, min(PI * f1 / SR, 0.499 * PI)))
+  gk = g1 * (1.0 / (g1 + 1.0))
+  gk2 = 2.0 * gk
+  c = cos(TWO_PI * f2 / SR)
+  if f2 &gt; 0.49 * SR:
+    c = -1.0
+  shelf: f32[8]
+  gm: f32[8]
+  pole: f32[8]
+  for i in 0..8:
+    g0 = exp(-6.9077554 * tdel[i] / (t60dc * SR))
+    gM = exp(-6.9077554 * tdel[i] / (t60m * SR))
+    shelf[i] = g0 / gM - 1.0
+    gm[i] = gM
+    gs = gM * gM
+    mbo2 = (1.0 - gs * c) / (1.0 - gs)
+    pole[i] = mbo2 - sqrt(max(0.0, mbo2 * mbo2 - 1.0))
+  t1 = 0.525 / sqrt(t60m)
+  inv = 1.0 / sqrt(8.0)
+
+  sample:
+    # damping filters on the delayed Hadamard outputs
+    z: f32[8]
+    for i in 0..8:
+      x = hp[i]
+      d = x - s1[i]
+      v = s1[i] + gk * d
+      s1[i] = s1[i] + gk2 * d
+      sh = gm[i] * (x + shelf[i] * v)
+      e[i] = pole[i] * (e[i] + (xp[i] - sh))
+      xp[i] = sh
+      z[i] = inv * (sh + e[i]) + 0.00000000000000000001
+
+    xl = 0.3 * dl.tick(in1)
+    xr = 0.3 * dr.tick(in2)
+    q0 = ap0.tick(fb0.tick(z[0]) + xl, 0.6)
+    q1 = ap1.tick(fb1.tick(z[1]) + xl, -0.6)
+    q2 = ap2.tick(fb2.tick(z[2]) - xl, 0.6)
+    q3 = ap3.tick(fb3.tick(z[3]) - xl, -0.6)
+    q4 = ap4.tick(fb4.tick(z[4]) + xr, 0.6)
+    q5 = ap5.tick(fb5.tick(z[5]) + xr, -0.6)
+    q6 = ap6.tick(fb6.tick(z[6]) - xr, 0.6)
+    q7 = ap7.tick(fb7.tick(z[7]) - xr, -0.6)
+
+    # ro.hadamard(8): butterfly(8), then hadamard(4) on each half
+    b0 = q0 + q4
+    b1 = q1 + q5
+    b2 = q2 + q6
+    b3 = q3 + q7
+    b4 = q0 - q4
+    b5 = q1 - q5
+    b6 = q2 - q6
+    b7 = q3 - q7
+    c0 = b0 + b2
+    c1 = b1 + b3
+    c2 = b0 - b2
+    c3 = b1 - b3
+    c4 = b4 + b6
+    c5 = b5 + b7
+    c6 = b4 - b6
+    c7 = b5 - b7
+    hp[0] = c0 + c1
+    hp[1] = c0 - c1
+    hp[2] = c2 + c3
+    hp[3] = c2 - c3
+    hp[4] = c4 + c5
+    hp[5] = c4 - c5
+    hp[6] = c6 + c7
+    hp[7] = c6 - c7
+    out1 = (hp[1] + hp[2]) * t1
+    out2 = (hp[1] - hp[2]) * t1
+</code></pre></figure></div></details>
+</section>
+</main>
+
+<script>
+(function () {
+  const data = [{"n": "sine", "s": 0.997, "f": 1.001}, {"n": "fm_pad", "s": 1.008, "f": 0.433}, {"n": "additive64", "s": 3.394, "f": 2.38}, {"n": "noise", "s": 1.085, "f": 1.062}, {"n": "tanh_drive", "s": 1.605, "f": 1.415}, {"n": "biquad8", "s": 0.765, "f": 0.655}, {"n": "peq10", "s": 0.617, "f": 0.496}, {"n": "svf_mod", "s": 0.983, "f": 1.04}, {"n": "fir32c", "s": 0.838, "f": 0.984}, {"n": "hoa_decoder_x", "s": 0.587, "f": 0.976}, {"n": "mixer16_x", "s": 0.91, "f": 1.304}, {"n": "freeverb", "s": 0.535, "f": 0.422}, {"n": "fdn8", "s": 0.639, "f": 0.436}, {"n": "diffuser32", "s": 0.744, "f": 0.403}, {"n": "zita_rev", "s": 1.114, "f": 1.026}];
+  const svg = document.getElementById('bars');
+  const W = 760, rowH = 34, top = 30, left = 120, right = 24, H = top + data.length * rowH + 30;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const lo = Math.log(0.25), hi = Math.log(6);
+  const x = v => left + (Math.log(v) - lo) / (hi - lo) * (W - left - right);
+  const ns = 'http://www.w3.org/2000/svg';
+  const el = (t, a, txt) => { const e = document.createElementNS(ns, t); for (const k in a) e.setAttribute(k, a[k]); if (txt) e.textContent = txt; svg.appendChild(e); return e; };
+  [0.25, 0.5, 1, 2, 4, 6].forEach(t => {
+    el('line', { x1: x(t), x2: x(t), y1: top - 6, y2: H - 24, stroke: 'var(--rule)', 'stroke-width': t === 1 ? 2 : 1 });
+    el('text', { x: x(t), y: H - 8, 'text-anchor': 'middle', fill: 'var(--muted)', 'font-size': 11, 'font-family': 'var(--f-mono)' }, '×' + t);
+  });
+  el('rect', { x: left, y: 6, width: 12, height: 10, fill: 'var(--onda)' });
+  el('text', { x: left + 18, y: 15, fill: 'var(--fg)', 'font-size': 12 }, 'strict: best Faust IEEE / onda');
+  el('rect', { x: left + 200, y: 6, width: 12, height: 10, fill: 'var(--faust)' });
+  el('text', { x: left + 218, y: 15, fill: 'var(--fg)', 'font-size': 12 }, 'fast-math: best Faust / onda-fm');
+  data.forEach((d, i) => {
+    const y = top + i * rowH;
+    el('text', { x: left - 8, y: y + 17, 'text-anchor': 'end', fill: 'var(--fg)', 'font-size': 12, 'font-family': 'var(--f-mono)' }, d.n);
+    [['s', 'var(--onda)', 3], ['f', 'var(--faust)', 16]].forEach(([k, c, dy]) => {
+      const v = d[k], x0 = x(1), x1 = x(v);
+      el('rect', { x: Math.min(x0, x1), y: y + dy, width: Math.max(1, Math.abs(x1 - x0)), height: 11, fill: c, opacity: v < 1 ? 0.55 : 1 });
+      el('text', { x: v >= 1 ? x1 + 4 : x1 - 4, y: y + dy + 10, 'text-anchor': v >= 1 ? 'start' : 'end', fill: 'var(--muted)', 'font-size': 10, 'font-family': 'var(--f-mono)' }, v.toFixed(2));
+    });
+  });
+})();
+</script>

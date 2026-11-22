@@ -1,0 +1,15 @@
+fcautotool: faust = /Users/letz/Developpements/onda-vs-faust-bench/tools/faust-cert4.sh
+fcautotool: c++ = /usr/bin/clang++ (Apple clang version 21.0.0 (clang-2100.4.1.1)) -O3 -ffast-math -fbracket-depth=1024 -mcpu=native
+fcautotool: timed in single precision  (--double to elect for a double build)
+fcautotool: jury = 19/28 candidates supported: ['al', 'cs2', 'cs2b', 'df', 'fu', 'gq', 'gqlz', 'gqsn', 'h2', 'h32', 'lb', 'ls', 'lz', 'lzh', 'rp', 'sn', 't1fu', 't4', 't4fu']
+fcautotool: shortlist by signature: 5/19 of the supported jury (--full races them all): ['df', 'lb', 'fu', 'al', 'h32']
+  al         1.2230 ns  (-lang ocpp -ss 8)
+  df         1.2250 ns  (-lang ocpp)
+  fu         1.2260 ns  (-lang ocpp -ls-fuse -ls-sched model)
+  h32        1.2260 ns  (-lang ocpp -ss 9 -ls-R 32 -ls-U 4)
+  lb         1.2270 ns  (-lang ocpp -lsum)
+  cppvec     1.5230 ns  (-lang cpp -vec)
+  cppmcd0    1.6270 ns  (-lang cpp -mcd 0)
+  cpp        2.6690 ns  (-lang cpp)
+  -- 8 timed of 8 raced (0 build failures, 0 without a timing)
+fcautotool: winner al (1.2230 ns/frame, single precision) -- -lang ocpp -ss 8  [19.8 s]

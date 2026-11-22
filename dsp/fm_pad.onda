@@ -1,0 +1,32 @@
+# Two detuned 2-operator FM voices through a tanh shaper: cheap phase recursions,
+# heavy recursion-free math (4 sin + 2 tanh per sample).
+params:
+  freq = 220.0 {20.0, 2000.0}
+  ratio = 1.5 {0.25, 8.0}
+  index = 3.0 {0.0, 10.0}
+  drive = 2.0 {1.0, 10.0}
+  detune = 1.003 {1.0, 1.02}
+
+init:
+  pc1 = 0.0
+  pm1 = 0.0
+  pc2 = 0.0
+  pm2 = 0.0
+
+block:
+  ic1 = freq / SR
+  im1 = freq * ratio / SR
+  ic2 = freq * detune / SR
+  im2 = freq * detune * ratio / SR
+  sample:
+    pc1 += ic1
+    pc1 -= floor(pc1)
+    pm1 += im1
+    pm1 -= floor(pm1)
+    pc2 += ic2
+    pc2 -= floor(pc2)
+    pm2 += im2
+    pm2 -= floor(pm2)
+    v1 = tanh(drive * sin(TWO_PI * pc1 + index * sin(TWO_PI * pm1)))
+    v2 = tanh(drive * sin(TWO_PI * pc2 + index * sin(TWO_PI * pm2)))
+    out1 = (v1 + v2) * 0.25

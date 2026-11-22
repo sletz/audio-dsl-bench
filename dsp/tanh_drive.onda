@@ -1,0 +1,6 @@
+ins 1
+params:
+  drive = 4.0 {1.0, 20.0}
+
+sample:
+  out1 = tanh(in1 * drive) * 0.5
