@@ -35,9 +35,11 @@ CATS = [
                             ('mixer16', 'variant: all in sample, ins view')]),
     ('Delays and reverbs', [('freeverb', '8 combs + 4 allpasses'), ('fdn8', '8-line FDN, dense Hadamard'),
                                   ('diffuser32', '32 allpasses in series'), ('zita_rev', 're.zita_rev1_stereo')]),
-    ('Physical models', [('clarinet', 'pm.clarinet_ui_MIDI, gate held')]),
+    ('Physical models', [('clarinet', 'pm.clarinet_ui_MIDI, gate held'), ('violin', 'pm.violin_ui_MIDI, gate held'),
+                         ('frenchbell', 'pm.frenchBell_ui, 50 modes, struck once'),
+                         ('frenchbell_x', 'variant: mode sum in 4 partial sums')]),
 ]
-VARIANTS = {'fir32', 'hoa_decoder', 'mixer16'}
+VARIANTS = {'fir32', 'hoa_decoder', 'mixer16', 'frenchbell_x'}
 cols = [('onda', 'onda'), ('onda-fm', 'onda --fast-math'),
         ('cpp-scal-ieee', 'C++ IEEE'), ('cpp-scal-fm', 'C++ -ffast-math'), ('cpp-vec-fm', 'C++ -vec -ffast-math'),
         ('cpp-vec-acc', 'C++ -vec + Accelerate'), ('llvm-scal', 'Faust LLVM'), ('llvm48', 'Faust LLVM, fixed SR'),
@@ -82,8 +84,8 @@ gs, gf = g([x[0] for x in stats]), g([x[1] for x in stats])
 gso, gfo = g([x[2] for x in stats]), g([x[3] for x in stats])
 wins = sum(x[0] >= 1.05 for x in stats); ties = sum(0.95 < x[0] < 1.05 for x in stats); losses = len(stats) - wins - ties
 fwins = sum(x[1] >= 1.05 for x in stats); fties = sum(0.95 < x[1] < 1.05 for x in stats); flosses = len(stats) - fwins - fties
-ocpp_gain = g([R[n]['cpp-scal-ieee'] / R[n]['ocpp-ieee'] for _, p in CATS for n, _ in p if n not in VARIANTS])
-best_gain = g([R[n]['cpp-scal-fm'] / R[n]['best-fm'] for _, p in CATS for n, _ in p if n not in VARIANTS])
+ocpp_gain = g([R[n]['cpp-scal-ieee'] / R[n]['ocpp-ieee'] for _, p in CATS for n, _ in p if n not in VARIANTS and 'ocpp-ieee' in R[n]])
+best_gain = g([R[n]['cpp-scal-fm'] / R[n]['best-fm'] for _, p in CATS for n, _ in p if n not in VARIANTS and 'best-fm' in R[n]])
 
 # options elected by fcautotool
 erows = []

@@ -11,7 +11,7 @@ CATS = [('Oscillators and sources', ['sine', 'fm_pad', 'additive64', 'noise']),
         ('Filters', ['biquad8', 'peq10', 'svf_mod', 'fir32c']),
         ('Matrices and mixing', ['hoa_decoder_x', 'mixer16_x']),
         ('Delays and reverbs', ['freeverb', 'fdn8', 'diffuser32', 'zita_rev']),
-        ('Physical models', ['clarinet'])]
+        ('Physical models', ['clarinet', 'violin', 'frenchbell'])]
 NAMES = {'hoa_decoder_x': 'hoa_decoder', 'mixer16_x': 'mixer16'}
 IEEE = ['cpp-scal-ieee', 'cpp-vec-ieee', 'ocpp-ieee', 'ocpp48-ieee']
 FAST = ['cpp-scal-fm', 'cpp-vec-fm', 'cpp-vec-acc', 'llvm-scal', 'llvm-vec', 'llvm48', 'ocpp-fm', 'best-fm', 'best48-fm']

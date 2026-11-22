@@ -6,7 +6,7 @@
 # The fcautotool election (results/autotool/) is redone separately by tools/autotune_all.sh.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"; cd "$HERE"
-KERNELS=${KERNELS:-"sine fm_pad additive64 noise tanh_drive biquad8 peq10 svf_mod fir32c fir32 hoa_decoder_x hoa_decoder mixer16_x mixer16 freeverb fdn8 diffuser32 zita_rev clarinet"}
+KERNELS=${KERNELS:-"sine fm_pad additive64 noise tanh_drive biquad8 peq10 svf_mod fir32c fir32 hoa_decoder_x hoa_decoder mixer16_x mixer16 freeverb fdn8 diffuser32 zita_rev clarinet violin frenchbell frenchbell_x"}
 ROUNDS=${ROUNDS:-21}
 mkdir -p results
 run_pass() {  # $1 = output file, $2 = extra flags for the strict C++ variants

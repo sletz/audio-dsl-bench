@@ -73,8 +73,12 @@ BEST=""
 echo "$BEST" > best_options.txt
 gen_cert4() {  # $1 = class, $2 = make function, $3 = c++ flags, rest = faust options ($FC = faust wrapper)
   local cls=$1 mk=$2 fl=$3; shift 3
-  "${FC:-$FAUST_CERT4}" "$HERE/dsp/$N.dsp" "$@" -cn $cls -o $cls.h
-  printf '#include <faust/dsp/dsp.h>\n#include <faust/gui/UI.h>\n#include <faust/gui/meta.h>\n#include <cmath>\n#include <algorithm>\n#include "%s.h"\ndsp* %s() { return new %s(); }\n' $cls $mk $cls > $cls.cpp
+  if "${FC:-$FAUST_CERT4}" "$HERE/dsp/$N.dsp" "$@" -cn $cls -o $cls.h 2> $cls.err; then
+    printf '#include <faust/dsp/dsp.h>\n#include <faust/gui/UI.h>\n#include <faust/gui/meta.h>\n#include <cmath>\n#include <algorithm>\n#include "%s.h"\ndsp* %s() { return new %s(); }\n' $cls $mk $cls > $cls.cpp
+  else  # this faust rejects the program: the engine is left out of the run
+    echo "build.sh: $cls: $(head -1 $cls.err | cut -c1-120)" >&2
+    printf '#include <faust/dsp/dsp.h>\ndsp* %s() { return nullptr; }\n' $mk > $cls.cpp
+  fi
   $CXX $fl -c $cls.cpp -o $cls.o
 }
 gen_cert4 Faust_ocpp_strict make_faust_ocpp_strict "-O3 ${STRICT_EXTRA:-}" -lang ocpp

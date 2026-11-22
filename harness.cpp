@@ -96,20 +96,22 @@ int main(int argc, char** argv) {
     int rounds = argc > 3 ? atoi(argv[3]) : 21;
 
     std::vector<std::unique_ptr<Engine>> engines;
+    // a Faust build that rejected the program yields no dsp: that engine is left out
+    auto add_faust = [&](const char* n, dsp* p) { if (p) engines.emplace_back(new FaustEngine(n, p)); };
     engines.emplace_back(new OndaEngine("onda", onda_init_strict, onda_process_strict));
     engines.emplace_back(new OndaEngine("onda-fm", onda_init_fast, onda_process_fast));
-    engines.emplace_back(new FaustEngine("cpp-scal", make_faust_scal_strict()));
-    engines.emplace_back(new FaustEngine("cpp-scal-fm", make_faust_scal_fast()));
-    engines.emplace_back(new FaustEngine("cpp-vec", make_faust_vec_strict()));
-    engines.emplace_back(new FaustEngine("cpp-vec-fm", make_faust_vec_fast()));
-    engines.emplace_back(new FaustEngine("cpp-vec-acc", make_faust_vecacc_fast()));
+    add_faust("cpp-scal", make_faust_scal_strict());
+    add_faust("cpp-scal-fm", make_faust_scal_fast());
+    add_faust("cpp-vec", make_faust_vec_strict());
+    add_faust("cpp-vec-fm", make_faust_vec_fast());
+    add_faust("cpp-vec-acc", make_faust_vecacc_fast());
     // faust of the master-dev-certification-4 branch: old C++ backend, and the option set elected by fcautotool
-    engines.emplace_back(new FaustEngine("ocpp", make_faust_ocpp_strict()));
-    engines.emplace_back(new FaustEngine("ocpp-fm", make_faust_ocpp_fast()));
-    engines.emplace_back(new FaustEngine("best-fm", make_faust_best_fast()));
+    add_faust("ocpp", make_faust_ocpp_strict());
+    add_faust("ocpp-fm", make_faust_ocpp_fast());
+    add_faust("best-fm", make_faust_best_fast());
     // the same two with SR fixed at 48 kHz at compile time (sr48/platform.lib), as onda does
-    engines.emplace_back(new FaustEngine("ocpp48", make_faust_ocpp48_strict()));
-    engines.emplace_back(new FaustEngine("best48-fm", make_faust_best48_fast()));
+    add_faust("ocpp48", make_faust_ocpp48_strict());
+    add_faust("best48-fm", make_faust_best48_fast());
     std::vector<llvm_dsp_factory*> factories;
     const char* llvm_variants[][6] = {{"llvm-scal", "-I", FAUSTLIB, "-scal", nullptr, nullptr},
                                       {"llvm-vec", "-I", FAUSTLIB, "-vec", "-vs", "32"},
