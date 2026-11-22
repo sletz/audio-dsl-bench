@@ -1,10 +1,16 @@
 # Audio DSL bench: onda, Faust, Cmajor, YDSP
 
 Four audio DSP languages measured on the same harness, the same programs and the same input:
-onda, Faust, [Cmajor](https://cmajor.dev) and YDSP, the JIT-compiled DSP language of the
+[onda](https://github.com/onda-lang/onda), [Faust](https://faust.grame.fr),
+[Cmajor](https://cmajor.dev) and YDSP, the JIT-compiled DSP language of the
 [YUP](https://github.com/kunitoki/yup) framework (module `yup_dsp_jit`). The project started as
-an onda vs Faust comparison (this section); Cmajor and YDSP are described
+an onda vs Faust comparison (next section); Cmajor and YDSP are described
 [below](#cmajor-and-ydsp).
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="report/languages-dark.svg">
+  <img alt="Speed of onda, Cmajor and YDSP relative to the best Faust build, per program, strict IEEE and fast-math, log scale. Geometric means, strict: onda x0.89, Cmajor x0.61, YDSP x0.63; fast-math: onda x0.77, Cmajor x0.53, YDSP x0.63. Faust is faster on most programs; the clearest wins over it are onda on additive64 and tanh_drive, Cmajor on the violin, and YDSP fastMath on tanh_drive." src="report/languages-light.svg">
+</picture>
 
 ## onda vs Faust
 
@@ -134,7 +140,7 @@ Measure on an idle machine, on AC power.
 | `tools/ydsp/` | YDSP engine: C interface over `yup_dsp_jit`, and the CMake project that builds it as a static library |
 | `run_all.sh` | The 22 programs in two passes, then the report and the chart |
 | `report/gen.py`, `report/template.html` | Merge the two passes (`results/results.json`) and generate the HTML report |
-| `report/readme_chart.py` | Draws `report/chart-light.svg` and `report/chart-dark.svg`, the README chart |
+| `report/readme_chart.py` | Draws the README charts: `report/languages-{light,dark}.svg` (the four languages) and `report/chart-{light,dark}.svg` (onda vs Faust) |
 | `tools/dumpir.cpp` | Writes the LLVM IR of a Faust LLVM factory (`writeDSPFactoryToIRFile`) |
 | `tools/faust-cert4*.sh` | cert-4 faust with the faustlibraries libraries, or with `sr48/` |
 | `tools/build-faust-cert4.sh`, `tools/make-sr48.sh` | Recreate the two generated, unversioned items |
