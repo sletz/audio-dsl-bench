@@ -29,14 +29,8 @@ D="$HERE/build/$N"
 rm -rf "$D"; mkdir -p "$D"; cd "$D"
 CXX="clang++ -std=c++17 -mcpu=native"
 
-ONDA_HELP=$("$ONDA" --help)
 for v in strict fast; do
-  fm=""
-  if [[ $v = strict && $ONDA_HELP = *--no-fast-math* ]]; then
-    fm="--no-fast-math"
-  elif [[ $v = fast && $ONDA_HELP = *--fast-math* ]]; then
-    fm="--fast-math"
-  fi
+  fm=""; [ "$v" = fast ] && fm="--fast-math"
   "$ONDA" compile "$HERE/dsp/$N.onda" --emit obj --target-cpu host -b 256 --sr 48000 $fm \
     -o onda_$v.raw.o --meta-out onda_$v.json > /dev/null
   $OBJCOPY --redefine-sym _onda_processor_init=_onda_init_$v --redefine-sym _onda_process=_onda_process_$v \

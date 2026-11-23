@@ -178,7 +178,8 @@ language. These measurements, taken while porting, decided the form of the ports
 
 ## Requirements
 
-- **onda**: `tools/build-onda.sh` builds `../onda/target/release/onda` against MacPorts LLVM 21,
+- **onda**: use Onda 0.9.2 and its matching headers. `tools/build-onda.sh` builds the
+  compiler from an Onda checkout against MacPorts LLVM 21,
   through a "shadow" prefix (`tools/make-llvm-shadow.sh`) limited to AArch64/ARM/X86/WebAssembly,
   because onda's `native/target.cpp` shim initializes every target of the LLVM installation
   (AMDGPU, etc.), which `build.rs` does not link. Otherwise: `ONDA=/path/to/onda ./build.sh ...`.

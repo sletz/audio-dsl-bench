@@ -10,8 +10,8 @@ Use Python 3, Clang C++, `llvm-objcopy`, `taskset`, CMake 3.31 or newer, Ninja, 
 and the development dependencies for LLVM, Faust, and zlib. The runner defaults to the
 published Onda 0.9.2 x86-64 Linux package and its bundled ABI header under
 `build/toolchains/onda-0.9.2-linux-x64`. Use `--onda` and `--onda-include` together for
-a separate installation. The runner supplies the strict or fast-math flag when that
-flag is available.
+a separate 0.9.2 installation. The strict build uses that release's default
+arithmetic. The fast build passes `--fast-math`.
 
 From the benchmark checkout, put the dependencies in `build/toolchains/` or substitute
 existing checkouts. The commands below use the compiler and library revisions tested on Linux.

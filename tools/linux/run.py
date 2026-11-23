@@ -76,7 +76,8 @@ def build(args, name, fixed_libs):
         engine = "onda-fm" if fast else "onda"
         symbol = engine.replace("-", "_")
         options = [args.onda, "compile", onda_path, "--target-cpu", "host", "-b", "256", "--sr", "48000"]
-        options.extend(args.onda_math[fast])
+        if fast:
+            options.append("--fast-math")
         run(*options, "--emit", "obj", "-o", "raw.o", "--meta-out", f"{engine}.json")
         if name in args.ir:
             run(*options, "--emit", "llvm-ir", "-o", f"{engine}.ll")
@@ -263,11 +264,6 @@ def main():
     if args.cmajor_library:
         version = command(args.cmajor or "cmaj", "--version", stdout=subprocess.PIPE).stdout.strip()
         print(version, flush=True)
-    help_flags = set(re.findall(r"--[\w-]+", command(args.onda, "--help", capture_output=True).stdout))
-    args.onda_math = {
-        fast: [flag] if flag in help_flags else []
-        for fast, flag in ((False, "--no-fast-math"), (True, "--fast-math"))
-    }
     args.out.mkdir(parents=True, exist_ok=False)
     if args.cmajor_library:
         command(args.cxx, "-std=c++17", "-O2", "-I", args.cmajor_include,
