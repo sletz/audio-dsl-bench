@@ -11,6 +11,7 @@
 #include <memory>
 #include <new>
 #include <string>
+#include <utility>
 #include <vector>
 #ifdef __APPLE__
 #include <pthread.h>
@@ -76,7 +77,7 @@ static dsp* make_ydsp(int fastMath) {
 
 struct InputPorts {
     float* audio[NCH];
-    const void* const* onda;
+    const void* onda[NCH];
 };
 
 struct OutputPorts {
@@ -91,35 +92,40 @@ struct Engine {
     virtual void compute(InputPorts& in, OutputPorts& out) = 0;
 };
 
+struct AlignedDelete {
+    std::align_val_t alignment;
+    void operator()(void* storage) const noexcept { ::operator delete(storage, alignment); }
+};
+
+using AlignedStorage = std::unique_ptr<void, AlignedDelete>;
+
+static AlignedStorage allocate_storage(size_t bytes, size_t minimum_alignment) {
+    const std::align_val_t alignment{std::max<size_t>(16, minimum_alignment)};
+    return AlignedStorage(bytes ? ::operator new(bytes, alignment) : nullptr, AlignedDelete{alignment});
+}
+
 struct OndaEngine : Engine {
-    onda_processor_init_fn fi;
-    onda_processor_process_fn fp;
-    std::align_val_t state_align, param_align;
-    void* state;
-    void* params;
+    onda_processor_init_fn init_processor;
+    onda_processor_process_fn process_block;
+    AlignedStorage state;
+    AlignedStorage params;
     OndaEngine(const char* n, onda_processor_init_fn i, onda_processor_process_fn p,
                size_t state_bytes, size_t state_alignment, size_t param_alignment,
                const unsigned char* defaults, size_t param_bytes)
-        : fi(i), fp(p), state_align{std::max<size_t>(16, state_alignment)},
-          param_align{std::max<size_t>(16, param_alignment)},
-          state(state_bytes ? ::operator new(state_bytes, state_align) : nullptr),
-          params(param_bytes ? ::operator new(param_bytes, param_align) : nullptr) {
+        : init_processor(i), process_block(p), state(allocate_storage(state_bytes, state_alignment)),
+          params(allocate_storage(param_bytes, param_alignment)) {
         name = n;
-        if (params) memcpy(params, defaults, param_bytes);
-    }
-    ~OndaEngine() override {
-        ::operator delete(params, param_align);
-        ::operator delete(state, state_align);
+        if (params) memcpy(params.get(), defaults, param_bytes);
     }
     void init() override {
-        uint32_t s = fi(params, state, ONDA_PROCESSOR_INIT_FULL, nullptr, nullptr, nullptr, nullptr, nullptr);
-        if (s != ONDA_PROCESSOR_EXECUTION_OK) { fprintf(stderr, "%s: init failed %u\n", name.c_str(), s); exit(1); }
+        uint32_t status = init_processor(params.get(), state.get(), ONDA_PROCESSOR_INIT_FULL,
+                                         nullptr, nullptr, nullptr, nullptr, nullptr);
+        if (status != ONDA_PROCESSOR_EXECUTION_OK) {
+            fprintf(stderr, "%s: init failed %u\n", name.c_str(), status);
+            exit(1);
+        }
     }
-    void compute(InputPorts& in, OutputPorts& out) override {
-        uint32_t s = fp(state, params, in.onda, out.onda, 0, BS, ONDA_PROCESSOR_FULL_BLOCK,
-                        nullptr, nullptr, nullptr, nullptr, nullptr);
-        if (s != ONDA_PROCESSOR_EXECUTION_OK) { fprintf(stderr, "%s: process failed %u\n", name.c_str(), s); exit(1); }
-    }
+    void compute(InputPorts& in, OutputPorts& out) override;
 };
 
 struct FaustEngine : Engine {
@@ -132,6 +138,16 @@ struct FaustEngine : Engine {
 #ifdef BENCH_GENERATED_ENGINES
 #include "engines.inc"
 #endif
+
+void OndaEngine::compute(InputPorts& in, OutputPorts& out) {
+    uint32_t status = process_block(state.get(), params.get(), input_count ? in.onda : nullptr,
+                                    out.onda, 0, BS, ONDA_PROCESSOR_FULL_BLOCK,
+                                    nullptr, nullptr, nullptr, nullptr, nullptr);
+    if (status != ONDA_PROCESSOR_EXECUTION_OK) {
+        fprintf(stderr, "%s: process failed %u\n", name.c_str(), status);
+        exit(1);
+    }
+}
 
 static double now_ns() {
     return (double)std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -157,6 +173,9 @@ int main(int argc, char** argv) {
     int round_ms = argc > 4 ? atoi(argv[4]) : 40;
     if (rounds < 1 || round_ms < 1) { fprintf(stderr, "rounds and round-ms must be positive\n"); return 1; }
 
+    // The factories outlive every DSP instance created from them.
+    using FaustFactory = std::unique_ptr<llvm_dsp_factory, decltype(&deleteDSPFactory)>;
+    std::vector<FaustFactory> factories;
     std::vector<std::unique_ptr<Engine>> engines;
     // A compiler that rejected the program yields no dsp.
     auto add_faust = [&](const char* n, dsp* p) {
@@ -205,7 +224,6 @@ int main(int argc, char** argv) {
     // YUP's YDSP JIT (asmjit), strict and with its default fastMath
     add_faust("ydsp", make_ydsp(0));
     add_faust("ydsp-fm", make_ydsp(1));
-    std::vector<llvm_dsp_factory*> factories;
     const char* llvm_variants[][6] = {{"llvm-scal", "-I", FAUSTLIB, "-scal", nullptr, nullptr},
                                       {"llvm-vec", "-I", FAUSTLIB, "-vec", "-vs", "32"},
                                       // SR fixed at 48 kHz: sr48/ holds the libraries with platform.lib's SR = 48000.0
@@ -219,15 +237,16 @@ int main(int argc, char** argv) {
     for (auto& v : llvm_variants) {
         std::string err;
         int n = v[4] ? 5 : 3;
-        llvm_dsp_factory* f = createDSPFactoryFromFile(dspfile, n, (const char**)&v[1], "", err, -1);
-        if (!f) { fprintf(stderr, "%s: %s: %s\n", tag, v[0], err.c_str()); continue; }
-        factories.push_back(f);
+        FaustFactory factory(createDSPFactoryFromFile(dspfile, n, &v[1], "", err, -1), deleteDSPFactory);
+        if (!factory) { fprintf(stderr, "%s: %s: %s\n", tag, v[0], err.c_str()); continue; }
         std::string label = std::string(v[0]) + (llvm_no_fast ? "-no-fm" : "");
-        if (argc > 5 && *argv[5] && !writeDSPFactoryToIRFile(f, std::string(argv[5]) + "/" + label + ".ll")) {
+        if (argc > 5 && *argv[5] && !writeDSPFactoryToIRFile(factory.get(), std::string(argv[5]) + "/" + label + ".ll")) {
             fprintf(stderr, "%s: %s IR export failed\n", tag, label.c_str());
             return 1;
         }
-        add_faust(label.c_str(), f->createDSPInstance());
+        auto* registered = factory.get();
+        factories.push_back(std::move(factory));
+        add_faust(label.c_str(), registered->createDSPInstance());
     }
 
     // Input: 64 blocks of deterministic white noise, cycled.
@@ -237,15 +256,13 @@ int main(int argc, char** argv) {
     for (auto& x : noise) { seed = seed * 1664525u + 1013904223u; x = ((int32_t)seed) * (0.5f / 2147483648.0f); }
     float obuf[NCH][BS] = {};
     InputPorts inputs[NB];
-    const void* onda_inputs[NB][NCH];
     OutputPorts out;
     for (int c = 0; c < NCH; c++) {
         out.onda[c] = out.audio[c] = obuf[c];
     }
     for (int b = 0; b < NB; b++) {
-        inputs[b].onda = input_count ? onda_inputs[b] : nullptr;
         for (int c = 0; c < NCH; c++) {
-            onda_inputs[b][c] = inputs[b].audio[c] = &noise[((size_t)b * NCH + c) * BS];
+            inputs[b].onda[c] = inputs[b].audio[c] = &noise[((size_t)b * NCH + c) * BS];
         }
     }
 
@@ -262,7 +279,7 @@ int main(int argc, char** argv) {
     auto render = [&](Engine& e, int b) {
         for (int c = 0; c < output_count; c++)
             std::fill_n(obuf[c], BS, std::numeric_limits<float>::quiet_NaN());
-        run_blocks(e, 1, b);
+        e.compute(inputs[b % NB], out);
     };
     std::vector<float> ref;
     ref.reserve((size_t)NCMP * BS * output_count);
@@ -315,7 +332,7 @@ int main(int argc, char** argv) {
 
     // 2. Timing: warm-up, then rounds interleaved across engines (shuffled order each round).
     for (auto& e : engines) { e->init(); run_blocks(*e, 2000, 0); }
-    // calibrate blocks per round to ~40 ms for the slowest engine
+    // Calibrate blocks per round against the slowest engine.
     double worst = 0;
     for (auto& e : engines) {
         double t0 = now_ns(); run_blocks(*e, 200, 0); double t = (now_ns() - t0) / 200;
@@ -351,7 +368,5 @@ int main(int argc, char** argv) {
 #endif
         putchar('\n');
     }
-    engines.clear();
-    for (auto f : factories) deleteDSPFactory(f);
     return 0;
 }

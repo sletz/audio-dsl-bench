@@ -51,7 +51,8 @@ cmake --build build/linux-ydsp --parallel 6
 
 Use Cmajor 1.0.3209 and its matching headers and CHOC submodule. The release `cmaj`
 binary requires WebKitGTK 4.0 and libsoup 2.4. On systems with WebKitGTK 4.1, you can
-build the CLI from the same tag with `-DWEBKIT2_GTK_VERSION=webkit2gtk-4.1`.
+build the CLI from the same tag with `-DWEBKIT2_GTK_VERSION=webkit2gtk-4.1`
+and pass that executable to `--cmajor`.
 [Cmajor release and source](https://github.com/cmajor-lang/cmajor/releases/tag/1.0.3209)
 
 ```bash

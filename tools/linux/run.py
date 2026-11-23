@@ -255,6 +255,8 @@ def main():
         parser.error(f"YDSP library missing: {args.ydsp_lib} (see tools/linux/README.md)")
     if not args.onda.is_file() or not (args.onda_include / "onda_processor_abi.h").is_file():
         parser.error("Onda compiler or ABI header missing (see tools/linux/README.md)")
+    if command(args.onda, "--version", capture_output=True).stdout.strip() != "Onda 0.9.2":
+        parser.error("--onda must point to Onda 0.9.2 for this benchmark")
     if bool(args.cmajor_include) != bool(args.cmajor_library) or (args.cmajor and not args.cmajor_library):
         parser.error("--cmajor-include and --cmajor-library must be supplied together")
     if args.cmajor_library and (

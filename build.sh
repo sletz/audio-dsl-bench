@@ -4,7 +4,21 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ONDA="${ONDA:-/Users/letz/Developpements/onda/target/release/onda}"
-ONDA_INCLUDE="${ONDA_INCLUDE:-$(dirname "$ONDA")/../../include}"
+if ! ONDA=$(command -v "$ONDA") || [ "$("$ONDA" --version)" != "Onda 0.9.2" ]; then
+  echo "Set ONDA to the Onda 0.9.2 compiler." >&2
+  exit 1
+fi
+ONDA_DIR=$(cd "$(dirname "$ONDA")" && pwd)
+ONDA="$ONDA_DIR/$(basename "$ONDA")"
+if [ -z "${ONDA_INCLUDE:-}" ]; then
+  ONDA_INCLUDE="$ONDA_DIR/../include"
+  [ -f "$ONDA_INCLUDE/onda_processor_abi.h" ] || ONDA_INCLUDE="$ONDA_DIR/../../include"
+fi
+if [ ! -f "$ONDA_INCLUDE/onda_processor_abi.h" ]; then
+  echo "Set ONDA_INCLUDE to the directory containing the Onda 0.9.2 ABI header." >&2
+  exit 1
+fi
+ONDA_INCLUDE=$(cd "$ONDA_INCLUDE" && pwd)
 FAUSTLIB=/Users/letz/Developpements/faustlibraries
 OBJCOPY=/opt/local/libexec/llvm-21/bin/llvm-objcopy
 CMAJ="${CMAJ:-cmaj}"
@@ -37,9 +51,16 @@ for v in strict fast; do
     onda_$v.raw.o onda_$v.o
 done
 
-python3 - onda_strict.json > onda_meta.h <<'EOF'
+python3 - onda_strict.json onda_fast.json > onda_meta.h <<'EOF'
 import json, sys
-d = json.load(open(sys.argv[1]))
+d, fast = (json.load(open(path)) for path in sys.argv[1:])
+for obj in (d, fast):
+    if obj["abi_version"] != 7 or obj["metadata"]["buffers"]:
+        sys.exit("expected Onda ABI 7 with no external buffers")
+if d["runtime"] != fast["runtime"] or any(
+    d["metadata"][key] != fast["metadata"][key] for key in ("params", "inputs", "outputs")
+):
+    sys.exit("Onda strict and fast objects have incompatible layouts or parameter defaults")
 rt = d["runtime"]; md = d["metadata"]
 print("#pragma once\n#include <cstring>")
 print(f"#define ONDA_STATE_SIZE {rt['state_size_bytes']}")
