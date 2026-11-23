@@ -41,6 +41,16 @@ and ×0.62.
 Fastest engine per program, strict: Faust 14, C++ 12, onda 9, Cmajor 3, YDSP 0; fast-math:
 Faust 21, C++ 11, onda 4, Cmajor 1, YDSP 1.
 
+**How far from the optimum.** Taking the fastest engine of all for each program would be ×1.18
+faster than the best Faust build in strict mode and ×1.13 with fast-math: no engine is best
+everywhere, Faust is not the fastest on 24 and 17 of the 38 programs. From below,
+`tools/loop_bound.py` computes the machine floor of the sample loops it can read (19 programs:
+no libm call, no split or nested loop), from latencies and issue rates measured on the M5 by
+`tools/m_latency.c`. In strict mode the fastest code runs within 0.9 to 1.15 of the floor of the
+leanest analysed instruction sequence on 14 of 18 programs (median ×1.04); with fast-math on 8 of
+19 (median ×1.06). Where the code is at the floor, a further gain needs fewer instructions or
+shorter recurrences, a rewrite of the computation, not better scheduling.
+
 - **Faust** is fastest on filters, delay lines and reverbs, mostly through the certification-7
   branch, which reorders operations and reads delay lines one sample ahead (dattorro: 3.2 ns for
   the options elected by fcautotool with fast-math, against 5.2 for the C++ port and 9 to 15 ns
@@ -208,6 +218,14 @@ second pass compiles the strict C++ variants (Faust, Cmajor and the C++ ports) w
 "IEEE" columns. `tools/autotune_all.sh` redoes the `fcautotool` election (~6 min). Measure on an
 idle machine, on AC power.
 
+```bash
+python3 tools/loop_bound.py .          # machine floors of the sample loops -> results/bound.json
+python3 report/gen.py .                # then regenerate the report
+```
+
+`loop_bound.py` reads the objects left in `build/` by the last pass (the strict ones are the
+`-ffp-contract=off` pass) and needs `llvm-objdump` (`OBJDUMP`, MacPorts LLVM 21 by default).
+
 ## Files
 
 | File | Role |
@@ -226,6 +244,8 @@ idle machine, on AC power.
 | `tools/autotune_all.sh` | Elects the options of each program with `fcautotool` |
 | `tools/dumpir.cpp` | Writes the LLVM IR of a Faust LLVM factory (`writeDSPFactoryToIRFile`) |
 | `tools/ctime.cpp` | Time to create a Faust LLVM factory and an instance |
+| `tools/loop_bound.py` | Machine floor of the sample loop of every ahead-of-time engine (`results/bound.json`) |
+| `tools/m_latency.c` | Latencies and issue rates of this core, measured for `loop_bound.py` |
 
 ## Method notes
 

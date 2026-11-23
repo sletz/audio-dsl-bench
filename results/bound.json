@@ -1,0 +1,3687 @@
+{
+ "_machine": {
+  "ghz": 4.3078,
+  "lat_fadd": 2.0,
+  "lat_fmul": 3.0,
+  "lat_fmadd": 3.0,
+  "lat_fdiv": 7.0,
+  "lat_fsqrt": 9.0,
+  "lat_fmaxnm": 2.0,
+  "lat_frint": 3.0,
+  "lat_fcmp_fcsel": 4.0,
+  "lat_fcvtzs_scvtf": 12.0,
+  "lat_fmov_cross": 10.0,
+  "lat_fcvt_pair": 6.0,
+  "lat_mul": 3.0,
+  "lat_madd": 4.0,
+  "lat_store_reload": 6.0,
+  "lat_vfadd": 2.0,
+  "lat_vfmla": 3.0,
+  "lat_vext": 2.0,
+  "lat_vdup": 2.0,
+  "lat_ldr": 3.0,
+  "ipc_fp": 4.0,
+  "ipc_fdiv": 1.0,
+  "ipc_int": 7.0,
+  "ipc_ld": 3.0,
+  "ipc_st": 2.0,
+  "ipc_mix": 9.0
+ },
+ "additive64": {
+  "cpp-scal-ieee": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-vec-ieee": {
+   "status": "67 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "2 innermost loops"
+  },
+  "ocpp48-ieee": {
+   "status": "2 innermost loops"
+  },
+  "onda": {
+   "status": "nested in another loop"
+  },
+  "cmaj-cpp-ieee": {
+   "status": "2 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "nested in another loop"
+  },
+  "cpp-scal-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-vec-fm": {
+   "status": "67 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "67 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "2 innermost loops"
+  },
+  "best-fm": {
+   "status": "2 innermost loops"
+  },
+  "best48-fm": {
+   "status": "2 innermost loops"
+  },
+  "onda-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "cmaj-cpp-fm": {
+   "status": "2 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "nested in another loop"
+  }
+ },
+ "autopan": {
+  "cpp-scal-ieee": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-vec-ieee": {
+   "status": "42 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "2 innermost loops"
+  },
+  "ocpp48-ieee": {
+   "status": "2 innermost loops"
+  },
+  "onda": {
+   "status": "calls (libm or helper)"
+  },
+  "cmaj-cpp-ieee": {
+   "status": "4 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-scal-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-vec-fm": {
+   "status": "42 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "42 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "2 innermost loops"
+  },
+  "best-fm": {
+   "status": "5 innermost loops"
+  },
+  "best48-fm": {
+   "status": "5 innermost loops"
+  },
+  "onda-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "cmaj-cpp-fm": {
+   "status": "4 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "calls (libm or helper)"
+  }
+ },
+ "biquad8": {
+  "cpp-scal-ieee": {
+   "status": "ok",
+   "insts": 116,
+   "throughput": 20.0,
+   "throughput_class": "fp",
+   "recurrence": 16.0,
+   "bound_cycles": 20.0,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 4.643,
+   "measured_ns": 7.9864,
+   "measured_cycles": 34.4
+  },
+  "cpp-vec-ieee": {
+   "status": "18 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "ok",
+   "insts": 92,
+   "throughput": 18.0,
+   "throughput_class": "fp",
+   "recurrence": 9.0,
+   "bound_cycles": 18.0,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 4.178,
+   "measured_ns": 4.2356,
+   "measured_cycles": 18.25
+  },
+  "ocpp48-ieee": {
+   "status": "ok",
+   "insts": 92,
+   "throughput": 18.0,
+   "throughput_class": "fp",
+   "recurrence": 9.0,
+   "bound_cycles": 18.0,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 4.178,
+   "measured_ns": 4.2288,
+   "measured_cycles": 18.22
+  },
+  "onda": {
+   "status": "ok",
+   "insts": 92,
+   "throughput": 18.0,
+   "throughput_class": "fp",
+   "recurrence": 7.0,
+   "bound_cycles": 18.0,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 4.178,
+   "measured_ns": 5.5505,
+   "measured_cycles": 23.91
+  },
+  "cmaj-cpp-ieee": {
+   "status": "3 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "ok",
+   "insts": 95,
+   "throughput": 18.0,
+   "throughput_class": "fp",
+   "recurrence": 7.0,
+   "bound_cycles": 18.0,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 4.178,
+   "measured_ns": 4.6003,
+   "measured_cycles": 19.82
+  },
+  "cpp-scal-fm": {
+   "status": "ok",
+   "insts": 77,
+   "throughput": 10.25,
+   "throughput_class": "fp",
+   "recurrence": 15.0,
+   "bound_cycles": 15.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 3.482,
+   "measured_ns": 5.4474,
+   "measured_cycles": 23.47
+  },
+  "cpp-vec-fm": {
+   "status": "18 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "18 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "ok",
+   "insts": 61,
+   "throughput": 10.25,
+   "throughput_class": "fp",
+   "recurrence": 9.0,
+   "bound_cycles": 10.25,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 2.379,
+   "measured_ns": 2.8056,
+   "measured_cycles": 12.09
+  },
+  "best-fm": {
+   "status": "ok",
+   "insts": 61,
+   "throughput": 10.25,
+   "throughput_class": "fp",
+   "recurrence": 9.0,
+   "bound_cycles": 10.25,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 2.379,
+   "measured_ns": 2.8088,
+   "measured_cycles": 12.1
+  },
+  "best48-fm": {
+   "status": "ok",
+   "insts": 61,
+   "throughput": 10.25,
+   "throughput_class": "fp",
+   "recurrence": 9.0,
+   "bound_cycles": 10.25,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 2.379,
+   "measured_ns": 2.8012,
+   "measured_cycles": 12.07
+  },
+  "onda-fm": {
+   "status": "ok",
+   "insts": 68,
+   "throughput": 12.0,
+   "throughput_class": "fp",
+   "recurrence": 5.0,
+   "bound_cycles": 12.0,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 2.786,
+   "measured_ns": 4.2305,
+   "measured_cycles": 18.22
+  },
+  "cmaj-cpp-fm": {
+   "status": "3 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "ok",
+   "insts": 71,
+   "throughput": 12.0,
+   "throughput_class": "fp",
+   "recurrence": 8.0,
+   "bound_cycles": 12.0,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 2.786,
+   "measured_ns": 3.4514,
+   "measured_cycles": 14.87
+  }
+ },
+ "bubble": {
+  "cpp-scal-ieee": {
+   "status": "nested in another loop"
+  },
+  "cpp-vec-ieee": {
+   "status": "101 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "2 innermost loops"
+  },
+  "ocpp48-ieee": {
+   "status": "2 innermost loops"
+  },
+  "onda": {
+   "status": "nested in another loop"
+  },
+  "cmaj-cpp-ieee": {
+   "status": "2 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-scal-fm": {
+   "status": "nested in another loop"
+  },
+  "cpp-vec-fm": {
+   "status": "101 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "102 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "2 innermost loops"
+  },
+  "best-fm": {
+   "status": "2 innermost loops"
+  },
+  "best48-fm": {
+   "status": "3 innermost loops"
+  },
+  "onda-fm": {
+   "status": "nested in another loop"
+  },
+  "cmaj-cpp-fm": {
+   "status": "2 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "calls (libm or helper)"
+  }
+ },
+ "clarinet": {
+  "cpp-scal-ieee": {
+   "status": "ok",
+   "insts": 239,
+   "throughput": 32.0,
+   "throughput_class": "fp",
+   "recurrence": 26.0,
+   "bound_cycles": 32.0,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 7.428,
+   "measured_ns": 11.1555,
+   "measured_cycles": 48.06
+  },
+  "cpp-vec-ieee": {
+   "status": "97 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "4 innermost loops"
+  },
+  "ocpp48-ieee": {
+   "status": "4 innermost loops"
+  },
+  "onda": {
+   "status": "ok",
+   "insts": 205,
+   "throughput": 25.5,
+   "throughput_class": "fp",
+   "recurrence": 33.0,
+   "bound_cycles": 33.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 7.661,
+   "measured_ns": 10.5133,
+   "measured_cycles": 45.29
+  },
+  "cmaj-cpp-ieee": {
+   "status": "2 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "ok",
+   "insts": 167,
+   "throughput": 30.0,
+   "throughput_class": "fp",
+   "recurrence": 19.0,
+   "bound_cycles": 30.0,
+   "limit": "fp",
+   "unknown": [
+    "smin.2s",
+    "umax.2s"
+   ],
+   "bound_ns": 6.964,
+   "measured_ns": 7.3869,
+   "measured_cycles": 31.82
+  },
+  "cpp-scal-fm": {
+   "status": "ok",
+   "insts": 223,
+   "throughput": 25.75,
+   "throughput_class": "fp",
+   "recurrence": 23.0,
+   "bound_cycles": 25.75,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 5.978,
+   "measured_ns": 9.549,
+   "measured_cycles": 41.14
+  },
+  "cpp-vec-fm": {
+   "status": "97 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "97 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "4 innermost loops"
+  },
+  "best-fm": {
+   "status": "4 innermost loops"
+  },
+  "best48-fm": {
+   "status": "4 innermost loops"
+  },
+  "onda-fm": {
+   "status": "ok",
+   "insts": 198,
+   "throughput": 22.5,
+   "throughput_class": "fp",
+   "recurrence": 39.0,
+   "bound_cycles": 39.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 9.053,
+   "measured_ns": 12.2053,
+   "measured_cycles": 52.58
+  },
+  "cmaj-cpp-fm": {
+   "status": "2 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "ok",
+   "insts": 154,
+   "throughput": 25.75,
+   "throughput_class": "fp",
+   "recurrence": 15.0,
+   "bound_cycles": 25.75,
+   "limit": "fp",
+   "unknown": [
+    "smin.2s",
+    "umax.2s"
+   ],
+   "bound_ns": 5.978,
+   "measured_ns": 6.3679,
+   "measured_cycles": 27.43
+  }
+ },
+ "compressor": {
+  "cpp-scal-ieee": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-vec-ieee": {
+   "status": "16 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "2 innermost loops"
+  },
+  "ocpp48-ieee": {
+   "status": "2 innermost loops"
+  },
+  "onda": {
+   "status": "calls (libm or helper)"
+  },
+  "cmaj-cpp-ieee": {
+   "status": "4 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-scal-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-vec-fm": {
+   "status": "17 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "17 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "2 innermost loops"
+  },
+  "best-fm": {
+   "status": "8 innermost loops"
+  },
+  "best48-fm": {
+   "status": "8 innermost loops"
+  },
+  "onda-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "cmaj-cpp-fm": {
+   "status": "4 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "calls (libm or helper)"
+  }
+ },
+ "crybaby": {
+  "cpp-scal-ieee": {
+   "status": "ok",
+   "insts": 72,
+   "throughput": 10.5,
+   "throughput_class": "st",
+   "recurrence": 13.0,
+   "bound_cycles": 13.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 3.018,
+   "measured_ns": 4.4952,
+   "measured_cycles": 19.36
+  },
+  "cpp-vec-ieee": {
+   "status": "23 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "ok",
+   "insts": 43,
+   "throughput": 9.0,
+   "throughput_class": "fp",
+   "recurrence": 7.0,
+   "bound_cycles": 9.0,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 2.089,
+   "measured_ns": 2.1622,
+   "measured_cycles": 9.31
+  },
+  "ocpp48-ieee": {
+   "status": "ok",
+   "insts": 42,
+   "throughput": 9.5,
+   "throughput_class": "fp",
+   "recurrence": 7.0,
+   "bound_cycles": 9.5,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 2.205,
+   "measured_ns": 2.14,
+   "measured_cycles": 9.22
+  },
+  "onda": {
+   "status": "ok",
+   "insts": 28,
+   "throughput": 6.0,
+   "throughput_class": "fp",
+   "recurrence": 11.0,
+   "bound_cycles": 11.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 2.554,
+   "measured_ns": 2.8492,
+   "measured_cycles": 12.27
+  },
+  "cmaj-cpp-ieee": {
+   "status": "3 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "ok",
+   "insts": 27,
+   "throughput": 5.75,
+   "throughput_class": "fp",
+   "recurrence": 11.0,
+   "bound_cycles": 11.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 2.554,
+   "measured_ns": 2.8936,
+   "measured_cycles": 12.47
+  },
+  "cpp-scal-fm": {
+   "status": "ok",
+   "insts": 67,
+   "throughput": 10.5,
+   "throughput_class": "st",
+   "recurrence": 15.0,
+   "bound_cycles": 15.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 3.482,
+   "measured_ns": 4.4155,
+   "measured_cycles": 19.02
+  },
+  "cpp-vec-fm": {
+   "status": "21 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "21 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "ok",
+   "insts": 26,
+   "throughput": 5.0,
+   "throughput_class": "fp",
+   "recurrence": 9.0,
+   "bound_cycles": 9.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 2.089,
+   "measured_ns": 2.3209,
+   "measured_cycles": 10.0
+  },
+  "best-fm": {
+   "status": "ok",
+   "insts": 28,
+   "throughput": 5.5,
+   "throughput_class": "fp",
+   "recurrence": 6.0,
+   "bound_cycles": 6.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 1.393,
+   "measured_ns": 1.655,
+   "measured_cycles": 7.13
+  },
+  "best48-fm": {
+   "status": "ok",
+   "insts": 26,
+   "throughput": 5.5,
+   "throughput_class": "fp",
+   "recurrence": 9.0,
+   "bound_cycles": 9.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 2.089,
+   "measured_ns": 2.3144,
+   "measured_cycles": 9.97
+  },
+  "onda-fm": {
+   "status": "ok",
+   "insts": 21,
+   "throughput": 4.25,
+   "throughput_class": "fp",
+   "recurrence": 8.0,
+   "bound_cycles": 8.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 1.857,
+   "measured_ns": 2.1015,
+   "measured_cycles": 9.05
+  },
+  "cmaj-cpp-fm": {
+   "status": "3 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "ok",
+   "insts": 22,
+   "throughput": 4.5,
+   "throughput_class": "fp",
+   "recurrence": 11.0,
+   "bound_cycles": 11.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 2.554,
+   "measured_ns": 2.7583,
+   "measured_cycles": 11.88
+  }
+ },
+ "dattorro": {
+  "cpp-scal-ieee": {
+   "status": "not one sample per iteration"
+  },
+  "cpp-vec-ieee": {
+   "status": "91 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "ok",
+   "insts": 211,
+   "throughput": 28.25,
+   "throughput_class": "fp",
+   "recurrence": 7.0,
+   "bound_cycles": 28.25,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 6.558,
+   "measured_ns": 6.324,
+   "measured_cycles": 27.24
+  },
+  "ocpp48-ieee": {
+   "status": "ok",
+   "insts": 210,
+   "throughput": 28.25,
+   "throughput_class": "fp",
+   "recurrence": 7.0,
+   "bound_cycles": 28.25,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 6.558,
+   "measured_ns": 6.1442,
+   "measured_cycles": 26.47
+  },
+  "onda": {
+   "status": "ok",
+   "insts": 206,
+   "throughput": 28.5,
+   "throughput_class": "fp",
+   "recurrence": 13.0,
+   "bound_cycles": 28.5,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 6.616,
+   "measured_ns": 9.3624,
+   "measured_cycles": 40.33
+  },
+  "cmaj-cpp-ieee": {
+   "status": "4 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "ok",
+   "insts": 140,
+   "throughput": 25.25,
+   "throughput_class": "fp",
+   "recurrence": 6.0,
+   "bound_cycles": 25.25,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 5.861,
+   "measured_ns": 6.0342,
+   "measured_cycles": 25.99
+  },
+  "cpp-scal-fm": {
+   "status": "not one sample per iteration"
+  },
+  "cpp-vec-fm": {
+   "status": "91 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "91 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "ok",
+   "insts": 168,
+   "throughput": 20.0,
+   "throughput_class": "fp",
+   "recurrence": 9.0,
+   "bound_cycles": 20.0,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 4.643,
+   "measured_ns": 4.8368,
+   "measured_cycles": 20.84
+  },
+  "best-fm": {
+   "status": "2 innermost loops"
+  },
+  "best48-fm": {
+   "status": "2 innermost loops"
+  },
+  "onda-fm": {
+   "status": "ok",
+   "insts": 181,
+   "throughput": 22.25,
+   "throughput_class": "fp",
+   "recurrence": 13.0,
+   "bound_cycles": 22.25,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 5.165,
+   "measured_ns": 9.4816,
+   "measured_cycles": 40.84
+  },
+  "cmaj-cpp-fm": {
+   "status": "4 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "ok",
+   "insts": 127,
+   "throughput": 21.75,
+   "throughput_class": "fp",
+   "recurrence": 6.0,
+   "bound_cycles": 21.75,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 5.049,
+   "measured_ns": 5.2131,
+   "measured_cycles": 22.46
+  }
+ },
+ "diffuser32": {
+  "cpp-scal-ieee": {
+   "status": "not one sample per iteration"
+  },
+  "cpp-vec-ieee": {
+   "status": "69 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "not one sample per iteration"
+  },
+  "ocpp48-ieee": {
+   "status": "not one sample per iteration"
+  },
+  "onda": {
+   "status": "ok",
+   "insts": 282,
+   "throughput": 44.5,
+   "throughput_class": "fp",
+   "recurrence": 14.0,
+   "bound_cycles": 44.5,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 10.33,
+   "measured_ns": 21.2315,
+   "measured_cycles": 91.46
+  },
+  "cmaj-cpp-ieee": {
+   "status": "3 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "nested in another loop"
+  },
+  "cpp-scal-fm": {
+   "status": "not one sample per iteration"
+  },
+  "cpp-vec-fm": {
+   "status": "69 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "69 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "not one sample per iteration"
+  },
+  "best-fm": {
+   "status": "15 innermost loops"
+  },
+  "best48-fm": {
+   "status": "15 innermost loops"
+  },
+  "onda-fm": {
+   "status": "ok",
+   "insts": 215,
+   "throughput": 28.5,
+   "throughput_class": "fp",
+   "recurrence": 14.0,
+   "bound_cycles": 28.5,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 6.616,
+   "measured_ns": 27.743,
+   "measured_cycles": 119.51
+  },
+  "cmaj-cpp-fm": {
+   "status": "3 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "nested in another loop"
+  }
+ },
+ "diode_ladder": {
+  "cpp-scal-ieee": {
+   "status": "2 innermost loops"
+  },
+  "cpp-vec-ieee": {
+   "status": "46 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "6 innermost loops"
+  },
+  "ocpp48-ieee": {
+   "status": "5 innermost loops"
+  },
+  "onda": {
+   "status": "nested in another loop"
+  },
+  "cmaj-cpp-ieee": {
+   "status": "2 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-scal-fm": {
+   "status": "2 innermost loops"
+  },
+  "cpp-vec-fm": {
+   "status": "47 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "47 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "6 innermost loops"
+  },
+  "best-fm": {
+   "status": "6 innermost loops"
+  },
+  "best48-fm": {
+   "status": "5 innermost loops"
+  },
+  "onda-fm": {
+   "status": "2 innermost loops"
+  },
+  "cmaj-cpp-fm": {
+   "status": "2 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "calls (libm or helper)"
+  }
+ },
+ "distortion": {
+  "cpp-scal-ieee": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-vec-ieee": {
+   "status": "18 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "2 innermost loops"
+  },
+  "ocpp48-ieee": {
+   "status": "2 innermost loops"
+  },
+  "onda": {
+   "status": "calls (libm or helper)"
+  },
+  "cmaj-cpp-ieee": {
+   "status": "3 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-scal-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-vec-fm": {
+   "status": "18 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "18 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "2 innermost loops"
+  },
+  "best-fm": {
+   "status": "2 innermost loops"
+  },
+  "best48-fm": {
+   "status": "2 innermost loops"
+  },
+  "onda-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "cmaj-cpp-fm": {
+   "status": "3 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "calls (libm or helper)"
+  }
+ },
+ "exciter": {
+  "cpp-scal-ieee": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-vec-ieee": {
+   "status": "21 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "2 innermost loops"
+  },
+  "ocpp48-ieee": {
+   "status": "2 innermost loops"
+  },
+  "onda": {
+   "status": "calls (libm or helper)"
+  },
+  "cmaj-cpp-ieee": {
+   "status": "3 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-scal-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-vec-fm": {
+   "status": "21 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "21 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "2 innermost loops"
+  },
+  "best-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "best48-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "onda-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "cmaj-cpp-fm": {
+   "status": "3 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "calls (libm or helper)"
+  }
+ },
+ "fdn8": {
+  "cpp-scal-ieee": {
+   "status": "ok",
+   "insts": 175,
+   "throughput": 21.75,
+   "throughput_class": "fp",
+   "recurrence": 11.0,
+   "bound_cycles": 21.75,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 5.049,
+   "measured_ns": 5.6078,
+   "measured_cycles": 24.16
+  },
+  "cpp-vec-ieee": {
+   "status": "5 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "ok",
+   "insts": 116,
+   "throughput": 15.0,
+   "throughput_class": "fp",
+   "recurrence": 7.0,
+   "bound_cycles": 15.0,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 3.482,
+   "measured_ns": 3.9456,
+   "measured_cycles": 17.0
+  },
+  "ocpp48-ieee": {
+   "status": "ok",
+   "insts": 116,
+   "throughput": 15.0,
+   "throughput_class": "fp",
+   "recurrence": 7.0,
+   "bound_cycles": 15.0,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 3.482,
+   "measured_ns": 3.9444,
+   "measured_cycles": 16.99
+  },
+  "onda": {
+   "status": "ok",
+   "insts": 135,
+   "throughput": 24.5,
+   "throughput_class": "fp",
+   "recurrence": 11.0,
+   "bound_cycles": 24.5,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 5.687,
+   "measured_ns": 6.168,
+   "measured_cycles": 26.57
+  },
+  "cmaj-cpp-ieee": {
+   "status": "3 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "ok",
+   "insts": 126,
+   "throughput": 21.25,
+   "throughput_class": "fp",
+   "recurrence": 5.0,
+   "bound_cycles": 21.25,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 4.933,
+   "measured_ns": 5.0173,
+   "measured_cycles": 21.61
+  },
+  "cpp-scal-fm": {
+   "status": "ok",
+   "insts": 156,
+   "throughput": 17.33,
+   "throughput_class": "issue",
+   "recurrence": 12.0,
+   "bound_cycles": 17.33,
+   "limit": "issue",
+   "unknown": [],
+   "bound_ns": 4.023,
+   "measured_ns": 5.7142,
+   "measured_cycles": 24.62
+  },
+  "cpp-vec-fm": {
+   "status": "5 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "5 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "ok",
+   "insts": 108,
+   "throughput": 12.5,
+   "throughput_class": "fp",
+   "recurrence": 5.0,
+   "bound_cycles": 12.5,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 2.902,
+   "measured_ns": 3.3061,
+   "measured_cycles": 14.24
+  },
+  "best-fm": {
+   "status": "6 innermost loops"
+  },
+  "best48-fm": {
+   "status": "6 innermost loops"
+  },
+  "onda-fm": {
+   "status": "ok",
+   "insts": 121,
+   "throughput": 21.0,
+   "throughput_class": "fp",
+   "recurrence": 11.0,
+   "bound_cycles": 21.0,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 4.875,
+   "measured_ns": 5.3701,
+   "measured_cycles": 23.13
+  },
+  "cmaj-cpp-fm": {
+   "status": "3 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "ok",
+   "insts": 113,
+   "throughput": 17.5,
+   "throughput_class": "fp",
+   "recurrence": 5.0,
+   "bound_cycles": 17.5,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 4.062,
+   "measured_ns": 4.0878,
+   "measured_cycles": 17.61
+  }
+ },
+ "filter_bank": {
+  "cpp-scal-ieee": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-vec-ieee": {
+   "status": "243 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "2 innermost loops"
+  },
+  "ocpp48-ieee": {
+   "status": "2 innermost loops"
+  },
+  "onda": {
+   "status": "calls (libm or helper)"
+  },
+  "cmaj-cpp-ieee": {
+   "status": "3 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "3 innermost loops"
+  },
+  "cpp-scal-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-vec-fm": {
+   "status": "248 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "248 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "2 innermost loops"
+  },
+  "best-fm": {
+   "status": "2 innermost loops"
+  },
+  "best48-fm": {
+   "status": "2 innermost loops"
+  },
+  "onda-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "cmaj-cpp-fm": {
+   "status": "3 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "3 innermost loops"
+  }
+ },
+ "fir32": {
+  "cpp-scal-ieee": {
+   "status": "ok",
+   "insts": 155,
+   "throughput": 17.22,
+   "throughput_class": "issue",
+   "recurrence": 1.0,
+   "bound_cycles": 17.22,
+   "limit": "issue",
+   "unknown": [],
+   "bound_ns": 3.997,
+   "measured_ns": 3.9161,
+   "measured_cycles": 16.87
+  },
+  "cpp-vec-ieee": {
+   "status": "5 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "3 innermost loops"
+  },
+  "ocpp48-ieee": {
+   "status": "3 innermost loops"
+  },
+  "onda": {
+   "status": "ok",
+   "insts": 181,
+   "throughput": 20.11,
+   "throughput_class": "issue",
+   "recurrence": 2.0,
+   "bound_cycles": 20.11,
+   "limit": "issue",
+   "unknown": [],
+   "bound_ns": 4.668,
+   "measured_ns": 4.8048,
+   "measured_cycles": 20.7
+  },
+  "cmaj-cpp-ieee": {
+   "status": "no loop"
+  },
+  "cxx-ieee": {
+   "status": "no loop"
+  },
+  "cpp-scal-fm": {
+   "status": "ok",
+   "insts": 137,
+   "throughput": 15.22,
+   "throughput_class": "issue",
+   "recurrence": 1.0,
+   "bound_cycles": 15.22,
+   "limit": "issue",
+   "unknown": [],
+   "bound_ns": 3.533,
+   "measured_ns": 3.7339,
+   "measured_cycles": 16.08
+  },
+  "cpp-vec-fm": {
+   "status": "5 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "5 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "3 innermost loops"
+  },
+  "best-fm": {
+   "status": "ok",
+   "insts": 137,
+   "throughput": 15.22,
+   "throughput_class": "issue",
+   "recurrence": 1.0,
+   "bound_cycles": 15.22,
+   "limit": "issue",
+   "unknown": [],
+   "bound_ns": 3.533,
+   "measured_ns": 3.7345,
+   "measured_cycles": 16.09
+  },
+  "best48-fm": {
+   "status": "ok",
+   "insts": 137,
+   "throughput": 15.22,
+   "throughput_class": "issue",
+   "recurrence": 1.0,
+   "bound_cycles": 15.22,
+   "limit": "issue",
+   "unknown": [],
+   "bound_ns": 3.533,
+   "measured_ns": 3.7353,
+   "measured_cycles": 16.09
+  },
+  "onda-fm": {
+   "status": "ok",
+   "insts": 138,
+   "throughput": 15.33,
+   "throughput_class": "issue",
+   "recurrence": 2.0,
+   "bound_cycles": 15.33,
+   "limit": "issue",
+   "unknown": [],
+   "bound_ns": 3.559,
+   "measured_ns": 3.7945,
+   "measured_cycles": 16.35
+  },
+  "cmaj-cpp-fm": {
+   "status": "no loop"
+  },
+  "cxx-fm": {
+   "status": "no loop"
+  }
+ },
+ "fir32c": {
+  "cpp-scal-ieee": {
+   "status": "ok",
+   "insts": 155,
+   "throughput": 17.22,
+   "throughput_class": "issue",
+   "recurrence": 1.0,
+   "bound_cycles": 17.22,
+   "limit": "issue",
+   "unknown": [],
+   "bound_ns": 3.997,
+   "measured_ns": 3.9321,
+   "measured_cycles": 16.94
+  },
+  "cpp-vec-ieee": {
+   "status": "5 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "3 innermost loops"
+  },
+  "ocpp48-ieee": {
+   "status": "3 innermost loops"
+  },
+  "onda": {
+   "status": "ok",
+   "insts": 169,
+   "throughput": 18.78,
+   "throughput_class": "issue",
+   "recurrence": 2.0,
+   "bound_cycles": 18.78,
+   "limit": "issue",
+   "unknown": [],
+   "bound_ns": 4.36,
+   "measured_ns": 4.3975,
+   "measured_cycles": 18.94
+  },
+  "cmaj-cpp-ieee": {
+   "status": "3 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "ok",
+   "insts": 110,
+   "throughput": 17.5,
+   "throughput_class": "fp",
+   "recurrence": 2.0,
+   "bound_cycles": 17.5,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 4.062,
+   "measured_ns": 4.119,
+   "measured_cycles": 17.74
+  },
+  "cpp-scal-fm": {
+   "status": "ok",
+   "insts": 137,
+   "throughput": 15.22,
+   "throughput_class": "issue",
+   "recurrence": 1.0,
+   "bound_cycles": 15.22,
+   "limit": "issue",
+   "unknown": [],
+   "bound_ns": 3.533,
+   "measured_ns": 3.7298,
+   "measured_cycles": 16.07
+  },
+  "cpp-vec-fm": {
+   "status": "5 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "5 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "3 innermost loops"
+  },
+  "best-fm": {
+   "status": "ok",
+   "insts": 137,
+   "throughput": 15.22,
+   "throughput_class": "issue",
+   "recurrence": 1.0,
+   "bound_cycles": 15.22,
+   "limit": "issue",
+   "unknown": [],
+   "bound_ns": 3.533,
+   "measured_ns": 3.7329,
+   "measured_cycles": 16.08
+  },
+  "best48-fm": {
+   "status": "ok",
+   "insts": 137,
+   "throughput": 15.22,
+   "throughput_class": "issue",
+   "recurrence": 1.0,
+   "bound_cycles": 15.22,
+   "limit": "issue",
+   "unknown": [],
+   "bound_ns": 3.533,
+   "measured_ns": 3.7375,
+   "measured_cycles": 16.1
+  },
+  "onda-fm": {
+   "status": "ok",
+   "insts": 138,
+   "throughput": 15.33,
+   "throughput_class": "issue",
+   "recurrence": 2.0,
+   "bound_cycles": 15.33,
+   "limit": "issue",
+   "unknown": [],
+   "bound_ns": 3.559,
+   "measured_ns": 3.8,
+   "measured_cycles": 16.37
+  },
+  "cmaj-cpp-fm": {
+   "status": "3 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "ok",
+   "insts": 54,
+   "throughput": 7.75,
+   "throughput_class": "fp",
+   "recurrence": 2.0,
+   "bound_cycles": 7.75,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 1.799,
+   "measured_ns": 1.8186,
+   "measured_cycles": 7.83
+  }
+ },
+ "flanger": {
+  "cpp-scal-ieee": {
+   "status": "ok",
+   "insts": 106,
+   "throughput": 12.75,
+   "throughput_class": "fp",
+   "recurrence": 12.0,
+   "bound_cycles": 12.75,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 2.96,
+   "measured_ns": 4.3746,
+   "measured_cycles": 18.84
+  },
+  "cpp-vec-ieee": {
+   "status": "36 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "ok",
+   "insts": 85,
+   "throughput": 11.25,
+   "throughput_class": "fp",
+   "recurrence": 6.0,
+   "bound_cycles": 11.25,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 2.612,
+   "measured_ns": 3.1196,
+   "measured_cycles": 13.44
+  },
+  "ocpp48-ieee": {
+   "status": "ok",
+   "insts": 89,
+   "throughput": 12.25,
+   "throughput_class": "fp",
+   "recurrence": 6.0,
+   "bound_cycles": 12.25,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 2.844,
+   "measured_ns": 3.1661,
+   "measured_cycles": 13.64
+  },
+  "onda": {
+   "status": "ok",
+   "insts": 83,
+   "throughput": 9.5,
+   "throughput_class": "fp",
+   "recurrence": 6.0,
+   "bound_cycles": 9.5,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 2.205,
+   "measured_ns": 3.3339,
+   "measured_cycles": 14.36
+  },
+  "cmaj-cpp-ieee": {
+   "status": "4 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "ok",
+   "insts": 82,
+   "throughput": 10.5,
+   "throughput_class": "fp",
+   "recurrence": 6.0,
+   "bound_cycles": 10.5,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 2.437,
+   "measured_ns": 3.1733,
+   "measured_cycles": 13.67
+  },
+  "cpp-scal-fm": {
+   "status": "ok",
+   "insts": 93,
+   "throughput": 10.33,
+   "throughput_class": "issue",
+   "recurrence": 12.0,
+   "bound_cycles": 12.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 2.786,
+   "measured_ns": 3.8283,
+   "measured_cycles": 16.49
+  },
+  "cpp-vec-fm": {
+   "status": "36 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "36 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "ok",
+   "insts": 72,
+   "throughput": 8.0,
+   "throughput_class": "fp",
+   "recurrence": 6.0,
+   "bound_cycles": 8.0,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 1.857,
+   "measured_ns": 2.3467,
+   "measured_cycles": 10.11
+  },
+  "best-fm": {
+   "status": "8 innermost loops"
+  },
+  "best48-fm": {
+   "status": "8 innermost loops"
+  },
+  "onda-fm": {
+   "status": "ok",
+   "insts": 75,
+   "throughput": 8.33,
+   "throughput_class": "issue",
+   "recurrence": 9.0,
+   "bound_cycles": 9.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 2.089,
+   "measured_ns": 2.9264,
+   "measured_cycles": 12.61
+  },
+  "cmaj-cpp-fm": {
+   "status": "4 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "ok",
+   "insts": 72,
+   "throughput": 8.0,
+   "throughput_class": "issue",
+   "recurrence": 9.0,
+   "bound_cycles": 9.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 2.089,
+   "measured_ns": 2.7533,
+   "measured_cycles": 11.86
+  }
+ },
+ "flute": {
+  "cpp-scal-ieee": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-vec-ieee": {
+   "status": "156 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "4 innermost loops"
+  },
+  "ocpp48-ieee": {
+   "status": "4 innermost loops"
+  },
+  "onda": {
+   "status": "calls (libm or helper)"
+  },
+  "cmaj-cpp-ieee": {
+   "status": "2 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-scal-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-vec-fm": {
+   "status": "156 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "155 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "4 innermost loops"
+  },
+  "best-fm": {
+   "status": "117 innermost loops"
+  },
+  "best48-fm": {
+   "status": "117 innermost loops"
+  },
+  "onda-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "cmaj-cpp-fm": {
+   "status": "2 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "calls (libm or helper)"
+  }
+ },
+ "fm_pad": {
+  "cpp-scal-ieee": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-vec-ieee": {
+   "status": "7 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "2 innermost loops"
+  },
+  "ocpp48-ieee": {
+   "status": "2 innermost loops"
+  },
+  "onda": {
+   "status": "calls (libm or helper)"
+  },
+  "cmaj-cpp-ieee": {
+   "status": "2 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-scal-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-vec-fm": {
+   "status": "7 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "7 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "2 innermost loops"
+  },
+  "best-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "best48-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "onda-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "cmaj-cpp-fm": {
+   "status": "2 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "calls (libm or helper)"
+  }
+ },
+ "freeverb": {
+  "cpp-scal-ieee": {
+   "status": "not one sample per iteration"
+  },
+  "cpp-vec-ieee": {
+   "status": "47 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "ok",
+   "insts": 136,
+   "throughput": 15.11,
+   "throughput_class": "issue",
+   "recurrence": 7.0,
+   "bound_cycles": 15.11,
+   "limit": "issue",
+   "unknown": [],
+   "bound_ns": 3.508,
+   "measured_ns": 3.5298,
+   "measured_cycles": 15.21
+  },
+  "ocpp48-ieee": {
+   "status": "ok",
+   "insts": 136,
+   "throughput": 15.11,
+   "throughput_class": "issue",
+   "recurrence": 7.0,
+   "bound_cycles": 15.11,
+   "limit": "issue",
+   "unknown": [],
+   "bound_ns": 3.508,
+   "measured_ns": 3.5274,
+   "measured_cycles": 15.2
+  },
+  "onda": {
+   "status": "ok",
+   "insts": 147,
+   "throughput": 17.0,
+   "throughput_class": "fp",
+   "recurrence": 11.0,
+   "bound_cycles": 17.0,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 3.946,
+   "measured_ns": 6.5544,
+   "measured_cycles": 28.24
+  },
+  "cmaj-cpp-ieee": {
+   "status": "3 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "5 innermost loops"
+  },
+  "cpp-scal-fm": {
+   "status": "not one sample per iteration"
+  },
+  "cpp-vec-fm": {
+   "status": "47 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "47 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "ok",
+   "insts": 118,
+   "throughput": 13.11,
+   "throughput_class": "issue",
+   "recurrence": 5.0,
+   "bound_cycles": 13.11,
+   "limit": "issue",
+   "unknown": [],
+   "bound_ns": 3.043,
+   "measured_ns": 2.76,
+   "measured_cycles": 11.89
+  },
+  "best-fm": {
+   "status": "ok",
+   "insts": 111,
+   "throughput": 12.33,
+   "throughput_class": "issue",
+   "recurrence": 5.0,
+   "bound_cycles": 12.33,
+   "limit": "issue",
+   "unknown": [],
+   "bound_ns": 2.862,
+   "measured_ns": 2.7267,
+   "measured_cycles": 11.75
+  },
+  "best48-fm": {
+   "status": "ok",
+   "insts": 111,
+   "throughput": 12.33,
+   "throughput_class": "issue",
+   "recurrence": 5.0,
+   "bound_cycles": 12.33,
+   "limit": "issue",
+   "unknown": [],
+   "bound_ns": 2.862,
+   "measured_ns": 2.7265,
+   "measured_cycles": 11.75
+  },
+  "onda-fm": {
+   "status": "ok",
+   "insts": 126,
+   "throughput": 15.0,
+   "throughput_class": "st",
+   "recurrence": 11.0,
+   "bound_cycles": 15.0,
+   "limit": "st",
+   "unknown": [],
+   "bound_ns": 3.482,
+   "measured_ns": 6.4317,
+   "measured_cycles": 27.71
+  },
+  "cmaj-cpp-fm": {
+   "status": "3 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "5 innermost loops"
+  }
+ },
+ "frenchbell": {
+  "cpp-scal-ieee": {
+   "status": "ok",
+   "insts": 1067,
+   "throughput": 127.0,
+   "throughput_class": "ld",
+   "recurrence": 30.0,
+   "bound_cycles": 127.0,
+   "limit": "ld",
+   "unknown": [],
+   "bound_ns": 29.481,
+   "measured_ns": 56.4628,
+   "measured_cycles": 243.23
+  },
+  "cpp-vec-ieee": {
+   "status": "125 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "4 innermost loops"
+  },
+  "ocpp48-ieee": {
+   "status": "4 innermost loops"
+  },
+  "onda": {
+   "status": "ok",
+   "insts": 318,
+   "throughput": 45.75,
+   "throughput_class": "fp",
+   "recurrence": 19.0,
+   "bound_cycles": 45.75,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 10.62,
+   "measured_ns": 19.2468,
+   "measured_cycles": 82.91
+  },
+  "cmaj-cpp-ieee": {
+   "status": "2 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "ok",
+   "insts": 339,
+   "throughput": 56.0,
+   "throughput_class": "fp",
+   "recurrence": 39.0,
+   "bound_cycles": 56.0,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 13.0,
+   "measured_ns": 17.684,
+   "measured_cycles": 76.18
+  },
+  "cpp-scal-fm": {
+   "status": "ok",
+   "insts": 905,
+   "throughput": 127.67,
+   "throughput_class": "ld",
+   "recurrence": 27.0,
+   "bound_cycles": 127.67,
+   "limit": "ld",
+   "unknown": [],
+   "bound_ns": 29.637,
+   "measured_ns": 39.4597,
+   "measured_cycles": 169.98
+  },
+  "cpp-vec-fm": {
+   "status": "125 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "125 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "4 innermost loops"
+  },
+  "best-fm": {
+   "status": "4 innermost loops"
+  },
+  "best48-fm": {
+   "status": "4 innermost loops"
+  },
+  "onda-fm": {
+   "status": "ok",
+   "insts": 282,
+   "throughput": 36.67,
+   "throughput_class": "ld",
+   "recurrence": 17.0,
+   "bound_cycles": 36.67,
+   "limit": "ld",
+   "unknown": [],
+   "bound_ns": 8.512,
+   "measured_ns": 14.5144,
+   "measured_cycles": 62.53
+  },
+  "cmaj-cpp-fm": {
+   "status": "2 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "ok",
+   "insts": 272,
+   "throughput": 46.0,
+   "throughput_class": "fp",
+   "recurrence": 33.0,
+   "bound_cycles": 46.0,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 10.678,
+   "measured_ns": 12.4522,
+   "measured_cycles": 53.64
+  }
+ },
+ "frenchbell_x": {
+  "cpp-scal-ieee": {
+   "status": "ok",
+   "insts": 1067,
+   "throughput": 127.0,
+   "throughput_class": "ld",
+   "recurrence": 30.0,
+   "bound_cycles": 127.0,
+   "limit": "ld",
+   "unknown": [],
+   "bound_ns": 29.481,
+   "measured_ns": 56.3719,
+   "measured_cycles": 242.84
+  },
+  "cpp-vec-ieee": {
+   "status": "125 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "4 innermost loops"
+  },
+  "ocpp48-ieee": {
+   "status": "4 innermost loops"
+  },
+  "onda": {
+   "status": "ok",
+   "insts": 315,
+   "throughput": 45.75,
+   "throughput_class": "fp",
+   "recurrence": 19.0,
+   "bound_cycles": 45.75,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 10.62,
+   "measured_ns": 16.4375,
+   "measured_cycles": 70.81
+  },
+  "cmaj-cpp-ieee": {
+   "status": "no loop"
+  },
+  "cxx-ieee": {
+   "status": "no loop"
+  },
+  "cpp-scal-fm": {
+   "status": "ok",
+   "insts": 905,
+   "throughput": 127.67,
+   "throughput_class": "ld",
+   "recurrence": 27.0,
+   "bound_cycles": 127.67,
+   "limit": "ld",
+   "unknown": [],
+   "bound_ns": 29.637,
+   "measured_ns": 39.3966,
+   "measured_cycles": 169.71
+  },
+  "cpp-vec-fm": {
+   "status": "125 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "125 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "4 innermost loops"
+  },
+  "best-fm": {
+   "status": "4 innermost loops"
+  },
+  "best48-fm": {
+   "status": "4 innermost loops"
+  },
+  "onda-fm": {
+   "status": "ok",
+   "insts": 282,
+   "throughput": 36.67,
+   "throughput_class": "ld",
+   "recurrence": 17.0,
+   "bound_cycles": 36.67,
+   "limit": "ld",
+   "unknown": [],
+   "bound_ns": 8.512,
+   "measured_ns": 13.6002,
+   "measured_cycles": 58.59
+  },
+  "cmaj-cpp-fm": {
+   "status": "no loop"
+  },
+  "cxx-fm": {
+   "status": "no loop"
+  }
+ },
+ "greyhole": {
+  "cpp-scal-ieee": {
+   "status": "2 innermost loops"
+  },
+  "cpp-vec-ieee": {
+   "status": "353 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "3 innermost loops"
+  },
+  "ocpp48-ieee": {
+   "status": "3 innermost loops"
+  },
+  "onda": {
+   "status": "3 innermost loops"
+  },
+  "cmaj-cpp-ieee": {
+   "status": "4 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "2 innermost loops"
+  },
+  "cpp-scal-fm": {
+   "status": "2 innermost loops"
+  },
+  "cpp-vec-fm": {
+   "status": "353 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "359 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "3 innermost loops"
+  },
+  "best-fm": {
+   "status": "3 innermost loops"
+  },
+  "best48-fm": {
+   "status": "3 innermost loops"
+  },
+  "onda-fm": {
+   "status": "2 innermost loops"
+  },
+  "cmaj-cpp-fm": {
+   "status": "4 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "2 innermost loops"
+  }
+ },
+ "hoa_decoder": {
+  "cpp-scal-ieee": {
+   "status": "2 innermost loops"
+  },
+  "cpp-vec-ieee": {
+   "status": "61 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "2 innermost loops"
+  },
+  "ocpp48-ieee": {
+   "status": "2 innermost loops"
+  },
+  "onda": {
+   "status": "2 innermost loops"
+  },
+  "cmaj-cpp-ieee": {
+   "status": "no loop"
+  },
+  "cxx-ieee": {
+   "status": "no loop"
+  },
+  "cpp-scal-fm": {
+   "status": "2 innermost loops"
+  },
+  "cpp-vec-fm": {
+   "status": "61 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "61 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "2 innermost loops"
+  },
+  "best-fm": {
+   "status": "2 innermost loops"
+  },
+  "best48-fm": {
+   "status": "2 innermost loops"
+  },
+  "onda-fm": {
+   "status": "2 innermost loops"
+  },
+  "cmaj-cpp-fm": {
+   "status": "no loop"
+  },
+  "cxx-fm": {
+   "status": "no loop"
+  }
+ },
+ "hoa_decoder_x": {
+  "cpp-scal-ieee": {
+   "status": "2 innermost loops"
+  },
+  "cpp-vec-ieee": {
+   "status": "61 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "2 innermost loops"
+  },
+  "ocpp48-ieee": {
+   "status": "2 innermost loops"
+  },
+  "onda": {
+   "status": "2 innermost loops"
+  },
+  "cmaj-cpp-ieee": {
+   "status": "3 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "2 innermost loops"
+  },
+  "cpp-scal-fm": {
+   "status": "2 innermost loops"
+  },
+  "cpp-vec-fm": {
+   "status": "61 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "61 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "2 innermost loops"
+  },
+  "best-fm": {
+   "status": "2 innermost loops"
+  },
+  "best48-fm": {
+   "status": "2 innermost loops"
+  },
+  "onda-fm": {
+   "status": "2 innermost loops"
+  },
+  "cmaj-cpp-fm": {
+   "status": "3 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "2 innermost loops"
+  }
+ },
+ "hoa_octo": {
+  "cpp-scal-ieee": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-vec-ieee": {
+   "status": "299 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "2 innermost loops"
+  },
+  "ocpp48-ieee": {
+   "status": "2 innermost loops"
+  },
+  "onda": {
+   "status": "calls (libm or helper)"
+  },
+  "cmaj-cpp-ieee": {
+   "status": "3 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-scal-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-vec-fm": {
+   "status": "299 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "299 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "2 innermost loops"
+  },
+  "best-fm": {
+   "status": "2 innermost loops"
+  },
+  "best48-fm": {
+   "status": "2 innermost loops"
+  },
+  "onda-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "cmaj-cpp-fm": {
+   "status": "3 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "calls (libm or helper)"
+  }
+ },
+ "karplus": {
+  "cpp-scal-ieee": {
+   "status": "ok",
+   "insts": 173,
+   "throughput": 25.25,
+   "throughput_class": "fp",
+   "recurrence": 11.0,
+   "bound_cycles": 25.25,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 5.861,
+   "measured_ns": 8.165,
+   "measured_cycles": 35.17
+  },
+  "cpp-vec-ieee": {
+   "status": "74 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "4 innermost loops"
+  },
+  "ocpp48-ieee": {
+   "status": "4 innermost loops"
+  },
+  "onda": {
+   "status": "2 innermost loops"
+  },
+  "cmaj-cpp-ieee": {
+   "status": "2 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "ok",
+   "insts": 130,
+   "throughput": 18.5,
+   "throughput_class": "fp",
+   "recurrence": 5.0,
+   "bound_cycles": 18.5,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 4.295,
+   "measured_ns": 4.4015,
+   "measured_cycles": 18.96
+  },
+  "cpp-scal-fm": {
+   "status": "ok",
+   "insts": 157,
+   "throughput": 20.25,
+   "throughput_class": "fp",
+   "recurrence": 11.0,
+   "bound_cycles": 20.25,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 4.701,
+   "measured_ns": 7.2867,
+   "measured_cycles": 31.39
+  },
+  "cpp-vec-fm": {
+   "status": "74 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "74 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "4 innermost loops"
+  },
+  "best-fm": {
+   "status": "4 innermost loops"
+  },
+  "best48-fm": {
+   "status": "4 innermost loops"
+  },
+  "onda-fm": {
+   "status": "ok",
+   "insts": 107,
+   "throughput": 13.5,
+   "throughput_class": "fp",
+   "recurrence": 3.0,
+   "bound_cycles": 13.5,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 3.134,
+   "measured_ns": 3.7345,
+   "measured_cycles": 16.09
+  },
+  "cmaj-cpp-fm": {
+   "status": "2 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "ok",
+   "insts": 119,
+   "throughput": 14.0,
+   "throughput_class": "fp",
+   "recurrence": 3.0,
+   "bound_cycles": 14.0,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 3.25,
+   "measured_ns": 3.3148,
+   "measured_cycles": 14.28
+  }
+ },
+ "mixer16": {
+  "cpp-scal-ieee": {
+   "status": "2 innermost loops"
+  },
+  "cpp-vec-ieee": {
+   "status": "6 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "2 innermost loops"
+  },
+  "ocpp48-ieee": {
+   "status": "2 innermost loops"
+  },
+  "onda": {
+   "status": "3 innermost loops"
+  },
+  "cmaj-cpp-ieee": {
+   "status": "no loop"
+  },
+  "cxx-ieee": {
+   "status": "no loop"
+  },
+  "cpp-scal-fm": {
+   "status": "2 innermost loops"
+  },
+  "cpp-vec-fm": {
+   "status": "6 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "6 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "2 innermost loops"
+  },
+  "best-fm": {
+   "status": "2 innermost loops"
+  },
+  "best48-fm": {
+   "status": "2 innermost loops"
+  },
+  "onda-fm": {
+   "status": "3 innermost loops"
+  },
+  "cmaj-cpp-fm": {
+   "status": "no loop"
+  },
+  "cxx-fm": {
+   "status": "no loop"
+  }
+ },
+ "mixer16_x": {
+  "cpp-scal-ieee": {
+   "status": "2 innermost loops"
+  },
+  "cpp-vec-ieee": {
+   "status": "6 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "2 innermost loops"
+  },
+  "ocpp48-ieee": {
+   "status": "2 innermost loops"
+  },
+  "onda": {
+   "status": "2 innermost loops"
+  },
+  "cmaj-cpp-ieee": {
+   "status": "3 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "2 innermost loops"
+  },
+  "cpp-scal-fm": {
+   "status": "2 innermost loops"
+  },
+  "cpp-vec-fm": {
+   "status": "6 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "6 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "2 innermost loops"
+  },
+  "best-fm": {
+   "status": "2 innermost loops"
+  },
+  "best48-fm": {
+   "status": "2 innermost loops"
+  },
+  "onda-fm": {
+   "status": "3 innermost loops"
+  },
+  "cmaj-cpp-fm": {
+   "status": "3 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "2 innermost loops"
+  }
+ },
+ "moog_vcf": {
+  "cpp-scal-ieee": {
+   "status": "ok",
+   "insts": 58,
+   "throughput": 8.5,
+   "throughput_class": "st",
+   "recurrence": 31.0,
+   "bound_cycles": 31.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 7.196,
+   "measured_ns": 7.234,
+   "measured_cycles": 31.16
+  },
+  "cpp-vec-ieee": {
+   "status": "19 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "ok",
+   "insts": 35,
+   "throughput": 7.0,
+   "throughput_class": "fp",
+   "recurrence": 33.0,
+   "bound_cycles": 33.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 7.661,
+   "measured_ns": 7.5984,
+   "measured_cycles": 32.73
+  },
+  "ocpp48-ieee": {
+   "status": "ok",
+   "insts": 30,
+   "throughput": 6.25,
+   "throughput_class": "fp",
+   "recurrence": 33.0,
+   "bound_cycles": 33.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 7.661,
+   "measured_ns": 7.6448,
+   "measured_cycles": 32.93
+  },
+  "onda": {
+   "status": "ok",
+   "insts": 27,
+   "throughput": 5.75,
+   "throughput_class": "fp",
+   "recurrence": 25.0,
+   "bound_cycles": 25.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 5.803,
+   "measured_ns": 5.9172,
+   "measured_cycles": 25.49
+  },
+  "cmaj-cpp-ieee": {
+   "status": "3 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "ok",
+   "insts": 27,
+   "throughput": 5.75,
+   "throughput_class": "fp",
+   "recurrence": 25.0,
+   "bound_cycles": 25.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 5.803,
+   "measured_ns": 5.8978,
+   "measured_cycles": 25.41
+  },
+  "cpp-scal-fm": {
+   "status": "ok",
+   "insts": 53,
+   "throughput": 8.5,
+   "throughput_class": "st",
+   "recurrence": 24.0,
+   "bound_cycles": 24.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 5.571,
+   "measured_ns": 5.6871,
+   "measured_cycles": 24.5
+  },
+  "cpp-vec-fm": {
+   "status": "19 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "19 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "ok",
+   "insts": 26,
+   "throughput": 4.75,
+   "throughput_class": "fp",
+   "recurrence": 26.0,
+   "bound_cycles": 26.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 6.036,
+   "measured_ns": 6.0219,
+   "measured_cycles": 25.94
+  },
+  "best-fm": {
+   "status": "8 innermost loops"
+  },
+  "best48-fm": {
+   "status": "11 innermost loops"
+  },
+  "onda-fm": {
+   "status": "ok",
+   "insts": 20,
+   "throughput": 4.0,
+   "throughput_class": "fp",
+   "recurrence": 15.0,
+   "bound_cycles": 15.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 3.482,
+   "measured_ns": 3.6305,
+   "measured_cycles": 15.64
+  },
+  "cmaj-cpp-fm": {
+   "status": "3 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "ok",
+   "insts": 20,
+   "throughput": 4.0,
+   "throughput_class": "fp",
+   "recurrence": 15.0,
+   "bound_cycles": 15.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 3.482,
+   "measured_ns": 3.63,
+   "measured_cycles": 15.64
+  }
+ },
+ "noise": {
+  "cpp-scal-ieee": {
+   "status": "ok",
+   "insts": 11,
+   "throughput": 1.5,
+   "throughput_class": "st",
+   "recurrence": 11.0,
+   "bound_cycles": 11.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 2.554,
+   "measured_ns": 3.1905,
+   "measured_cycles": 13.74
+  },
+  "cpp-vec-ieee": {
+   "status": "6 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "ok",
+   "insts": 9,
+   "throughput": 1.25,
+   "throughput_class": "fp",
+   "recurrence": 5.0,
+   "bound_cycles": 5.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 1.161,
+   "measured_ns": 1.3215,
+   "measured_cycles": 5.69
+  },
+  "ocpp48-ieee": {
+   "status": "ok",
+   "insts": 9,
+   "throughput": 1.25,
+   "throughput_class": "fp",
+   "recurrence": 5.0,
+   "bound_cycles": 5.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 1.161,
+   "measured_ns": 1.3299,
+   "measured_cycles": 5.73
+  },
+  "onda": {
+   "status": "ok",
+   "insts": 8,
+   "throughput": 1.0,
+   "throughput_class": "fp",
+   "recurrence": 5.0,
+   "bound_cycles": 5.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 1.161,
+   "measured_ns": 1.2205,
+   "measured_cycles": 5.26
+  },
+  "cmaj-cpp-ieee": {
+   "status": "2 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "ok",
+   "insts": 8,
+   "throughput": 1.0,
+   "throughput_class": "fp",
+   "recurrence": 5.0,
+   "bound_cycles": 5.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 1.161,
+   "measured_ns": 1.2378,
+   "measured_cycles": 5.33
+  },
+  "cpp-scal-fm": {
+   "status": "ok",
+   "insts": 10,
+   "throughput": 1.5,
+   "throughput_class": "st",
+   "recurrence": 12.0,
+   "bound_cycles": 12.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 2.786,
+   "measured_ns": 3.3695,
+   "measured_cycles": 14.52
+  },
+  "cpp-vec-fm": {
+   "status": "6 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "6 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "ok",
+   "insts": 8,
+   "throughput": 1.0,
+   "throughput_class": "fp",
+   "recurrence": 5.0,
+   "bound_cycles": 5.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 1.161,
+   "measured_ns": 1.2506,
+   "measured_cycles": 5.39
+  },
+  "best-fm": {
+   "status": "ok",
+   "insts": 8,
+   "throughput": 1.0,
+   "throughput_class": "fp",
+   "recurrence": 5.0,
+   "bound_cycles": 5.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 1.161,
+   "measured_ns": 1.25,
+   "measured_cycles": 5.38
+  },
+  "best48-fm": {
+   "status": "ok",
+   "insts": 8,
+   "throughput": 1.0,
+   "throughput_class": "fp",
+   "recurrence": 5.0,
+   "bound_cycles": 5.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 1.161,
+   "measured_ns": 1.251,
+   "measured_cycles": 5.39
+  },
+  "onda-fm": {
+   "status": "ok",
+   "insts": 7,
+   "throughput": 0.78,
+   "throughput_class": "issue",
+   "recurrence": 5.0,
+   "bound_cycles": 5.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 1.161,
+   "measured_ns": 1.1768,
+   "measured_cycles": 5.07
+  },
+  "cmaj-cpp-fm": {
+   "status": "2 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "ok",
+   "insts": 7,
+   "throughput": 0.78,
+   "throughput_class": "issue",
+   "recurrence": 5.0,
+   "bound_cycles": 5.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 1.161,
+   "measured_ns": 1.1709,
+   "measured_cycles": 5.04
+  }
+ },
+ "noise_gate": {
+  "cpp-scal-ieee": {
+   "status": "ok",
+   "insts": 41,
+   "throughput": 5.0,
+   "throughput_class": "fp",
+   "recurrence": 17.0,
+   "bound_cycles": 17.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 3.946,
+   "measured_ns": 4.9976,
+   "measured_cycles": 21.53
+  },
+  "cpp-vec-ieee": {
+   "status": "16 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "ok",
+   "insts": 33,
+   "throughput": 4.75,
+   "throughput_class": "fp",
+   "recurrence": 11.0,
+   "bound_cycles": 11.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 2.554,
+   "measured_ns": 2.7619,
+   "measured_cycles": 11.9
+  },
+  "ocpp48-ieee": {
+   "status": "ok",
+   "insts": 33,
+   "throughput": 4.75,
+   "throughput_class": "fp",
+   "recurrence": 11.0,
+   "bound_cycles": 11.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 2.554,
+   "measured_ns": 2.7597,
+   "measured_cycles": 11.89
+  },
+  "onda": {
+   "status": "ok",
+   "insts": 34,
+   "throughput": 4.5,
+   "throughput_class": "fp",
+   "recurrence": 5.0,
+   "bound_cycles": 5.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 1.161,
+   "measured_ns": 1.4581,
+   "measured_cycles": 6.28
+  },
+  "cmaj-cpp-ieee": {
+   "status": "4 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "ok",
+   "insts": 34,
+   "throughput": 5.0,
+   "throughput_class": "fp",
+   "recurrence": 11.0,
+   "bound_cycles": 11.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 2.554,
+   "measured_ns": 2.7253,
+   "measured_cycles": 11.74
+  },
+  "cpp-scal-fm": {
+   "status": "ok",
+   "insts": 36,
+   "throughput": 4.0,
+   "throughput_class": "issue",
+   "recurrence": 13.0,
+   "bound_cycles": 13.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 3.018,
+   "measured_ns": 3.8428,
+   "measured_cycles": 16.55
+  },
+  "cpp-vec-fm": {
+   "status": "17 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "17 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "ok",
+   "insts": 30,
+   "throughput": 4.0,
+   "throughput_class": "fp",
+   "recurrence": 9.0,
+   "bound_cycles": 9.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 2.089,
+   "measured_ns": 2.289,
+   "measured_cycles": 9.86
+  },
+  "best-fm": {
+   "status": "2 innermost loops"
+  },
+  "best48-fm": {
+   "status": "2 innermost loops"
+  },
+  "onda-fm": {
+   "status": "ok",
+   "insts": 30,
+   "throughput": 3.5,
+   "throughput_class": "fp",
+   "recurrence": 5.0,
+   "bound_cycles": 5.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 1.161,
+   "measured_ns": 1.4821,
+   "measured_cycles": 6.38
+  },
+  "cmaj-cpp-fm": {
+   "status": "4 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "ok",
+   "insts": 30,
+   "throughput": 4.0,
+   "throughput_class": "fp",
+   "recurrence": 7.0,
+   "bound_cycles": 7.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 1.625,
+   "measured_ns": 1.8709,
+   "measured_cycles": 8.06
+  }
+ },
+ "peq10": {
+  "cpp-scal-ieee": {
+   "status": "ok",
+   "insts": 179,
+   "throughput": 25.0,
+   "throughput_class": "fp",
+   "recurrence": 20.0,
+   "bound_cycles": 25.0,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 5.803,
+   "measured_ns": 37.7696,
+   "measured_cycles": 162.7
+  },
+  "cpp-vec-ieee": {
+   "status": "20 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "ok",
+   "insts": 162,
+   "throughput": 22.75,
+   "throughput_class": "fp",
+   "recurrence": 15.0,
+   "bound_cycles": 22.75,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 5.281,
+   "measured_ns": 5.3724,
+   "measured_cycles": 23.14
+  },
+  "ocpp48-ieee": {
+   "status": "ok",
+   "insts": 149,
+   "throughput": 23.0,
+   "throughput_class": "fp",
+   "recurrence": 9.0,
+   "bound_cycles": 23.0,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 5.339,
+   "measured_ns": 5.3576,
+   "measured_cycles": 23.08
+  },
+  "onda": {
+   "status": "2 innermost loops"
+  },
+  "cmaj-cpp-ieee": {
+   "status": "3 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "ok",
+   "insts": 227,
+   "throughput": 27.0,
+   "throughput_class": "ld",
+   "recurrence": 45.5,
+   "bound_cycles": 45.5,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 10.562,
+   "measured_ns": 12.921,
+   "measured_cycles": 55.66
+  },
+  "cpp-scal-fm": {
+   "status": "ok",
+   "insts": 156,
+   "throughput": 20.67,
+   "throughput_class": "ld",
+   "recurrence": 17.0,
+   "bound_cycles": 20.67,
+   "limit": "ld",
+   "unknown": [],
+   "bound_ns": 4.798,
+   "measured_ns": 8.6925,
+   "measured_cycles": 37.45
+  },
+  "cpp-vec-fm": {
+   "status": "20 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "20 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "ok",
+   "insts": 108,
+   "throughput": 13.0,
+   "throughput_class": "fp",
+   "recurrence": 14.0,
+   "bound_cycles": 14.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 3.25,
+   "measured_ns": 4.3053,
+   "measured_cycles": 18.55
+  },
+  "best-fm": {
+   "status": "ok",
+   "insts": 115,
+   "throughput": 13.0,
+   "throughput_class": "fp",
+   "recurrence": 14.0,
+   "bound_cycles": 14.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 3.25,
+   "measured_ns": 4.1942,
+   "measured_cycles": 18.07
+  },
+  "best48-fm": {
+   "status": "ok",
+   "insts": 140,
+   "throughput": 16.75,
+   "throughput_class": "fp",
+   "recurrence": 31.0,
+   "bound_cycles": 31.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 7.196,
+   "measured_ns": 8.7647,
+   "measured_cycles": 37.76
+  },
+  "onda-fm": {
+   "status": "2 innermost loops"
+  },
+  "cmaj-cpp-fm": {
+   "status": "3 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "ok",
+   "insts": 192,
+   "throughput": 24.33,
+   "throughput_class": "ld",
+   "recurrence": 25.0,
+   "bound_cycles": 25.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 5.803,
+   "measured_ns": 10.9906,
+   "measured_cycles": 47.35
+  }
+ },
+ "phaser": {
+  "cpp-scal-ieee": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-vec-ieee": {
+   "status": "142 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "2 innermost loops"
+  },
+  "ocpp48-ieee": {
+   "status": "2 innermost loops"
+  },
+  "onda": {
+   "status": "calls (libm or helper)"
+  },
+  "cmaj-cpp-ieee": {
+   "status": "4 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-scal-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-vec-fm": {
+   "status": "142 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "160 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "2 innermost loops"
+  },
+  "best-fm": {
+   "status": "2 innermost loops"
+  },
+  "best48-fm": {
+   "status": "2 innermost loops"
+  },
+  "onda-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "cmaj-cpp-fm": {
+   "status": "4 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "calls (libm or helper)"
+  }
+ },
+ "pitch_shifter": {
+  "cpp-scal-ieee": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-vec-ieee": {
+   "status": "24 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "2 innermost loops"
+  },
+  "ocpp48-ieee": {
+   "status": "2 innermost loops"
+  },
+  "onda": {
+   "status": "calls (libm or helper)"
+  },
+  "cmaj-cpp-ieee": {
+   "status": "3 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-scal-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-vec-fm": {
+   "status": "24 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "24 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "2 innermost loops"
+  },
+  "best-fm": {
+   "status": "2 innermost loops"
+  },
+  "best48-fm": {
+   "status": "2 innermost loops"
+  },
+  "onda-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "cmaj-cpp-fm": {
+   "status": "3 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "calls (libm or helper)"
+  }
+ },
+ "sine": {
+  "cpp-scal-ieee": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-vec-ieee": {
+   "status": "4 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "2 innermost loops"
+  },
+  "ocpp48-ieee": {
+   "status": "2 innermost loops"
+  },
+  "onda": {
+   "status": "calls (libm or helper)"
+  },
+  "cmaj-cpp-ieee": {
+   "status": "2 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-scal-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-vec-fm": {
+   "status": "4 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "5 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "2 innermost loops"
+  },
+  "best-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "best48-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "onda-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "cmaj-cpp-fm": {
+   "status": "2 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "calls (libm or helper)"
+  }
+ },
+ "svf_mod": {
+  "cpp-scal-ieee": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-vec-ieee": {
+   "status": "8 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "2 innermost loops"
+  },
+  "ocpp48-ieee": {
+   "status": "2 innermost loops"
+  },
+  "onda": {
+   "status": "calls (libm or helper)"
+  },
+  "cmaj-cpp-ieee": {
+   "status": "3 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-scal-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-vec-fm": {
+   "status": "8 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "8 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "2 innermost loops"
+  },
+  "best-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "best48-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "onda-fm": {
+   "status": "calls (libm or helper)"
+  },
+  "cmaj-cpp-fm": {
+   "status": "3 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "calls (libm or helper)"
+  }
+ },
+ "tanh_drive": {
+  "cpp-scal-ieee": {
+   "status": "2 innermost loops"
+  },
+  "cpp-vec-ieee": {
+   "status": "3 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "5 innermost loops"
+  },
+  "ocpp48-ieee": {
+   "status": "5 innermost loops"
+  },
+  "onda": {
+   "status": "3 innermost loops"
+  },
+  "cmaj-cpp-ieee": {
+   "status": "3 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "2 innermost loops"
+  },
+  "cpp-scal-fm": {
+   "status": "2 innermost loops"
+  },
+  "cpp-vec-fm": {
+   "status": "3 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "4 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "5 innermost loops"
+  },
+  "best-fm": {
+   "status": "5 innermost loops"
+  },
+  "best48-fm": {
+   "status": "5 innermost loops"
+  },
+  "onda-fm": {
+   "status": "3 innermost loops"
+  },
+  "cmaj-cpp-fm": {
+   "status": "3 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "2 innermost loops"
+  }
+ },
+ "tapiir": {
+  "cpp-scal-ieee": {
+   "status": "ok",
+   "insts": 228,
+   "throughput": 32.0,
+   "throughput_class": "fp",
+   "recurrence": 1.0,
+   "bound_cycles": 32.0,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 7.428,
+   "measured_ns": 7.5109,
+   "measured_cycles": 32.36
+  },
+  "cpp-vec-ieee": {
+   "status": "8 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "ok",
+   "insts": 184,
+   "throughput": 29.5,
+   "throughput_class": "fp",
+   "recurrence": 1.0,
+   "bound_cycles": 29.5,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 6.848,
+   "measured_ns": 6.9014,
+   "measured_cycles": 29.73
+  },
+  "ocpp48-ieee": {
+   "status": "ok",
+   "insts": 184,
+   "throughput": 29.5,
+   "throughput_class": "fp",
+   "recurrence": 1.0,
+   "bound_cycles": 29.5,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 6.848,
+   "measured_ns": 6.9057,
+   "measured_cycles": 29.75
+  },
+  "onda": {
+   "status": "ok",
+   "insts": 224,
+   "throughput": 32.0,
+   "throughput_class": "fp",
+   "recurrence": 8.0,
+   "bound_cycles": 32.0,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 7.428,
+   "measured_ns": 7.4649,
+   "measured_cycles": 32.16
+  },
+  "cmaj-cpp-ieee": {
+   "status": "4 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "ok",
+   "insts": 210,
+   "throughput": 32.0,
+   "throughput_class": "fp",
+   "recurrence": 2.0,
+   "bound_cycles": 32.0,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 7.428,
+   "measured_ns": 7.4484,
+   "measured_cycles": 32.09
+  },
+  "cpp-scal-fm": {
+   "status": "ok",
+   "insts": 167,
+   "throughput": 18.56,
+   "throughput_class": "issue",
+   "recurrence": 1.0,
+   "bound_cycles": 18.56,
+   "limit": "issue",
+   "unknown": [],
+   "bound_ns": 4.308,
+   "measured_ns": 5.2515,
+   "measured_cycles": 22.62
+  },
+  "cpp-vec-fm": {
+   "status": "8 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "8 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "ok",
+   "insts": 143,
+   "throughput": 18.25,
+   "throughput_class": "fp",
+   "recurrence": 1.0,
+   "bound_cycles": 18.25,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 4.237,
+   "measured_ns": 4.3426,
+   "measured_cycles": 18.71
+  },
+  "best-fm": {
+   "status": "5 innermost loops"
+  },
+  "best48-fm": {
+   "status": "5 innermost loops"
+  },
+  "onda-fm": {
+   "status": "ok",
+   "insts": 163,
+   "throughput": 20.67,
+   "throughput_class": "ld",
+   "recurrence": 8.0,
+   "bound_cycles": 20.67,
+   "limit": "ld",
+   "unknown": [],
+   "bound_ns": 4.798,
+   "measured_ns": 5.2206,
+   "measured_cycles": 22.49
+  },
+  "cmaj-cpp-fm": {
+   "status": "4 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "ok",
+   "insts": 137,
+   "throughput": 17.5,
+   "throughput_class": "fp",
+   "recurrence": 2.0,
+   "bound_cycles": 17.5,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 4.062,
+   "measured_ns": 4.1504,
+   "measured_cycles": 17.88
+  }
+ },
+ "violin": {
+  "cpp-scal-ieee": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-vec-ieee": {
+   "status": "147 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "4 innermost loops"
+  },
+  "ocpp48-ieee": {
+   "status": "4 innermost loops"
+  },
+  "onda": {
+   "status": "calls (libm or helper)"
+  },
+  "cmaj-cpp-ieee": {
+   "status": "2 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "calls (libm or helper)"
+  },
+  "cpp-scal-fm": {
+   "status": "not one sample per iteration"
+  },
+  "cpp-vec-fm": {
+   "status": "147 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "147 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "4 innermost loops"
+  },
+  "best-fm": {
+   "status": "4 innermost loops"
+  },
+  "best48-fm": {
+   "status": "4 innermost loops"
+  },
+  "onda-fm": {
+   "status": "ok",
+   "insts": 320,
+   "throughput": 35.56,
+   "throughput_class": "issue",
+   "recurrence": 61.0,
+   "bound_cycles": 61.0,
+   "limit": "recurrence",
+   "unknown": [],
+   "bound_ns": 14.16,
+   "measured_ns": 21.0806,
+   "measured_cycles": 90.81
+  },
+  "cmaj-cpp-fm": {
+   "status": "2 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "ok",
+   "insts": 274,
+   "throughput": 30.44,
+   "throughput_class": "issue",
+   "recurrence": 19.0,
+   "bound_cycles": 30.44,
+   "limit": "issue",
+   "unknown": [],
+   "bound_ns": 7.066,
+   "measured_ns": 9.1865,
+   "measured_cycles": 39.57
+  }
+ },
+ "virtual_analog": {
+  "cpp-scal-ieee": {
+   "status": "2 innermost loops"
+  },
+  "cpp-vec-ieee": {
+   "status": "287 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "2 innermost loops"
+  },
+  "ocpp48-ieee": {
+   "status": "ok",
+   "insts": 428,
+   "throughput": 62.0,
+   "throughput_class": "fp",
+   "recurrence": 13.0,
+   "bound_cycles": 62.0,
+   "limit": "fp",
+   "unknown": [
+    "cmlt.4s",
+    "ushll.4s"
+   ],
+   "bound_ns": 14.392,
+   "measured_ns": 14.7785,
+   "measured_cycles": 63.66
+  },
+  "onda": {
+   "status": "ok",
+   "insts": 390,
+   "throughput": 55.5,
+   "throughput_class": "fp",
+   "recurrence": 19.0,
+   "bound_cycles": 55.5,
+   "limit": "fp",
+   "unknown": [
+    "ssra.2s"
+   ],
+   "bound_ns": 12.884,
+   "measured_ns": 14.6775,
+   "measured_cycles": 63.23
+  },
+  "cmaj-cpp-ieee": {
+   "status": "3 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "ok",
+   "insts": 370,
+   "throughput": 59.0,
+   "throughput_class": "fp",
+   "recurrence": 11.0,
+   "bound_cycles": 59.0,
+   "limit": "fp",
+   "unknown": [
+    "ssra.2s"
+   ],
+   "bound_ns": 13.696,
+   "measured_ns": 15.0511,
+   "measured_cycles": 64.84
+  },
+  "cpp-scal-fm": {
+   "status": "2 innermost loops"
+  },
+  "cpp-vec-fm": {
+   "status": "287 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "287 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "2 innermost loops"
+  },
+  "best-fm": {
+   "status": "2 innermost loops"
+  },
+  "best48-fm": {
+   "status": "2 innermost loops"
+  },
+  "onda-fm": {
+   "status": "ok",
+   "insts": 358,
+   "throughput": 49.0,
+   "throughput_class": "fp",
+   "recurrence": 19.0,
+   "bound_cycles": 49.0,
+   "limit": "fp",
+   "unknown": [
+    "ssra.2s"
+   ],
+   "bound_ns": 11.375,
+   "measured_ns": 13.1226,
+   "measured_cycles": 56.53
+  },
+  "cmaj-cpp-fm": {
+   "status": "3 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "ok",
+   "insts": 312,
+   "throughput": 50.75,
+   "throughput_class": "fp",
+   "recurrence": 15.0,
+   "bound_cycles": 50.75,
+   "limit": "fp",
+   "unknown": [
+    "ssra.2s"
+   ],
+   "bound_ns": 11.781,
+   "measured_ns": 12.3543,
+   "measured_cycles": 53.22
+  }
+ },
+ "zita_rev": {
+  "cpp-scal-ieee": {
+   "status": "ok",
+   "insts": 570,
+   "throughput": 66.25,
+   "throughput_class": "fp",
+   "recurrence": 19.0,
+   "bound_cycles": 66.25,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 15.379,
+   "measured_ns": 23.037,
+   "measured_cycles": 99.24
+  },
+  "cpp-vec-ieee": {
+   "status": "20 innermost loops"
+  },
+  "ocpp-ieee": {
+   "status": "ok",
+   "insts": 403,
+   "throughput": 52.25,
+   "throughput_class": "fp",
+   "recurrence": 30.0,
+   "bound_cycles": 52.25,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 12.129,
+   "measured_ns": 12.5361,
+   "measured_cycles": 54.0
+  },
+  "ocpp48-ieee": {
+   "status": "not one sample per iteration"
+  },
+  "onda": {
+   "status": "ok",
+   "insts": 236,
+   "throughput": 34.5,
+   "throughput_class": "fp",
+   "recurrence": 13.0,
+   "bound_cycles": 34.5,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 8.009,
+   "measured_ns": 10.9246,
+   "measured_cycles": 47.06
+  },
+  "cmaj-cpp-ieee": {
+   "status": "4 innermost loops"
+  },
+  "cxx-ieee": {
+   "status": "ok",
+   "insts": 207,
+   "throughput": 35.75,
+   "throughput_class": "fp",
+   "recurrence": 7.0,
+   "bound_cycles": 35.75,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 8.299,
+   "measured_ns": 8.7499,
+   "measured_cycles": 37.69
+  },
+  "cpp-scal-fm": {
+   "status": "ok",
+   "insts": 500,
+   "throughput": 55.56,
+   "throughput_class": "issue",
+   "recurrence": 17.0,
+   "bound_cycles": 55.56,
+   "limit": "issue",
+   "unknown": [],
+   "bound_ns": 12.898,
+   "measured_ns": 20.815,
+   "measured_cycles": 89.67
+  },
+  "cpp-vec-fm": {
+   "status": "20 innermost loops"
+  },
+  "cpp-vec-acc": {
+   "status": "20 innermost loops"
+  },
+  "ocpp-fm": {
+   "status": "ok",
+   "insts": 333,
+   "throughput": 37.0,
+   "throughput_class": "issue",
+   "recurrence": 13.0,
+   "bound_cycles": 37.0,
+   "limit": "issue",
+   "unknown": [],
+   "bound_ns": 8.589,
+   "measured_ns": 10.7083,
+   "measured_cycles": 46.13
+  },
+  "best-fm": {
+   "status": "ok",
+   "insts": 333,
+   "throughput": 37.0,
+   "throughput_class": "issue",
+   "recurrence": 13.0,
+   "bound_cycles": 37.0,
+   "limit": "issue",
+   "unknown": [],
+   "bound_ns": 8.589,
+   "measured_ns": 10.7089,
+   "measured_cycles": 46.13
+  },
+  "best48-fm": {
+   "status": "not one sample per iteration"
+  },
+  "onda-fm": {
+   "status": "ok",
+   "insts": 214,
+   "throughput": 27.0,
+   "throughput_class": "fp",
+   "recurrence": 13.0,
+   "bound_cycles": 27.0,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 6.268,
+   "measured_ns": 10.4317,
+   "measured_cycles": 44.94
+  },
+  "cmaj-cpp-fm": {
+   "status": "4 innermost loops"
+  },
+  "cxx-fm": {
+   "status": "ok",
+   "insts": 201,
+   "throughput": 31.0,
+   "throughput_class": "fp",
+   "recurrence": 13.0,
+   "bound_cycles": 31.0,
+   "limit": "fp",
+   "unknown": [],
+   "bound_ns": 7.196,
+   "measured_ns": 7.8486,
+   "measured_cycles": 33.81
+  }
+ }
+}

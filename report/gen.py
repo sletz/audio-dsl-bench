@@ -136,6 +136,51 @@ G = lambda k, sel=lambda x: True: g([x[k] for x in st if sel(x)])
 ocpp_gain = g([R[n]['cpp-scal-ieee'] / R[n]['ocpp-ieee'] for _, p in CATS for n, _ in p if n not in VARIANTS and 'ocpp-ieee' in R[n]])
 best_gain = g([R[n]['cpp-scal-fm'] / R[n]['best-fm'] for _, p in CATS for n, _ in p if n not in VARIANTS and 'best-fm' in R[n]])
 
+# the fastest engine of all per program (the best measured so far), and the machine floor of the sample loops
+LABEL = {'cpp-scal-ieee': 'Faust C++', 'cpp-vec-ieee': 'Faust C++ -vec', 'ocpp-ieee': 'Faust cert-7 ocpp',
+         'ocpp48-ieee': 'Faust ocpp, fixed SR', 'onda': 'onda', 'cmaj-cpp-ieee': 'Cmajor C++', 'cmaj-jit': 'Cmajor JIT',
+         'ydsp': 'YDSP', 'cxx-ieee': 'C++', 'cpp-scal-fm': 'Faust C++', 'cpp-vec-fm': 'Faust C++ -vec',
+         'cpp-vec-acc': 'Faust -vec + Accelerate', 'llvm-scal': 'Faust LLVM', 'llvm-vec': 'Faust LLVM -vec',
+         'llvm48': 'Faust LLVM, fixed SR', 'ocpp-fm': 'Faust cert-7 ocpp', 'best-fm': 'Faust fcautotool pick',
+         'best48-fm': 'Faust pick, fixed SR', 'onda-fm': 'onda', 'cmaj-cpp-fm': 'Cmajor C++', 'cmaj-jit-fm': 'Cmajor JIT',
+         'ydsp-fm': 'YDSP', 'cxx-fm': 'C++'}
+ALL_S = IEEE + ['onda'] + CMAJ_S + YDSP_S + ['cxx-ieee']
+ALL_F = FAST + ['onda-fm'] + CMAJ_F + YDSP_F + ['cxx-fm']
+BD = json.load(open(f"{B}/results/bound.json")) if os.path.exists(f"{B}/results/bound.json") else {}
+GHZ = BD.get('_machine', {}).get('ghz', 0)
+vrows, frows, vb = [], [], {'s': [], 'f': []}
+nonfaust = {'s': 0, 'f': 0}
+fl_ratio = {'s': [], 'f': []}
+nbound = 0
+for cat, progs in CATS:
+    vrows.append(f'<tr class="cat"><th colspan="9" scope="rowgroup">{html.escape(cat)}</th></tr>')
+    for n, lab in progs:
+        if n in VARIANTS:
+            continue
+        r, cells, fcells, has = R[n], '', '', False
+        for c, E, F in (('s', ALL_S, IEEE), ('f', ALL_F, FAST)):
+            k = min((e for e in E if e in r), key=lambda e: r[e])
+            gap = best(r, F) / r[k]
+            vb[c].append(gap)
+            nonfaust[c] += k not in F
+            cells += (f'<td style="text-align:left">{html.escape(LABEL[k])}</td><td>{num(r[k])}</td><td>{num(best(r, F))}</td>'
+                      + rat(gap))
+            ok = {e: v for e, v in BD.get(n, {}).items() if v['status'] == 'ok' and e in E}
+            if ok:
+                has = True
+                e = min(ok, key=lambda e: ok[e]['bound_cycles'])
+                t = r[k] * GHZ
+                fl_ratio[c].append(t / ok[e]['bound_cycles'])
+                fcells += (f'<td>{ok[e]["bound_cycles"]:.1f}</td><td style="text-align:left">{html.escape(LABEL[e])}, '
+                           f'{ok[e]["limit"]}</td><td>{t:.1f}</td><td class="ratio">×{t / ok[e]["bound_cycles"]:.2f}</td>')
+            else:
+                fcells += '<td>—</td><td></td><td></td><td></td>'
+        vrows.append(f'<tr><th scope="row"><code>{n}</code></th>{cells}</tr>')
+        if has:
+            nbound += 1
+            frows.append(f'<tr><th scope="row"><code>{n}</code></th>{fcells}</tr>')
+med = lambda a: sorted(a)[len(a) // 2] if a else 0
+near = lambda a: sum(1 for x in a if 0.9 <= x <= 1.15)
 # options elected by fcautotool
 erows = []
 for _, progs in CATS:
@@ -170,6 +215,10 @@ sub = {'ROWS': '\n'.join(rows), 'HEAD': head, 'SOURCES': '\n'.join(src), 'EROWS'
        'OCPPGAIN': fr(ocpp_gain), 'BESTGAIN': fr(best_gain),
        'CXXCPP': fr(G('xcpp')), 'CXXCMAJ': fr(G('xcmaj')),
        'FWINS': str(wins_s['faust']), 'OWINS': str(wins_s['onda']), 'CWINS': str(wins_s['cmaj']), 'YWINS': str(wins_s['ydsp']), 'XWINS': str(wins_s['cxx']),
+       'VROWS': '\n'.join(vrows), 'FROWS': '\n'.join(frows), 'VBS': fr(g(vb['s'])), 'VBF': fr(g(vb['f'])),
+       'NVS': str(nonfaust['s']), 'NVF': str(nonfaust['f']), 'NBOUND': str(nbound), 'GHZ': f'{GHZ:.2f}',
+       'NFS': str(len(fl_ratio['s'])), 'NFF': str(len(fl_ratio['f'])), 'MEDS': fr(med(fl_ratio['s'])), 'MEDF': fr(med(fl_ratio['f'])),
+       'NEARS': str(near(fl_ratio['s'])), 'NEARF': str(near(fl_ratio['f'])),
        'FFWINS': str(wins_f['faust']), 'OFWINS': str(wins_f['onda']), 'CFWINS': str(wins_f['cmaj']), 'YFWINS': str(wins_f['ydsp']), 'XFWINS': str(wins_f['cxx'])}
 out = open(f"{B}/report/template.html").read()
 for k, v in sub.items():
@@ -178,4 +227,7 @@ assert not re.findall(r'%%[A-Z]+%%', out), re.findall(r'%%[A-Z]+%%', out)
 open(f"{B}/report/audio-dsl-bench.html", 'w').write(out)
 print(f"{sub['NPROG']} programs; best Faust / onda {sub['GS']} {sub['GF']}, Cmajor {sub['CS']} {sub['CF']}, YDSP {sub['YS']} {sub['YF']}, C++ {sub['XS']} {sub['XF']}; "
       f"fastest strict F/O/C/Y/X {sub['FWINS']}/{sub['OWINS']}/{sub['CWINS']}/{sub['YWINS']}/{sub['XWINS']}, "
-      f"fast {sub['FFWINS']}/{sub['OFWINS']}/{sub['CFWINS']}/{sub['YFWINS']}/{sub['XFWINS']}")
+      f"fast {sub['FFWINS']}/{sub['OFWINS']}/{sub['CFWINS']}/{sub['YFWINS']}/{sub['XFWINS']}; "
+      f"best engine per program / best Faust {sub['VBS']} {sub['VBF']} (Faust not fastest on {sub['NVS']} {sub['NVF']}); "
+      f"floors on {sub['NBOUND']} programs, fastest/floor median {sub['MEDS']} ({sub['NEARS']}/{sub['NFS']} within 0.9-1.15) "
+      f"{sub['MEDF']} ({sub['NEARF']}/{sub['NFF']})")

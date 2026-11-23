@@ -129,6 +129,41 @@ tr.variant td.best { background: transparent; }
 </section>
 
 <section>
+  <h2>How far from the optimum</h2>
+  <p class="prose">No compiler can be shown to produce the fastest code for every program: program equivalence is undecidable. Once the algorithm, the floating-point contract and the machine are fixed, the optimum exists, and two measurements bracket it. From above, the <strong>fastest engine of all</strong> for each program: what code generation already reaches. From below, the <strong>machine floor</strong> of a sample loop: the time its instructions cannot go below on this core.</p>
+  <div class="kpis">
+    <div class="kpi f"><span class="lang">Best engine per program</span><b>×%%VBS%% · ×%%VBF%%</b><span>faster than the best Faust build, strict · fast-math, if the fastest engine were taken for each program; Faust is not the fastest on %%NVS%% and %%NVF%% of %%NPROG%% programs</span></div>
+    <div class="kpi x"><span class="lang">Fastest / machine floor</span><b>×%%MEDS%% · ×%%MEDF%%</b><span>median over the %%NBOUND%% programs whose sample loop could be analysed; within 0.9 to 1.15 of the floor on %%NEARS%% of %%NFS%% (strict) and %%NEARF%% of %%NFF%% (fast-math)</span></div>
+  </div>
+  <p class="prose">In strict mode, where the loop can be analysed, the fastest code already runs at the floor of the leanest instruction sequence found (%%NEARS%% of %%NFS%% programs). With fast-math the spread is wider: the fastest code is 16 to 73 % above the floor on diffuser32, peq10, noise_gate, flanger, zita_rev, the violin, biquad8 and crybaby, where stalls the model leaves out (memory, delay-line accesses) take the rest. Where it is at the floor, what remains is not scheduling: a further gain needs fewer instructions or shorter recurrences, that is, rewriting the computation (merging stages, reading delay lines ahead, vectorizing across modes or voices), which is where the engines differ. A ratio below 1 means that the fastest engine is not one the tool can read (a JIT, a split or nested loop) and emits leaner code than every analysed one: tapiir with the Cmajor JIT and the elected Faust options, dattorro and fdn8 with the elected options.</p>
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr class="groups"><th></th><th colspan="4">Strict IEEE</th><th colspan="4">fast-math</th></tr>
+        <tr><th scope="col" style="text-align:left">Program</th><th scope="col">Fastest engine</th><th scope="col">ns</th><th scope="col">Best Faust</th><th scope="col">Gap</th><th scope="col">Fastest engine</th><th scope="col">ns</th><th scope="col">Best Faust</th><th scope="col">Gap</th></tr>
+      </thead>
+      <tbody>
+%%VROWS%%
+      </tbody>
+    </table>
+  </div>
+  <p class="note">Gap: best Faust time over the fastest time, ×1.00 where a Faust build is the fastest.</p>
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr class="groups"><th></th><th colspan="4">Strict IEEE, cycles per sample</th><th colspan="4">fast-math, cycles per sample</th></tr>
+        <tr><th scope="col" style="text-align:left">Program</th><th scope="col">Floor</th><th scope="col">Code, limit</th><th scope="col">Fastest</th><th scope="col">Ratio</th><th scope="col">Floor</th><th scope="col">Code, limit</th><th scope="col">Fastest</th><th scope="col">Ratio</th></tr>
+      </thead>
+      <tbody>
+%%FROWS%%
+      </tbody>
+    </table>
+  </div>
+  <p class="note">Floor: the lowest bound among the analysed codes of the contract, with the code that gives it and what limits it. Fastest: the time of the fastest engine (any engine, analysed or not) in cycles, at %%GHZ%% GHz, the highest clock seen while measuring the machine; the clock of the timing runs is not known more precisely than about 7 %, so ratios between 0.9 and 1.15 count as at the floor.</p>
+  <p class="note"><code>tools/loop_bound.py</code> disassembles every ahead-of-time object (the JIT engines have none) and keeps a loop when it is the only innermost loop of the audio functions, not nested in another, with no call (libm) and no branch inside, advancing one sample per iteration: %%NBOUND%% programs have at least one such code; transcendentals, loops split in stages and vector loops leave the others out. The floor of a loop is the larger of a throughput bound (instructions of each class over the issue rate of the class: 4 FP/SIMD, 7 integer, 3 loads, 2 stores, 1 divide, 9 in all per cycle) and a recurrence bound (maximum cycle mean of the loop-carried dependencies, register moves free, state stored and reloaded at a fixed address at the store-to-reload latency, load addresses not counted since the core predicts them). Latencies and issue rates are measured on the M5 by <code>tools/m_latency.c</code>: fadd 2 cycles, fmul and fmadd 3, fdiv 7, fsqrt 9, store-to-reload 6. llvm-mca was tried first: its newest Apple model (apple-m4 in LLVM 21: fadd 4, fmadd 8, three FP pipes) gave bounds above the measured times.</p>
+</section>
+
+<section>
   <h2>All 23 engines</h2>
   <p class="prose">Median ns per sample for every engine; the highlighted cell is the fastest of the row. Faust 2.95.1: C++ and the LLVM JIT; Faust cert-7: the <code>master-dev-certification-7</code> branch, its <code>-lang ocpp</code> backend and the options elected by <code>fcautotool</code>; "fixed SR": the sample rate constant at compile time. C++: the hand-written port. Rows in italics are alternative onda writings, outside the means.</p>
   <div class="scroll">
