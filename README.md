@@ -16,6 +16,8 @@ same floating-point contract (strict IEEE, or fast-math). Measured in November 2
 M5, f32, 48 kHz, 256-frame blocks. Raw numbers in `results/`, full tables, findings and the
 sources side by side in the report, `report/audio-dsl-bench.html`.
 
+To run the same benchmark on x86-64 Linux, see the [Linux reproduction guide](tools/linux/README.md).
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="report/languages-dark.svg">
   <img alt="Speed of onda, Cmajor, YDSP and hand-written C++ relative to the best Faust build, for 38 programs in seven categories, strict IEEE and fast-math, log scale. Geometric means, strict: onda x0.95, Cmajor x0.71, YDSP x0.65, C++ x0.95; fast-math: onda x0.79, Cmajor x0.60, YDSP x0.61, C++ x0.84. Faust is faster on most programs; the clearest wins over it are onda on additive64, noise_gate and karplus, C++ on karplus, zita_rev, greyhole and the violin, Cmajor on tapiir and pitch_shifter, YDSP on diode_ladder and moog_vcf and, with fastMath, tanh_drive." src="report/languages-light.svg">

@@ -77,9 +77,9 @@ extern "C" void ydsp_process (void* e, float* const* in, float* const* out, int 
     std::array<yup::YdspInputBuffer, maxChannels> inputs;
     std::array<yup::YdspOutputBuffer, maxChannels> outputs;
     for (int c = 0; c < engine->numInputs; ++c)
-        inputs[(size_t) c] = yup::Span<const float> (in[c], (size_t) numSamples);
+        inputs[(size_t) c].emplace<yup::Span<const float>> (in[c], (size_t) numSamples);
     for (int c = 0; c < engine->numOutputs; ++c)
-        outputs[(size_t) c] = yup::Span<float> (out[c], (size_t) numSamples);
+        outputs[(size_t) c].emplace<yup::Span<float>> (out[c], (size_t) numSamples);
 
     yup::YdspProcessRequest request;
     request.inputs = yup::Span<const yup::YdspInputBuffer> (inputs.data(), (size_t) engine->numInputs);

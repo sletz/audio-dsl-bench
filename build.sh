@@ -4,6 +4,7 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ONDA="${ONDA:-/Users/letz/Developpements/onda/target/release/onda}"
+ONDA_INCLUDE="${ONDA_INCLUDE:-$(dirname "$ONDA")/../../include}"
 FAUSTLIB=/Users/letz/Developpements/faustlibraries
 OBJCOPY=/opt/local/libexec/llvm-21/bin/llvm-objcopy
 CMAJ="${CMAJ:-cmaj}"
@@ -28,8 +29,14 @@ D="$HERE/build/$N"
 rm -rf "$D"; mkdir -p "$D"; cd "$D"
 CXX="clang++ -std=c++17 -mcpu=native"
 
+ONDA_HELP=$("$ONDA" --help)
 for v in strict fast; do
-  fm=""; [ $v = fast ] && fm="--fast-math"
+  fm=""
+  if [[ $v = strict && $ONDA_HELP = *--no-fast-math* ]]; then
+    fm="--no-fast-math"
+  elif [[ $v = fast && $ONDA_HELP = *--fast-math* ]]; then
+    fm="--fast-math"
+  fi
   "$ONDA" compile "$HERE/dsp/$N.onda" --emit obj --target-cpu host -b 256 --sr 48000 $fm \
     -o onda_$v.raw.o --meta-out onda_$v.json > /dev/null
   $OBJCOPY --redefine-sym _onda_processor_init=_onda_init_$v --redefine-sym _onda_process=_onda_process_$v \
@@ -43,7 +50,13 @@ rt = d["runtime"]; md = d["metadata"]
 print("#pragma once\n#include <cstring>")
 print(f"#define ONDA_STATE_SIZE {rt['state_size_bytes']}")
 print(f"#define ONDA_STATE_ALIGN {max(16, rt['state_align_bytes'])}")
-print(f"#define ONDA_PARAM_SIZE {max(1, rt['param_size_bytes'])}")
+print(f"#define ONDA_PARAM_SIZE {rt['param_size_bytes']}")
+print(f"#define ONDA_PARAM_ALIGN {rt['param_align_bytes']}")
+for direction in ("input", "output"):
+    ports = md[f"{direction}s"]
+    assert all(port["scalar"] == "f32" and port["slot_offset"] == sum(p["array_len"] for p in ports[:i])
+               for i, port in enumerate(ports)), f"expected contiguous f32 {direction} ports"
+    print(f"static constexpr int {direction}_count = {sum(p['array_len'] for p in ports)};")
 print("static inline void onda_write_defaults(unsigned char* p) {")
 for prm in md["params"]:
     sc = prm["scalar"]; off = prm["byte_offset"]
@@ -139,7 +152,7 @@ for v in strict fast; do
   $CXX $fl -I"$HERE/tools" -c Cxx_$v.cpp -o Cxx_$v.o
 done
 
-$CXX -O2 -I. -I"$HERE/tools" -I"$HERE/tools/ydsp" -I/usr/local/include -DCMAJ_SRC=\"$CMAJ_SRC\" -DYDSP_SRC=\"$YDSP_SRC\" -DFAUSTLIB=\"$FAUSTLIB\" -DSR48DIR=\"$HERE/sr48\" -c "$HERE/harness.cpp" -o harness.o
+$CXX -O2 -I. -I"$HERE/tools" -I"$HERE/tools/ydsp" -I"$ONDA_INCLUDE" -I/usr/local/include -DCMAJ_SRC=\"$CMAJ_SRC\" -DYDSP_SRC=\"$YDSP_SRC\" -DFAUSTLIB=\"$FAUSTLIB\" -DSR48DIR=\"$HERE/sr48\" -c "$HERE/harness.cpp" -o harness.o
 $CXX -o bench harness.o Faust_*.o Cmaj_*.o Cxx_*.o onda_strict.o onda_fast.o "$HERE/build/_common/cmaj_jit.o" \
   "$HERE/build/_ydsp/libydsp_engine.a" /usr/local/lib/libfaustwithllvm.a \
   -L/opt/local/lib -lz -lzstd -lxml2 -lncurses -framework Accelerate \
