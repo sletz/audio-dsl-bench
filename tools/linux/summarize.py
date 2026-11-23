@@ -36,7 +36,7 @@ def load_results(path, max_error=MAX_ERROR):
             name, engine = row["workload"], row["engine"]
             times = accepted[name]
             time = float(row["ns_per_frame"])
-            error = float(row["rel_rms"])
+            error = float(row["worst_channel_rel_rms"])
             if row["finite"] == "finite" and 0 <= error <= max_error and isfinite(time) and time > 0:
                 times[engine] = time
             else:

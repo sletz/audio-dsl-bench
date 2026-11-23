@@ -236,18 +236,22 @@ int main(int argc, char** argv) {
     uint32_t seed = 22222;
     for (auto& x : noise) { seed = seed * 1664525u + 1013904223u; x = ((int32_t)seed) * (0.5f / 2147483648.0f); }
     float obuf[NCH][BS] = {};
+    InputPorts inputs[NB];
+    const void* onda_inputs[NB][NCH];
+    OutputPorts out;
+    for (int c = 0; c < NCH; c++) {
+        out.onda[c] = out.audio[c] = obuf[c];
+    }
+    for (int b = 0; b < NB; b++) {
+        inputs[b].onda = input_count ? onda_inputs[b] : nullptr;
+        for (int c = 0; c < NCH; c++) {
+            onda_inputs[b][c] = inputs[b].audio[c] = &noise[((size_t)b * NCH + c) * BS];
+        }
+    }
+
     auto run_blocks = [&](Engine& e, int nblocks, int start) {
         for (int b = 0; b < nblocks; b++) {
-            int k = (start + b) % NB;
-            InputPorts in;
-            OutputPorts out;
-            const void* onda_in[NCH];
-            for (int c = 0; c < NCH; c++) {
-                onda_in[c] = in.audio[c] = &noise[((size_t)k * NCH + c) * BS];
-                out.onda[c] = out.audio[c] = obuf[c];
-            }
-            in.onda = input_count ? onda_in : nullptr;
-            e.compute(in, out);
+            e.compute(inputs[(start + b) % NB], out);
         }
     };
 
@@ -262,14 +266,14 @@ int main(int argc, char** argv) {
     };
     std::vector<float> ref;
     ref.reserve((size_t)NCMP * BS * output_count);
-    double energy = 0;
+    std::vector<double> ref_energy(output_count);
     (*reference)->init();
     for (int b = 0; b < NCMP; b++) {
         render(**reference, b);
         for (int c = 0; c < output_count; c++) {
             for (float sample : obuf[c]) {
                 if (!std::isfinite(sample)) { fprintf(stderr, "%s: non-finite reference output\n", tag); return 1; }
-                energy += double(sample) * sample;
+                ref_energy[c] += double(sample) * sample;
             }
             ref.insert(ref.end(), obuf[c], obuf[c] + BS);
         }
@@ -278,14 +282,16 @@ int main(int argc, char** argv) {
         if (energy > 0) return sqrt(error / energy);
         return error == 0 ? 0.0 : std::numeric_limits<double>::infinity();
     };
-    struct Error { double max_abs = 0, rel_rms = 0; bool finite = true; };
+    struct Error { double max_abs = 0, rel_rms = 0, worst_channel = 0; bool finite = true; };
     std::vector<Error> errors(engines.size());
+    double energy = 0;
+    for (double x : ref_energy) energy += x;
     double refrms = sqrt(energy / ref.size());
     for (size_t i = 0; i < engines.size(); i++) {
         Engine& e = *engines[i];
         e.init();
         auto& err = errors[i];
-        double squared = 0;
+        std::vector<double> squared(output_count);
         size_t j = 0;
         for (int b = 0; b < NCMP; b++) {
             render(e, b);
@@ -294,12 +300,17 @@ int main(int argc, char** argv) {
                     double d = fabs(double(sample) - ref[j++]);
                     if (!std::isfinite(sample)) err.finite = false;
                     err.max_abs = std::max(err.max_abs, d);
-                    squared += d * d;
+                    squared[c] += d * d;
                 }
             }
         }
-        err.rel_rms = relative_rms(squared, energy);
-        if (!err.finite) err.rel_rms = std::numeric_limits<double>::infinity();
+        double total = 0;
+        for (int c = 0; c < output_count; c++) {
+            total += squared[c];
+            err.worst_channel = std::max(err.worst_channel, relative_rms(squared[c], ref_energy[c]));
+        }
+        err.rel_rms = relative_rms(total, energy);
+        if (!err.finite) err.rel_rms = err.worst_channel = std::numeric_limits<double>::infinity();
     }
 
     // 2. Timing: warm-up, then rounds interleaved across engines (shuffled order each round).
@@ -335,6 +346,9 @@ int main(int argc, char** argv) {
         const auto& err = errors[i];
         printf("%s\t%s\t%.5f\t%.5f\t%.5f\t%.7g\t%.7g\t%s\t%.7g", tag, engines[i]->name.c_str(), med, t[0],
                dev[dev.size() / 2], err.max_abs, err.rel_rms, err.finite ? "finite" : "NONFINITE", refrms);
+#ifdef BENCH_GENERATED_ENGINES
+        printf("\t%.7g", err.worst_channel);
+#endif
         putchar('\n');
     }
     engines.clear();

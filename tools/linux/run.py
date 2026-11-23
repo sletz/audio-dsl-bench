@@ -15,7 +15,7 @@ import subprocess
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 ONDA_RELEASE = ROOT / "build" / "toolchains" / "onda-0.9.2-linux-x64"
-HEADER = "workload\tengine\tns_per_frame\tmin\tmad\tmax_abs\trel_rms\tfinite\tref_rms\n"
+HEADER = "workload\tengine\tns_per_frame\tmin\tmad\tmax_abs\trel_rms\tfinite\tref_rms\tworst_channel_rel_rms\n"
 
 
 def command(*argv, **kwargs):

@@ -97,7 +97,7 @@ Every engine has the same x86 denormal setting for the run. `--flush-denormals` 
 FTZ/DAZ and the default preserves denormals.
 
 The harness first renders four seconds with each engine's default parameters. The summary
-uses only finite rows with relative RMS error at most 0.001 against strict
+uses only finite rows with worst-channel relative RMS error at most 0.001 against strict
 scalar Faust C++. Each pair uses the workloads where both sides pass. The TSV retains all
 timed rows. Check each workload's `build.log` and `run.log` for compiler or JIT diagnostics.
 
