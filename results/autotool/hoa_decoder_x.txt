@@ -9,7 +9,7 @@ fcautotool: shortlist by signature: 5/19 of the supported jury (--full races the
   h2         0.4330 ns  (-lang ocpp -ss 9 -ls-R 2 -ls-U 4)
   cpp        0.4330 ns  (-lang cpp)
   cppmcd0    0.4330 ns  (-lang cpp -mcd 0)
-  fu         0.8070 ns  (-lang ocpp -ls-fuse -ls-sched model)
-  cppvec     2.6980 ns  (-lang cpp -vec)
+  fu         0.8040 ns  (-lang ocpp -ls-fuse -ls-sched model)
+  cppvec     2.6970 ns  (-lang cpp -vec)
   -- 8 timed of 8 raced (0 build failures, 0 without a timing)
-fcautotool: winner lb (0.3650 ns/frame, single precision) -- -lang ocpp -lsum  [18.5 s]
+fcautotool: winner lb (0.3650 ns/frame, single precision) -- -lang ocpp -lsum  [19.6 s]

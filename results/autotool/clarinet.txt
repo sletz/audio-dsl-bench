@@ -3,14 +3,14 @@ fcautotool: c++ = /usr/bin/clang++ (Apple clang version 21.0.0 (clang-2100.4.1.1
 fcautotool: timed in single precision  (--double to elect for a double build)
 fcautotool: jury = 19/28 candidates supported: ['al', 'cs2', 'cs2b', 'df', 'fu', 'gq', 'gqlz', 'gqsn', 'h2', 'h32', 'lb', 'ls', 'lz', 'lzh', 'rp', 'sn', 't1fu', 't4', 't4fu']
 fcautotool: shortlist by signature: 6/19 of the supported jury (--full races them all): ['df', 'lb', 'fu', 'al', 'h32', 'cs2b']
-  df         5.6590 ns  (-lang ocpp)
-  al         5.6830 ns  (-lang ocpp -ss 8)
-  h32        5.6840 ns  (-lang ocpp -ss 9 -ls-R 32 -ls-U 4)
-  cs2b       5.8300 ns  (-lang ocpp -ss 12 -ls-R 32 -ls-U 8)
-  fu         6.5520 ns  (-lang ocpp -ls-fuse -ls-sched model)
-  lb         6.8820 ns  (-lang ocpp -lsum)
-  cppmcd0    8.5570 ns  (-lang cpp -mcd 0)
-  cpp        8.8620 ns  (-lang cpp)
-  cppvec     9.9680 ns  (-lang cpp -vec)
+  df         5.6900 ns  (-lang ocpp)
+  al         5.7310 ns  (-lang ocpp -ss 8)
+  h32        5.7450 ns  (-lang ocpp -ss 9 -ls-R 32 -ls-U 4)
+  cs2b       5.8400 ns  (-lang ocpp -ss 12 -ls-R 32 -ls-U 8)
+  fu         6.7940 ns  (-lang ocpp -ls-fuse -ls-sched model)
+  lb         7.0120 ns  (-lang ocpp -lsum)
+  cppmcd0    8.0010 ns  (-lang cpp -mcd 0)
+  cpp        8.5310 ns  (-lang cpp)
+  cppvec     9.3000 ns  (-lang cpp -vec)
   -- 9 timed of 9 raced (0 build failures, 0 without a timing)
-fcautotool: winner df (5.6590 ns/frame, single precision) -- -lang ocpp  [21.4 s]
+fcautotool: winner df (5.6900 ns/frame, single precision) -- -lang ocpp  [21.2 s]

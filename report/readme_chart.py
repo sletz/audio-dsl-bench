@@ -6,12 +6,6 @@ import json, math, sys
 
 B = sys.argv[1]
 R = json.load(open(f"{B}/results/results.json"))
-# builds whose output is wrong on a program (relative RMS 0.88 against every other engine) are left out
-# of the comparisons: the fast-math builds of the certification-4 faust on virtual_analog
-WRONG = {'virtual_analog': ('ocpp-fm', 'best-fm', 'best48-fm')}
-for _n, _ks in WRONG.items():
-    for _k in _ks:
-        R.get(_n, {}).pop(_k, None)
 
 CATS = [('Oscillators and sources', ['sine', 'fm_pad', 'additive64', 'noise', 'bubble', 'virtual_analog']),
         ('Nonlinearities and dynamics', ['tanh_drive', 'distortion', 'compressor', 'noise_gate', 'exciter']),

@@ -19,12 +19,6 @@ for n, r in load(f"{B}/results/results_nocontract.tsv").items():
     for k in ('cpp-scal', 'cpp-vec', 'ocpp', 'ocpp48', 'cmaj-cpp'):
         if k in r:
             R[n][k + '-ieee'] = r[k]
-# builds whose output is wrong on a program (relative RMS 0.88 against every other engine) are left out
-# of the comparisons: the fast-math builds of the certification-4 faust on virtual_analog
-WRONG = {'virtual_analog': ('ocpp-fm', 'best-fm', 'best48-fm')}
-for _n, _ks in WRONG.items():
-    for _k in _ks:
-        R.get(_n, {}).pop(_k, None)
 json.dump(R, open(f"{B}/results/results.json", 'w'), indent=1)
 
 # programs by DSP category; variants (other ways of writing the same program in onda) stay out of the means
@@ -65,7 +59,7 @@ VARIANTS = {'fir32', 'hoa_decoder', 'mixer16', 'frenchbell_x'}
 # the "all engines" table: columns grouped by language
 GROUPS = [('Faust 2.95.1', 'g-faust', [('cpp-scal-ieee', 'C++ IEEE'), ('cpp-scal-fm', 'C++ fast-math'), ('cpp-vec-fm', 'C++ -vec fast-math'),
                                       ('cpp-vec-acc', 'C++ -vec + Accelerate'), ('llvm-scal', 'LLVM'), ('llvm48', 'LLVM, fixed SR')]),
-          ('Faust cert-4', 'g-faust', [('ocpp-ieee', 'ocpp IEEE'), ('ocpp48-ieee', 'ocpp IEEE, fixed SR'), ('ocpp-fm', 'ocpp fast-math'),
+          ('Faust cert-7', 'g-faust', [('ocpp-ieee', 'ocpp IEEE'), ('ocpp48-ieee', 'ocpp IEEE, fixed SR'), ('ocpp-fm', 'ocpp fast-math'),
                                       ('best-fm', 'fcautotool pick'), ('best48-fm', 'pick, fixed SR')]),
           ('Onda', 'g-onda', [('onda', 'strict'), ('onda-fm', '--fast-math')]),
           ('Cmajor', 'g-cmaj', [('cmaj-cpp-ieee', 'C++ IEEE'), ('cmaj-cpp-fm', 'C++ fast-math'), ('cmaj-jit', 'JIT -O3'), ('cmaj-jit-fm', 'JIT -O4')]),

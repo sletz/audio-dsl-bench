@@ -2,27 +2,16 @@ fcautotool: faust = /Users/letz/Developpements/audio-dsl-bench/tools/faust-cert4
 fcautotool: c++ = /usr/bin/clang++ (Apple clang version 21.0.0 (clang-2100.4.1.1)) -O3 -ffast-math -fbracket-depth=1024 -mcpu=native
 fcautotool: timed in single precision  (--double to elect for a double build)
 fcautotool: jury = 19/28 candidates supported: ['al', 'cs2', 'cs2b', 'df', 'fu', 'gq', 'gqlz', 'gqsn', 'h2', 'h32', 'lb', 'ls', 'lz', 'lzh', 'rp', 'sn', 't1fu', 't4', 't4fu']
-fcautotool: no signature probe on this faust, racing the full supported jury
-  al: build failed, discarded -- faust: ERROR : can't compute the min and max values of : int(select2(min(4.0f+0.00882353f*min(1.92e+05f, max(5e+01f, float(fSamplingFreq))), float(max(0, 4+int(select2
-  cs2: build failed, discarded -- faust: ERROR : can't compute the min and max values of : int(select2(min(4.0f+0.00882353f*min(1.92e+05f, max(5e+01f, float(fSamplingFreq))), float(max(0, 4+int(select2
-  cs2b: build failed, discarded -- faust: ERROR : can't compute the min and max values of : int(select2(min(4.0f+0.00882353f*min(1.92e+05f, max(5e+01f, float(fSamplingFreq))), float(max(0, 4+int(select2
-  df: build failed, discarded -- faust: ERROR : can't compute the min and max values of : int(select2(min(4.0f+0.00882353f*min(1.92e+05f, max(5e+01f, float(fSamplingFreq))), float(max(0, 4+int(select2
-  fu: build failed, discarded -- faust: ERROR : can't compute the min and max values of : int(select2(min(4.0f+0.00882353f*min(1.92e+05f, max(5e+01f, float(fSamplingFreq))), float(max(0, 4+int(select2
-  gq: build failed, discarded -- faust: ERROR : can't compute the min and max values of : int((min(4.0f+0.00882353f*min(1.92e+05f, max(5e+01f, float(fSamplingFreq))), float(max(0, 4+int((min(4.0f+0.00
-  gqlz: build failed, discarded -- faust: libc++abi: terminating due to uncaught exception of type faustexception: ERROR : can't compute the min and max values of : int((min(4.0f+0.00882353f*min(1.92e+0
-  gqsn: build failed, discarded -- faust: libc++abi: terminating due to uncaught exception of type faustexception: ERROR : can't compute the min and max values of : int((min(4.0f+0.00882353f*min(1.92e+0
-  h2: build failed, discarded -- faust: ERROR : can't compute the min and max values of : int(select2(min(4.0f+0.00882353f*min(1.92e+05f, max(5e+01f, float(fSamplingFreq))), float(max(0, 4+int(select2
-  h32: build failed, discarded -- faust: ERROR : can't compute the min and max values of : int(select2(min(4.0f+0.00882353f*min(1.92e+05f, max(5e+01f, float(fSamplingFreq))), float(max(0, 4+int(select2
-  lb: build failed, discarded -- faust: ERROR : can't compute the min and max values of : int(select2(min(4.0f+0.00882353f*min(1.92e+05f, max(5e+01f, float(fSamplingFreq))), float(max(0, 4+int(select2
-  ls: build failed, discarded -- faust: ERROR : can't compute the min and max values of : int(select2(min(4.0f+0.00882353f*min(1.92e+05f, max(5e+01f, float(fSamplingFreq))), float(max(0, 4+int(select2
-  lz: build failed, discarded -- faust: libc++abi: terminating due to uncaught exception of type faustexception: ERROR : can't compute the min and max values of : int(select2(min(4.0f+0.00882353f*min(
-  lzh: build failed, discarded -- faust: libc++abi: terminating due to uncaught exception of type faustexception: ERROR : can't compute the min and max values of : int(select2(min(4.0f+0.00882353f*min(
-  rp: build failed, discarded -- faust: ERROR : can't compute the min and max values of : int(select2(min(4.0f+0.00882353f*min(1.92e+05f, max(5e+01f, float(fSamplingFreq))), float(max(0, 4+int(select2
-  sn: build failed, discarded -- faust: libc++abi: terminating due to uncaught exception of type faustexception: ERROR : can't compute the min and max values of : int(select2(min(4.0f+0.00882353f*min(
-  t1fu: build failed, discarded -- faust: ERROR : can't compute the min and max values of : int(select2(min(4.0f+0.00882353f*min(1.92e+05f, max(5e+01f, float(fSamplingFreq))), float(max(0, 4+int(select2
-  t4: build failed, discarded -- faust: ERROR : can't compute the min and max values of : int(select2(min(4.0f+0.00882353f*min(1.92e+05f, max(5e+01f, float(fSamplingFreq))), float(max(0, 4+int(select2
-  t4fu: build failed, discarded -- faust: ERROR : can't compute the min and max values of : int(select2(min(4.0f+0.00882353f*min(1.92e+05f, max(5e+01f, float(fSamplingFreq))), float(max(0, 4+int(select2
-  cpp: build failed, discarded -- faust: ERROR : can't compute the min and max values of : int(select2(min(4.0f+0.00882353f*min(1.92e+05f, max(5e+01f, float(fSamplingFreq))), float(max(0, 4+int(select2
-  cppvec: build failed, discarded -- faust: ERROR : can't compute the min and max values of : int(select2(min(4.0f+0.00882353f*min(1.92e+05f, max(5e+01f, float(fSamplingFreq))), float(max(0, 4+int(select2
-  cppmcd0: build failed, discarded -- faust: ERROR : can't compute the min and max values of : int(select2(min(4.0f+0.00882353f*min(1.92e+05f, max(5e+01f, float(fSamplingFreq))), float(max(0, 4+int(select2
-fcautotool: no candidate built (every build failed -- the reasons are printed above; --keep preserves the working directory for inspection)
+fcautotool: shortlist by signature: 7/19 of the supported jury (--full races them all): ['df', 'lb', 'fu', 'al', 'h2', 'rp', 'cs2b']
+  df        10.3170 ns  (-lang ocpp)
+  rp        10.4000 ns  (-lang ocpp -rp)
+  cs2b      10.5580 ns  (-lang ocpp -ss 12 -ls-R 32 -ls-U 8)
+  al        10.9920 ns  (-lang ocpp -ss 8)
+  h2        11.0660 ns  (-lang ocpp -ss 9 -ls-R 2 -ls-U 4)
+  cppvec    11.7400 ns  (-lang cpp -vec)
+  fu        12.0740 ns  (-lang ocpp -ls-fuse -ls-sched model)
+  lb        13.6490 ns  (-lang ocpp -lsum)
+  cppmcd0   13.8050 ns  (-lang cpp -mcd 0)
+  cpp       14.6840 ns  (-lang cpp)
+  -- 10 timed of 10 raced (0 build failures, 0 without a timing)
+fcautotool: winner df (10.3170 ns/frame, single precision) -- -lang ocpp  [22.5 s]

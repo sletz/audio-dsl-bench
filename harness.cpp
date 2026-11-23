@@ -124,7 +124,7 @@ int main(int argc, char** argv) {
     add_faust("cpp-vec", make_faust_vec_strict());
     add_faust("cpp-vec-fm", make_faust_vec_fast());
     add_faust("cpp-vec-acc", make_faust_vecacc_fast());
-    // faust of the master-dev-certification-4 branch: old C++ backend, and the option set elected by fcautotool
+    // faust of the master-dev-certification-7 branch: old C++ backend, and the option set elected by fcautotool
     add_faust("ocpp", make_faust_ocpp_strict());
     add_faust("ocpp-fm", make_faust_ocpp_fast());
     add_faust("best-fm", make_faust_best_fast());

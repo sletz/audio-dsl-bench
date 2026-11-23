@@ -2,17 +2,16 @@ fcautotool: faust = /Users/letz/Developpements/audio-dsl-bench/tools/faust-cert4
 fcautotool: c++ = /usr/bin/clang++ (Apple clang version 21.0.0 (clang-2100.4.1.1)) -O3 -ffast-math -fbracket-depth=1024 -mcpu=native
 fcautotool: timed in single precision  (--double to elect for a double build)
 fcautotool: jury = 19/28 candidates supported: ['al', 'cs2', 'cs2b', 'df', 'fu', 'gq', 'gqlz', 'gqsn', 'h2', 'h32', 'lb', 'ls', 'lz', 'lzh', 'rp', 'sn', 't1fu', 't4', 't4fu']
-fcautotool: shortlist by signature: 8/19 of the supported jury (--full races them all): ['df', 'lb', 'fu', 'al', 't4fu', 'h2', 'rp', 'cs2b']
-  al         3.1530 ns  (-lang ocpp -ss 8)
-  h2         3.3260 ns  (-lang ocpp -ss 9 -ls-R 2 -ls-U 4)
-  cs2b       5.5440 ns  (-lang ocpp -ss 12 -ls-R 32 -ls-U 8)
-  t4fu       5.9210 ns  (-lang ocpp -temp 4 -ls-fuse -ls-sched model)
-  fu         5.9220 ns  (-lang ocpp -ls-fuse -ls-sched model)
-  rp         6.0890 ns  (-lang ocpp -rp)
-  df         6.6930 ns  (-lang ocpp)
-  lb         6.6930 ns  (-lang ocpp -lsum)
-  cppmcd0    9.9750 ns  (-lang cpp -mcd 0)
-  cppvec     9.9760 ns  (-lang cpp -vec)
-  cpp       13.3410 ns  (-lang cpp)
-  -- 11 timed of 11 raced (0 build failures, 0 without a timing)
-fcautotool: winner al (3.1530 ns/frame, single precision) -- -lang ocpp -ss 8  [24.1 s]
+fcautotool: shortlist by signature: 7/19 of the supported jury (--full races them all): ['df', 'lb', 'fu', 'al', 't4fu', 'h2', 'rp']
+  t4fu       2.9570 ns  (-lang ocpp -temp 4 -ls-fuse -ls-sched model)
+  fu         2.9650 ns  (-lang ocpp -ls-fuse -ls-sched model)
+  al         4.4860 ns  (-lang ocpp -ss 8)
+  lb         4.5080 ns  (-lang ocpp -lsum)
+  df         4.5130 ns  (-lang ocpp)
+  h2         4.5710 ns  (-lang ocpp -ss 9 -ls-R 2 -ls-U 4)
+  rp         4.6280 ns  (-lang ocpp -rp)
+  cppmcd0    6.0470 ns  (-lang cpp -mcd 0)
+  cppvec     7.0480 ns  (-lang cpp -vec)
+  cpp        8.7630 ns  (-lang cpp)
+  -- 10 timed of 10 raced (0 build failures, 0 without a timing)
+fcautotool: winner t4fu (2.9570 ns/frame, single precision) -- -lang ocpp -temp 4 -ls-fuse -ls-sched model  [22.8 s]

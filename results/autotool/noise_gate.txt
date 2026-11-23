@@ -4,12 +4,12 @@ fcautotool: timed in single precision  (--double to elect for a double build)
 fcautotool: jury = 19/28 candidates supported: ['al', 'cs2', 'cs2b', 'df', 'fu', 'gq', 'gqlz', 'gqsn', 'h2', 'h32', 'lb', 'ls', 'lz', 'lzh', 'rp', 'sn', 't1fu', 't4', 't4fu']
 fcautotool: shortlist by signature: 5/19 of the supported jury (--full races them all): ['df', 'lb', 'fu', 'al', 'h32']
   fu         2.2010 ns  (-lang ocpp -ls-fuse -ls-sched model)
-  df         2.2050 ns  (-lang ocpp)
-  lb         2.2050 ns  (-lang ocpp -lsum)
-  al         2.2050 ns  (-lang ocpp -ss 8)
-  h32        2.2050 ns  (-lang ocpp -ss 9 -ls-R 32 -ls-U 4)
-  cppvec     3.2000 ns  (-lang cpp -vec)
-  cppmcd0    3.2890 ns  (-lang cpp -mcd 0)
-  cpp        4.4460 ns  (-lang cpp)
+  al         2.2040 ns  (-lang ocpp -ss 8)
+  h32        2.2040 ns  (-lang ocpp -ss 9 -ls-R 32 -ls-U 4)
+  lb         2.2070 ns  (-lang ocpp -lsum)
+  df         2.2080 ns  (-lang ocpp)
+  cppvec     3.1820 ns  (-lang cpp -vec)
+  cppmcd0    3.2930 ns  (-lang cpp -mcd 0)
+  cpp        4.4590 ns  (-lang cpp)
   -- 8 timed of 8 raced (0 build failures, 0 without a timing)
-fcautotool: winner fu (2.2010 ns/frame, single precision) -- -lang ocpp -ls-fuse -ls-sched model  [20.2 s]
+fcautotool: winner fu (2.2010 ns/frame, single precision) -- -lang ocpp -ls-fuse -ls-sched model  [20.3 s]

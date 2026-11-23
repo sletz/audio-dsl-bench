@@ -3,18 +3,18 @@ fcautotool: c++ = /usr/bin/clang++ (Apple clang version 21.0.0 (clang-2100.4.1.1
 fcautotool: timed in single precision  (--double to elect for a double build)
 fcautotool: jury = 19/28 candidates supported: ['al', 'cs2', 'cs2b', 'df', 'fu', 'gq', 'gqlz', 'gqsn', 'h2', 'h32', 'lb', 'ls', 'lz', 'lzh', 'rp', 'sn', 't1fu', 't4', 't4fu']
 fcautotool: shortlist by signature: 10/19 of the supported jury (--full races them all): ['df', 'lb', 'fu', 'al', 't1fu', 't4fu', 'h2', 'rp', 'cs2', 'cs2b']
-  t1fu: build failed, discarded -- faust: ERROR : can't compute the min and max values of : 
-  t4fu: build failed, discarded -- faust: ERROR : can't compute the min and max values of : max(1, min(1+, 517))
-  cs2b      41.6180 ns  (-lang ocpp -ss 12 -ls-R 32 -ls-U 8)
-  cppmcd0   42.0160 ns  (-lang cpp -mcd 0)
-  cs2       45.5050 ns  (-lang ocpp -ss 11 -ls-R 32 -ls-U 4)
-  rp        47.4760 ns  (-lang ocpp -rp)
-  df        47.6180 ns  (-lang ocpp)
-  lb        48.5130 ns  (-lang ocpp -lsum)
-  cpp       53.4700 ns  (-lang cpp)
-  fu        54.0560 ns  (-lang ocpp -ls-fuse -ls-sched model)
-  al        67.1210 ns  (-lang ocpp -ss 8)
-  cppvec    68.0410 ns  (-lang cpp -vec)
-  h2        69.9180 ns  (-lang ocpp -ss 9 -ls-R 2 -ls-U 4)
-  -- 11 timed of 13 raced (2 build failures, 0 without a timing)
-fcautotool: winner cs2b (41.6180 ns/frame, single precision) -- -lang ocpp -ss 12 -ls-R 32 -ls-U 8  [41.3 s]
+  cs2b      42.3600 ns  (-lang ocpp -ss 12 -ls-R 32 -ls-U 8)
+  cppmcd0   42.4040 ns  (-lang cpp -mcd 0)
+  cs2       44.5900 ns  (-lang ocpp -ss 11 -ls-R 32 -ls-U 4)
+  df        45.8840 ns  (-lang ocpp)
+  rp        47.2970 ns  (-lang ocpp -rp)
+  lb        48.3510 ns  (-lang ocpp -lsum)
+  cpp       54.2270 ns  (-lang cpp)
+  fu        57.7300 ns  (-lang ocpp -ls-fuse -ls-sched model)
+  t4fu      59.4110 ns  (-lang ocpp -temp 4 -ls-fuse -ls-sched model)
+  t1fu      59.6350 ns  (-lang ocpp -temp 1 -ls-fuse -ls-sched model)
+  al        66.3700 ns  (-lang ocpp -ss 8)
+  cppvec    68.5600 ns  (-lang cpp -vec)
+  h2        69.9240 ns  (-lang ocpp -ss 9 -ls-R 2 -ls-U 4)
+  -- 13 timed of 13 raced (0 build failures, 0 without a timing)
+fcautotool: winner cs2b (42.3600 ns/frame, single precision) -- -lang ocpp -ss 12 -ls-R 32 -ls-U 8  [44.5 s]

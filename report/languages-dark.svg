@@ -10,7 +10,7 @@
 <text x="197.0" y="80" font-size="12.5" fill="#f0f6fc">YDSP</text>
 <line x1="249.0" x2="265.0" y1="76" y2="76" stroke="#9198a1" stroke-width="1.5"/>
 <text x="273.0" y="80" font-size="12.5" fill="#f0f6fc">Faust: best of 13 builds (×1)</text>
-<text x="64" y="118" font-size="14" font-weight="600" fill="#f0f6fc">Strict IEEE<tspan dx="12" font-size="12" font-weight="400" fill="#9198a1">geometric means: onda ×0.96 · Cmajor ×0.72 · YDSP ×0.65</tspan></text>
+<text x="64" y="118" font-size="14" font-weight="600" fill="#f0f6fc">Strict IEEE<tspan dx="12" font-size="12" font-weight="400" fill="#9198a1">geometric means: onda ×0.94 · Cmajor ×0.71 · YDSP ×0.64</tspan></text>
 <line x1="64" x2="916" y1="316.3" y2="316.3" stroke="#3d444d" stroke-width="1"/>
 <text x="56" y="320.3" font-size="11.5" text-anchor="end" fill="#9198a1">×⅛</text>
 <line x1="64" x2="916" y1="279.9" y2="279.9" stroke="#3d444d" stroke-width="1"/>
@@ -23,83 +23,83 @@
 <text x="56" y="174.6" font-size="11.5" text-anchor="end" fill="#9198a1">×2</text>
 <line x1="64" x2="916" y1="134.2" y2="134.2" stroke="#3d444d" stroke-width="1"/>
 <text x="56" y="138.2" font-size="11.5" text-anchor="end" fill="#9198a1">×4</text>
-<rect x="75.5" y="205.6" width="10" height="1.5" rx="2" fill="#3987e5"><title>sine, onda: ×1.03</title></rect>
-<rect x="87.5" y="207.0" width="10" height="35.0" rx="2" fill="#d95926"><title>sine, Cmajor: ×0.51</title></rect>
-<rect x="99.5" y="207.0" width="10" height="14.3" rx="2" fill="#199e70"><title>sine, YDSP: ×0.76</title></rect>
+<rect x="75.5" y="206.2" width="10" height="1.5" rx="2" fill="#3987e5"><title>sine, onda: ×1.02</title></rect>
+<rect x="87.5" y="207.0" width="10" height="34.9" rx="2" fill="#d95926"><title>sine, Cmajor: ×0.51</title></rect>
+<rect x="99.5" y="207.0" width="10" height="13.9" rx="2" fill="#199e70"><title>sine, YDSP: ×0.77</title></rect>
 <text x="92.5" y="342" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 92.5 342)" fill="#f0f6fc">sine</text>
-<rect x="112.6" y="205.9" width="10" height="1.5" rx="2" fill="#3987e5"><title>fm_pad, onda: ×1.02</title></rect>
-<rect x="124.6" y="205.3" width="10" height="1.7" rx="2" fill="#d95926"><title>fm_pad, Cmajor: ×1.03</title></rect>
-<rect x="136.6" y="207.0" width="10" height="25.2" rx="2" fill="#199e70"><title>fm_pad, YDSP: ×0.62</title></rect>
+<rect x="112.6" y="205.3" width="10" height="1.7" rx="2" fill="#3987e5"><title>fm_pad, onda: ×1.03</title></rect>
+<rect x="124.6" y="205.1" width="10" height="1.9" rx="2" fill="#d95926"><title>fm_pad, Cmajor: ×1.04</title></rect>
+<rect x="136.6" y="207.0" width="10" height="25.4" rx="2" fill="#199e70"><title>fm_pad, YDSP: ×0.62</title></rect>
 <text x="129.6" y="342" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 129.6 342)" fill="#f0f6fc">fm_pad</text>
-<rect x="149.8" y="145.2" width="10" height="61.9" rx="2" fill="#3987e5"><title>additive64, onda: ×3.25</title></rect>
-<rect x="161.8" y="207.0" width="10" height="4.6" rx="2" fill="#d95926"><title>additive64, Cmajor: ×0.92</title></rect>
-<rect x="173.8" y="207.0" width="10" height="22.5" rx="2" fill="#199e70"><title>additive64, YDSP: ×0.65</title></rect>
+<rect x="149.8" y="139.3" width="10" height="67.7" rx="2" fill="#3987e5"><title>additive64, onda: ×3.63</title></rect>
+<rect x="161.8" y="205.1" width="10" height="2.0" rx="2" fill="#d95926"><title>additive64, Cmajor: ×1.04</title></rect>
+<rect x="173.8" y="207.0" width="10" height="17.9" rx="2" fill="#199e70"><title>additive64, YDSP: ×0.71</title></rect>
 <text x="166.8" y="342" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 166.8 342)" fill="#f0f6fc">additive64</text>
-<rect x="186.8" y="204.9" width="10" height="2.1" rx="2" fill="#3987e5"><title>noise, onda: ×1.04</title></rect>
-<rect x="198.8" y="207.0" width="10" height="10.0" rx="2" fill="#d95926"><title>noise, Cmajor: ×0.83</title></rect>
-<rect x="210.8" y="207.0" width="10" height="12.0" rx="2" fill="#199e70"><title>noise, YDSP: ×0.80</title></rect>
+<rect x="186.8" y="205.6" width="10" height="1.5" rx="2" fill="#3987e5"><title>noise, onda: ×1.03</title></rect>
+<rect x="198.8" y="207.0" width="10" height="12.2" rx="2" fill="#d95926"><title>noise, Cmajor: ×0.79</title></rect>
+<rect x="210.8" y="207.0" width="10" height="35.2" rx="2" fill="#199e70"><title>noise, YDSP: ×0.51</title></rect>
 <text x="203.8" y="342" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 203.8 342)" fill="#f0f6fc">noise</text>
-<rect x="223.9" y="207.0" width="10" height="6.3" rx="2" fill="#3987e5"><title>bubble, onda: ×0.89</title></rect>
-<rect x="235.9" y="207.0" width="10" height="20.5" rx="2" fill="#d95926"><title>bubble, Cmajor: ×0.68</title></rect>
-<rect x="247.9" y="207.0" width="10" height="18.6" rx="2" fill="#199e70"><title>bubble, YDSP: ×0.70</title></rect>
+<rect x="223.9" y="207.0" width="10" height="6.6" rx="2" fill="#3987e5"><title>bubble, onda: ×0.88</title></rect>
+<rect x="235.9" y="207.0" width="10" height="21.3" rx="2" fill="#d95926"><title>bubble, Cmajor: ×0.67</title></rect>
+<rect x="247.9" y="207.0" width="10" height="19.3" rx="2" fill="#199e70"><title>bubble, YDSP: ×0.69</title></rect>
 <text x="240.9" y="342" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 240.9 342)" fill="#f0f6fc">bubble</text>
-<rect x="261.1" y="202.8" width="10" height="4.2" rx="2" fill="#3987e5"><title>virtual_analog, onda: ×1.08</title></rect>
-<rect x="273.1" y="204.9" width="10" height="2.1" rx="2" fill="#d95926"><title>virtual_analog, Cmajor: ×1.04</title></rect>
-<rect x="285.1" y="207.0" width="10" height="11.1" rx="2" fill="#199e70"><title>virtual_analog, YDSP: ×0.81</title></rect>
+<rect x="261.1" y="206.4" width="10" height="1.5" rx="2" fill="#3987e5"><title>virtual_analog, onda: ×1.01</title></rect>
+<rect x="273.1" y="207.0" width="10" height="1.5" rx="2" fill="#d95926"><title>virtual_analog, Cmajor: ×0.97</title></rect>
+<rect x="285.1" y="207.0" width="10" height="14.6" rx="2" fill="#199e70"><title>virtual_analog, YDSP: ×0.76</title></rect>
 <text x="278.1" y="342" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 278.1 342)" fill="#f0f6fc">virtual_analog</text>
 <text x="185.3" y="140" font-size="10" font-weight="600" letter-spacing="0.5" text-anchor="middle" fill="#9198a1">SOURCES</text>
-<rect x="312.2" y="183.9" width="10" height="23.1" rx="2" fill="#3987e5"><title>tanh_drive, onda: ×1.55</title></rect>
-<rect x="324.2" y="207.0" width="10" height="26.1" rx="2" fill="#d95926"><title>tanh_drive, Cmajor: ×0.61</title></rect>
-<rect x="336.2" y="207.0" width="10" height="35.7" rx="2" fill="#199e70"><title>tanh_drive, YDSP: ×0.51</title></rect>
+<rect x="312.2" y="179.9" width="10" height="27.1" rx="2" fill="#3987e5"><title>tanh_drive, onda: ×1.68</title></rect>
+<rect x="324.2" y="207.0" width="10" height="20.9" rx="2" fill="#d95926"><title>tanh_drive, Cmajor: ×0.67</title></rect>
+<rect x="336.2" y="207.0" width="10" height="31.8" rx="2" fill="#199e70"><title>tanh_drive, YDSP: ×0.55</title></rect>
 <text x="329.2" y="342" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 329.2 342)" fill="#f0f6fc">tanh_drive</text>
-<rect x="349.3" y="199.2" width="10" height="7.8" rx="2" fill="#3987e5"><title>distortion, onda: ×1.16</title></rect>
-<rect x="361.3" y="207.0" width="10" height="38.4" rx="2" fill="#d95926"><title>distortion, Cmajor: ×0.48</title></rect>
-<rect x="373.3" y="207.0" width="10" height="39.4" rx="2" fill="#199e70"><title>distortion, YDSP: ×0.47</title></rect>
+<rect x="349.3" y="201.6" width="10" height="5.4" rx="2" fill="#3987e5"><title>distortion, onda: ×1.11</title></rect>
+<rect x="361.3" y="207.0" width="10" height="40.4" rx="2" fill="#d95926"><title>distortion, Cmajor: ×0.46</title></rect>
+<rect x="373.3" y="207.0" width="10" height="39.5" rx="2" fill="#199e70"><title>distortion, YDSP: ×0.47</title></rect>
 <text x="366.3" y="342" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 366.3 342)" fill="#f0f6fc">distortion</text>
-<rect x="386.4" y="207.0" width="10" height="10.4" rx="2" fill="#3987e5"><title>compressor, onda: ×0.82</title></rect>
-<rect x="398.4" y="207.0" width="10" height="11.6" rx="2" fill="#d95926"><title>compressor, Cmajor: ×0.80</title></rect>
-<rect x="410.4" y="207.0" width="10" height="40.4" rx="2" fill="#199e70"><title>compressor, YDSP: ×0.46</title></rect>
+<rect x="386.4" y="207.0" width="10" height="11.0" rx="2" fill="#3987e5"><title>compressor, onda: ×0.81</title></rect>
+<rect x="398.4" y="207.0" width="10" height="11.5" rx="2" fill="#d95926"><title>compressor, Cmajor: ×0.80</title></rect>
+<rect x="410.4" y="207.0" width="10" height="40.9" rx="2" fill="#199e70"><title>compressor, YDSP: ×0.46</title></rect>
 <text x="403.4" y="342" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 403.4 342)" fill="#f0f6fc">compressor</text>
-<rect x="423.5" y="170.9" width="10" height="36.1" rx="2" fill="#3987e5"><title>noise_gate, onda: ×1.99</title></rect>
-<rect x="435.5" y="185.8" width="10" height="21.2" rx="2" fill="#d95926"><title>noise_gate, Cmajor: ×1.50</title></rect>
-<rect x="447.5" y="207.0" width="10" height="5.7" rx="2" fill="#199e70"><title>noise_gate, YDSP: ×0.90</title></rect>
+<rect x="423.5" y="170.2" width="10" height="36.9" rx="2" fill="#3987e5"><title>noise_gate, onda: ×2.02</title></rect>
+<rect x="435.5" y="184.3" width="10" height="22.7" rx="2" fill="#d95926"><title>noise_gate, Cmajor: ×1.54</title></rect>
+<rect x="447.5" y="207.0" width="10" height="3.4" rx="2" fill="#199e70"><title>noise_gate, YDSP: ×0.94</title></rect>
 <text x="440.5" y="342" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 440.5 342)" fill="#f0f6fc">noise_gate</text>
-<rect x="460.6" y="207.0" width="10" height="1.9" rx="2" fill="#3987e5"><title>exciter, onda: ×0.97</title></rect>
-<rect x="472.6" y="207.0" width="10" height="7.8" rx="2" fill="#d95926"><title>exciter, Cmajor: ×0.86</title></rect>
-<rect x="484.6" y="207.0" width="10" height="26.5" rx="2" fill="#199e70"><title>exciter, YDSP: ×0.60</title></rect>
+<rect x="460.6" y="207.0" width="10" height="1.7" rx="2" fill="#3987e5"><title>exciter, onda: ×0.97</title></rect>
+<rect x="472.6" y="207.0" width="10" height="7.6" rx="2" fill="#d95926"><title>exciter, Cmajor: ×0.87</title></rect>
+<rect x="484.6" y="207.0" width="10" height="26.0" rx="2" fill="#199e70"><title>exciter, YDSP: ×0.61</title></rect>
 <text x="477.6" y="342" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 477.6 342)" fill="#f0f6fc">exciter</text>
 <text x="403.4" y="140" font-size="10" font-weight="600" letter-spacing="0.5" text-anchor="middle" fill="#9198a1">DYNAMICS</text>
-<rect x="511.7" y="207.0" width="10" height="15.1" rx="2" fill="#3987e5"><title>biquad8, onda: ×0.75</title></rect>
-<rect x="523.7" y="207.0" width="10" height="29.7" rx="2" fill="#d95926"><title>biquad8, Cmajor: ×0.57</title></rect>
-<rect x="535.7" y="207.0" width="10" height="17.2" rx="2" fill="#199e70"><title>biquad8, YDSP: ×0.72</title></rect>
+<rect x="511.7" y="207.0" width="10" height="16.7" rx="2" fill="#3987e5"><title>biquad8, onda: ×0.73</title></rect>
+<rect x="523.7" y="207.0" width="10" height="31.3" rx="2" fill="#d95926"><title>biquad8, Cmajor: ×0.55</title></rect>
+<rect x="535.7" y="207.0" width="10" height="18.8" rx="2" fill="#199e70"><title>biquad8, YDSP: ×0.70</title></rect>
 <text x="528.7" y="342" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 528.7 342)" fill="#f0f6fc">biquad8</text>
-<rect x="548.8" y="207.0" width="10" height="24.0" rx="2" fill="#3987e5"><title>peq10, onda: ×0.63</title></rect>
-<rect x="560.8" y="207.0" width="10" height="31.3" rx="2" fill="#d95926"><title>peq10, Cmajor: ×0.55</title></rect>
-<rect x="572.8" y="207.0" width="10" height="42.4" rx="2" fill="#199e70"><title>peq10, YDSP: ×0.45</title></rect>
+<rect x="548.8" y="207.0" width="10" height="24.6" rx="2" fill="#3987e5"><title>peq10, onda: ×0.63</title></rect>
+<rect x="560.8" y="207.0" width="10" height="31.9" rx="2" fill="#d95926"><title>peq10, Cmajor: ×0.55</title></rect>
+<rect x="572.8" y="207.0" width="10" height="42.8" rx="2" fill="#199e70"><title>peq10, YDSP: ×0.44</title></rect>
 <text x="565.8" y="342" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 565.8 342)" fill="#f0f6fc">peq10</text>
-<rect x="585.9" y="207.0" width="10" height="1.5" rx="2" fill="#3987e5"><title>svf_mod, onda: ×0.99</title></rect>
-<rect x="597.9" y="207.0" width="10" height="5.4" rx="2" fill="#d95926"><title>svf_mod, Cmajor: ×0.90</title></rect>
-<rect x="609.9" y="207.0" width="10" height="32.7" rx="2" fill="#199e70"><title>svf_mod, YDSP: ×0.54</title></rect>
+<rect x="585.9" y="207.0" width="10" height="1.5" rx="2" fill="#3987e5"><title>svf_mod, onda: ×0.98</title></rect>
+<rect x="597.9" y="207.0" width="10" height="5.3" rx="2" fill="#d95926"><title>svf_mod, Cmajor: ×0.90</title></rect>
+<rect x="609.9" y="207.0" width="10" height="33.7" rx="2" fill="#199e70"><title>svf_mod, YDSP: ×0.53</title></rect>
 <text x="602.9" y="342" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 602.9 342)" fill="#f0f6fc">svf_mod</text>
-<rect x="623.0" y="207.0" width="10" height="9.0" rx="2" fill="#3987e5"><title>fir32c, onda: ×0.84</title></rect>
-<rect x="635.0" y="207.0" width="10" height="18.7" rx="2" fill="#d95926"><title>fir32c, Cmajor: ×0.70</title></rect>
-<rect x="647.0" y="207.0" width="10" height="57.1" rx="2" fill="#199e70"><title>fir32c, YDSP: ×0.34</title></rect>
+<rect x="623.0" y="207.0" width="10" height="9.4" rx="2" fill="#3987e5"><title>fir32c, onda: ×0.84</title></rect>
+<rect x="635.0" y="207.0" width="10" height="21.3" rx="2" fill="#d95926"><title>fir32c, Cmajor: ×0.67</title></rect>
+<rect x="647.0" y="207.0" width="10" height="57.4" rx="2" fill="#199e70"><title>fir32c, YDSP: ×0.34</title></rect>
 <text x="640.0" y="342" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 640.0 342)" fill="#f0f6fc">fir32c</text>
-<rect x="660.1" y="207.0" width="10" height="17.9" rx="2" fill="#3987e5"><title>crybaby, onda: ×0.71</title></rect>
-<rect x="672.1" y="207.0" width="10" height="68.6" rx="2" fill="#d95926"><title>crybaby, Cmajor: ×0.27</title></rect>
-<rect x="684.1" y="207.0" width="10" height="24.0" rx="2" fill="#199e70"><title>crybaby, YDSP: ×0.63</title></rect>
+<rect x="660.1" y="207.0" width="10" height="15.9" rx="2" fill="#3987e5"><title>crybaby, onda: ×0.74</title></rect>
+<rect x="672.1" y="207.0" width="10" height="68.0" rx="2" fill="#d95926"><title>crybaby, Cmajor: ×0.27</title></rect>
+<rect x="684.1" y="207.0" width="10" height="22.1" rx="2" fill="#199e70"><title>crybaby, YDSP: ×0.66</title></rect>
 <text x="677.1" y="342" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 677.1 342)" fill="#f0f6fc">crybaby</text>
-<rect x="697.2" y="202.5" width="10" height="4.5" rx="2" fill="#3987e5"><title>moog_vcf, onda: ×1.09</title></rect>
-<rect x="709.2" y="207.0" width="10" height="14.0" rx="2" fill="#d95926"><title>moog_vcf, Cmajor: ×0.77</title></rect>
-<rect x="721.2" y="204.9" width="10" height="2.1" rx="2" fill="#199e70"><title>moog_vcf, YDSP: ×1.04</title></rect>
+<rect x="697.2" y="201.2" width="10" height="5.8" rx="2" fill="#3987e5"><title>moog_vcf, onda: ×1.12</title></rect>
+<rect x="709.2" y="207.0" width="10" height="13.1" rx="2" fill="#d95926"><title>moog_vcf, Cmajor: ×0.78</title></rect>
+<rect x="721.2" y="203.2" width="10" height="3.9" rx="2" fill="#199e70"><title>moog_vcf, YDSP: ×1.08</title></rect>
 <text x="714.2" y="342" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 714.2 342)" fill="#f0f6fc">moog_vcf</text>
-<rect x="734.3" y="192.9" width="10" height="14.1" rx="2" fill="#3987e5"><title>diode_ladder, onda: ×1.31</title></rect>
-<rect x="746.3" y="192.5" width="10" height="14.5" rx="2" fill="#d95926"><title>diode_ladder, Cmajor: ×1.32</title></rect>
-<rect x="758.3" y="196.9" width="10" height="10.1" rx="2" fill="#199e70"><title>diode_ladder, YDSP: ×1.21</title></rect>
+<rect x="734.3" y="197.3" width="10" height="9.7" rx="2" fill="#3987e5"><title>diode_ladder, onda: ×1.20</title></rect>
+<rect x="746.3" y="199.6" width="10" height="7.5" rx="2" fill="#d95926"><title>diode_ladder, Cmajor: ×1.15</title></rect>
+<rect x="758.3" y="202.4" width="10" height="4.6" rx="2" fill="#199e70"><title>diode_ladder, YDSP: ×1.09</title></rect>
 <text x="751.3" y="342" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 751.3 342)" fill="#f0f6fc">diode_ladder</text>
-<rect x="771.4" y="207.0" width="10" height="14.8" rx="2" fill="#3987e5"><title>filter_bank, onda: ×0.75</title></rect>
-<rect x="783.4" y="207.0" width="10" height="18.5" rx="2" fill="#d95926"><title>filter_bank, Cmajor: ×0.70</title></rect>
-<rect x="795.4" y="207.0" width="10" height="36.7" rx="2" fill="#199e70"><title>filter_bank, YDSP: ×0.50</title></rect>
+<rect x="771.4" y="207.0" width="10" height="11.6" rx="2" fill="#3987e5"><title>filter_bank, onda: ×0.80</title></rect>
+<rect x="783.4" y="207.0" width="10" height="15.3" rx="2" fill="#d95926"><title>filter_bank, Cmajor: ×0.75</title></rect>
+<rect x="795.4" y="207.0" width="10" height="33.9" rx="2" fill="#199e70"><title>filter_bank, YDSP: ×0.52</title></rect>
 <text x="788.4" y="342" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 788.4 342)" fill="#f0f6fc">filter_bank</text>
 <text x="658.5" y="140" font-size="10" font-weight="600" letter-spacing="0.5" text-anchor="middle" fill="#9198a1">FILTERS</text>
 <line x1="64" x2="916" y1="207.0" y2="207.0" stroke="#9198a1" stroke-width="1.5"/>
@@ -118,96 +118,96 @@
 <text x="56" y="470.6" font-size="11.5" text-anchor="end" fill="#9198a1">×2</text>
 <line x1="64" x2="916" y1="430.2" y2="430.2" stroke="#3d444d" stroke-width="1"/>
 <text x="56" y="434.2" font-size="11.5" text-anchor="end" fill="#9198a1">×4</text>
-<rect x="75.5" y="503.0" width="10" height="4.3" rx="2" fill="#3987e5"><title>phaser, onda: ×0.92</title></rect>
-<rect x="87.5" y="503.0" width="10" height="1.5" rx="2" fill="#d95926"><title>phaser, Cmajor: ×1.00</title></rect>
-<rect x="99.5" y="503.0" width="10" height="24.1" rx="2" fill="#199e70"><title>phaser, YDSP: ×0.63</title></rect>
+<rect x="75.5" y="503.0" width="10" height="4.4" rx="2" fill="#3987e5"><title>phaser, onda: ×0.92</title></rect>
+<rect x="87.5" y="502.9" width="10" height="1.5" rx="2" fill="#d95926"><title>phaser, Cmajor: ×1.00</title></rect>
+<rect x="99.5" y="503.0" width="10" height="24.3" rx="2" fill="#199e70"><title>phaser, YDSP: ×0.63</title></rect>
 <text x="92.5" y="638" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 92.5 638)" fill="#f0f6fc">phaser</text>
-<rect x="112.6" y="503.0" width="10" height="3.3" rx="2" fill="#3987e5"><title>flanger, onda: ×0.94</title></rect>
-<rect x="124.6" y="503.0" width="10" height="54.8" rx="2" fill="#d95926"><title>flanger, Cmajor: ×0.35</title></rect>
-<rect x="136.6" y="503.0" width="10" height="12.9" rx="2" fill="#199e70"><title>flanger, YDSP: ×0.78</title></rect>
+<rect x="112.6" y="503.0" width="10" height="3.6" rx="2" fill="#3987e5"><title>flanger, onda: ×0.93</title></rect>
+<rect x="124.6" y="503.0" width="10" height="54.9" rx="2" fill="#d95926"><title>flanger, Cmajor: ×0.35</title></rect>
+<rect x="136.6" y="503.0" width="10" height="13.1" rx="2" fill="#199e70"><title>flanger, YDSP: ×0.78</title></rect>
 <text x="129.6" y="638" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 129.6 638)" fill="#f0f6fc">flanger</text>
-<rect x="149.8" y="503.0" width="10" height="2.2" rx="2" fill="#3987e5"><title>pitch_shifter, onda: ×0.96</title></rect>
-<rect x="161.8" y="476.0" width="10" height="27.0" rx="2" fill="#d95926"><title>pitch_shifter, Cmajor: ×1.67</title></rect>
-<rect x="173.8" y="503.0" width="10" height="9.0" rx="2" fill="#199e70"><title>pitch_shifter, YDSP: ×0.84</title></rect>
+<rect x="149.8" y="503.0" width="10" height="2.9" rx="2" fill="#3987e5"><title>pitch_shifter, onda: ×0.95</title></rect>
+<rect x="161.8" y="474.5" width="10" height="28.5" rx="2" fill="#d95926"><title>pitch_shifter, Cmajor: ×1.72</title></rect>
+<rect x="173.8" y="503.0" width="10" height="11.3" rx="2" fill="#199e70"><title>pitch_shifter, YDSP: ×0.81</title></rect>
 <text x="166.8" y="638" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 166.8 638)" fill="#f0f6fc">pitch_shifter</text>
-<rect x="186.8" y="502.8" width="10" height="1.5" rx="2" fill="#3987e5"><title>autopan, onda: ×1.00</title></rect>
-<rect x="198.8" y="503.0" width="10" height="7.8" rx="2" fill="#d95926"><title>autopan, Cmajor: ×0.86</title></rect>
-<rect x="210.8" y="503.0" width="10" height="49.9" rx="2" fill="#199e70"><title>autopan, YDSP: ×0.39</title></rect>
+<rect x="186.8" y="502.2" width="10" height="1.5" rx="2" fill="#3987e5"><title>autopan, onda: ×1.02</title></rect>
+<rect x="198.8" y="503.0" width="10" height="7.4" rx="2" fill="#d95926"><title>autopan, Cmajor: ×0.87</title></rect>
+<rect x="210.8" y="503.0" width="10" height="49.3" rx="2" fill="#199e70"><title>autopan, YDSP: ×0.39</title></rect>
 <text x="203.8" y="638" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 203.8 638)" fill="#f0f6fc">autopan</text>
 <text x="148.2" y="436" font-size="10" font-weight="600" letter-spacing="0.5" text-anchor="middle" fill="#9198a1">MODULATION</text>
-<rect x="237.9" y="503.0" width="10" height="27.1" rx="2" fill="#3987e5"><title>hoa_decoder, onda: ×0.60</title></rect>
-<rect x="249.9" y="503.0" width="10" height="110.6" rx="2" fill="#d95926"><title>hoa_decoder, Cmajor: ×0.12</title></rect>
-<rect x="261.9" y="503.0" width="10" height="72.3" rx="2" fill="#199e70"><title>hoa_decoder, YDSP: ×0.25</title></rect>
+<rect x="237.9" y="503.0" width="10" height="27.3" rx="2" fill="#3987e5"><title>hoa_decoder, onda: ×0.60</title></rect>
+<rect x="249.9" y="503.0" width="10" height="110.8" rx="2" fill="#d95926"><title>hoa_decoder, Cmajor: ×0.12</title></rect>
+<rect x="261.9" y="503.0" width="10" height="72.4" rx="2" fill="#199e70"><title>hoa_decoder, YDSP: ×0.25</title></rect>
 <text x="254.9" y="638" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 254.9 638)" fill="#f0f6fc">hoa_decoder</text>
-<rect x="275.1" y="503.0" width="10" height="5.1" rx="2" fill="#3987e5"><title>mixer16, onda: ×0.91</title></rect>
-<rect x="287.1" y="503.0" width="10" height="73.0" rx="2" fill="#d95926"><title>mixer16, Cmajor: ×0.25</title></rect>
-<rect x="299.1" y="503.0" width="10" height="37.7" rx="2" fill="#199e70"><title>mixer16, YDSP: ×0.49</title></rect>
+<rect x="275.1" y="503.0" width="10" height="5.4" rx="2" fill="#3987e5"><title>mixer16, onda: ×0.90</title></rect>
+<rect x="287.1" y="503.0" width="10" height="73.3" rx="2" fill="#d95926"><title>mixer16, Cmajor: ×0.25</title></rect>
+<rect x="299.1" y="503.0" width="10" height="38.7" rx="2" fill="#199e70"><title>mixer16, YDSP: ×0.48</title></rect>
 <text x="292.1" y="638" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 292.1 638)" fill="#f0f6fc">mixer16</text>
-<rect x="312.2" y="494.5" width="10" height="8.5" rx="2" fill="#3987e5"><title>hoa_octo, onda: ×1.18</title></rect>
-<rect x="324.2" y="503.0" width="10" height="4.8" rx="2" fill="#d95926"><title>hoa_octo, Cmajor: ×0.91</title></rect>
-<rect x="336.2" y="503.0" width="10" height="26.6" rx="2" fill="#199e70"><title>hoa_octo, YDSP: ×0.60</title></rect>
+<rect x="312.2" y="495.7" width="10" height="7.4" rx="2" fill="#3987e5"><title>hoa_octo, onda: ×1.15</title></rect>
+<rect x="324.2" y="503.0" width="10" height="6.1" rx="2" fill="#d95926"><title>hoa_octo, Cmajor: ×0.89</title></rect>
+<rect x="336.2" y="503.0" width="10" height="27.8" rx="2" fill="#199e70"><title>hoa_octo, YDSP: ×0.59</title></rect>
 <text x="329.2" y="638" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 329.2 638)" fill="#f0f6fc">hoa_octo</text>
 <text x="292.1" y="436" font-size="10" font-weight="600" letter-spacing="0.5" text-anchor="middle" fill="#9198a1">SPATIAL</text>
-<rect x="363.3" y="503.0" width="10" height="32.6" rx="2" fill="#3987e5"><title>freeverb, onda: ×0.54</title></rect>
-<rect x="375.3" y="503.0" width="10" height="48.7" rx="2" fill="#d95926"><title>freeverb, Cmajor: ×0.40</title></rect>
-<rect x="387.3" y="503.0" width="10" height="11.4" rx="2" fill="#199e70"><title>freeverb, YDSP: ×0.80</title></rect>
+<rect x="363.3" y="503.0" width="10" height="32.8" rx="2" fill="#3987e5"><title>freeverb, onda: ×0.54</title></rect>
+<rect x="375.3" y="503.0" width="10" height="48.9" rx="2" fill="#d95926"><title>freeverb, Cmajor: ×0.39</title></rect>
+<rect x="387.3" y="503.0" width="10" height="11.8" rx="2" fill="#199e70"><title>freeverb, YDSP: ×0.80</title></rect>
 <text x="380.3" y="638" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 380.3 638)" fill="#f0f6fc">freeverb</text>
-<rect x="400.4" y="503.0" width="10" height="23.5" rx="2" fill="#3987e5"><title>fdn8, onda: ×0.64</title></rect>
-<rect x="412.4" y="503.0" width="10" height="32.0" rx="2" fill="#d95926"><title>fdn8, Cmajor: ×0.54</title></rect>
-<rect x="424.4" y="503.0" width="10" height="21.4" rx="2" fill="#199e70"><title>fdn8, YDSP: ×0.67</title></rect>
+<rect x="400.4" y="503.0" width="10" height="23.9" rx="2" fill="#3987e5"><title>fdn8, onda: ×0.64</title></rect>
+<rect x="412.4" y="503.0" width="10" height="32.3" rx="2" fill="#d95926"><title>fdn8, Cmajor: ×0.54</title></rect>
+<rect x="424.4" y="503.0" width="10" height="21.7" rx="2" fill="#199e70"><title>fdn8, YDSP: ×0.66</title></rect>
 <text x="417.4" y="638" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 417.4 638)" fill="#f0f6fc">fdn8</text>
-<rect x="437.5" y="503.0" width="10" height="15.5" rx="2" fill="#3987e5"><title>diffuser32, onda: ×0.75</title></rect>
-<rect x="449.5" y="503.0" width="10" height="35.5" rx="2" fill="#d95926"><title>diffuser32, Cmajor: ×0.51</title></rect>
-<rect x="461.5" y="503.0" width="10" height="11.0" rx="2" fill="#199e70"><title>diffuser32, YDSP: ×0.81</title></rect>
+<rect x="437.5" y="503.0" width="10" height="15.7" rx="2" fill="#3987e5"><title>diffuser32, onda: ×0.74</title></rect>
+<rect x="449.5" y="503.0" width="10" height="35.6" rx="2" fill="#d95926"><title>diffuser32, Cmajor: ×0.51</title></rect>
+<rect x="461.5" y="503.0" width="10" height="11.3" rx="2" fill="#199e70"><title>diffuser32, YDSP: ×0.81</title></rect>
 <text x="454.5" y="638" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 454.5 638)" fill="#f0f6fc">diffuser32</text>
-<rect x="474.6" y="497.2" width="10" height="5.8" rx="2" fill="#3987e5"><title>zita_rev, onda: ×1.12</title></rect>
-<rect x="486.6" y="503.0" width="10" height="4.1" rx="2" fill="#d95926"><title>zita_rev, Cmajor: ×0.93</title></rect>
-<rect x="498.6" y="503.0" width="10" height="12.4" rx="2" fill="#199e70"><title>zita_rev, YDSP: ×0.79</title></rect>
+<rect x="474.6" y="497.3" width="10" height="5.7" rx="2" fill="#3987e5"><title>zita_rev, onda: ×1.11</title></rect>
+<rect x="486.6" y="503.0" width="10" height="4.0" rx="2" fill="#d95926"><title>zita_rev, Cmajor: ×0.93</title></rect>
+<rect x="498.6" y="503.0" width="10" height="12.6" rx="2" fill="#199e70"><title>zita_rev, YDSP: ×0.79</title></rect>
 <text x="491.6" y="638" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 491.6 638)" fill="#f0f6fc">zita_rev</text>
-<rect x="511.7" y="503.0" width="10" height="15.9" rx="2" fill="#3987e5"><title>dattorro, onda: ×0.74</title></rect>
-<rect x="523.7" y="503.0" width="10" height="21.2" rx="2" fill="#d95926"><title>dattorro, Cmajor: ×0.67</title></rect>
-<rect x="535.7" y="503.0" width="10" height="13.7" rx="2" fill="#199e70"><title>dattorro, YDSP: ×0.77</title></rect>
+<rect x="511.7" y="503.0" width="10" height="22.2" rx="2" fill="#3987e5"><title>dattorro, onda: ×0.65</title></rect>
+<rect x="523.7" y="503.0" width="10" height="27.5" rx="2" fill="#d95926"><title>dattorro, Cmajor: ×0.59</title></rect>
+<rect x="535.7" y="503.0" width="10" height="19.9" rx="2" fill="#199e70"><title>dattorro, YDSP: ×0.68</title></rect>
 <text x="528.7" y="638" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 528.7 638)" fill="#f0f6fc">dattorro</text>
-<rect x="548.8" y="494.6" width="10" height="8.4" rx="2" fill="#3987e5"><title>greyhole, onda: ×1.17</title></rect>
-<rect x="560.8" y="500.4" width="10" height="2.6" rx="2" fill="#d95926"><title>greyhole, Cmajor: ×1.05</title></rect>
-<rect x="572.8" y="503.0" width="10" height="19.2" rx="2" fill="#199e70"><title>greyhole, YDSP: ×0.69</title></rect>
+<rect x="548.8" y="493.4" width="10" height="9.7" rx="2" fill="#3987e5"><title>greyhole, onda: ×1.20</title></rect>
+<rect x="560.8" y="499.5" width="10" height="3.5" rx="2" fill="#d95926"><title>greyhole, Cmajor: ×1.07</title></rect>
+<rect x="572.8" y="503.0" width="10" height="18.1" rx="2" fill="#199e70"><title>greyhole, YDSP: ×0.71</title></rect>
 <text x="565.8" y="638" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 565.8 638)" fill="#f0f6fc">greyhole</text>
-<rect x="585.9" y="503.0" width="10" height="9.7" rx="2" fill="#3987e5"><title>tapiir, onda: ×0.83</title></rect>
-<rect x="597.9" y="470.8" width="10" height="32.2" rx="2" fill="#d95926"><title>tapiir, Cmajor: ×1.85</title></rect>
-<rect x="609.9" y="503.0" width="10" height="18.8" rx="2" fill="#199e70"><title>tapiir, YDSP: ×0.70</title></rect>
+<rect x="585.9" y="503.0" width="10" height="9.5" rx="2" fill="#3987e5"><title>tapiir, onda: ×0.83</title></rect>
+<rect x="597.9" y="469.8" width="10" height="33.3" rx="2" fill="#d95926"><title>tapiir, Cmajor: ×1.88</title></rect>
+<rect x="609.9" y="503.0" width="10" height="18.7" rx="2" fill="#199e70"><title>tapiir, YDSP: ×0.70</title></rect>
 <text x="602.9" y="638" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 602.9 638)" fill="#f0f6fc">tapiir</text>
 <text x="491.6" y="436" font-size="10" font-weight="600" letter-spacing="0.5" text-anchor="middle" fill="#9198a1">REVERBS</text>
 <rect x="637.0" y="503.0" width="10" height="14.9" rx="2" fill="#3987e5"><title>clarinet, onda: ×0.75</title></rect>
 <rect x="649.0" y="503.0" width="10" height="4.5" rx="2" fill="#d95926"><title>clarinet, Cmajor: ×0.92</title></rect>
-<rect x="661.0" y="503.0" width="10" height="14.9" rx="2" fill="#199e70"><title>clarinet, YDSP: ×0.75</title></rect>
+<rect x="661.0" y="503.0" width="10" height="15.9" rx="2" fill="#199e70"><title>clarinet, YDSP: ×0.74</title></rect>
 <text x="654.0" y="638" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 654.0 638)" fill="#f0f6fc">clarinet</text>
-<rect x="674.1" y="503.0" width="10" height="8.6" rx="2" fill="#3987e5"><title>violin, onda: ×0.85</title></rect>
-<rect x="686.1" y="488.7" width="10" height="14.3" rx="2" fill="#d95926"><title>violin, Cmajor: ×1.31</title></rect>
-<rect x="698.1" y="503.0" width="10" height="8.5" rx="2" fill="#199e70"><title>violin, YDSP: ×0.85</title></rect>
+<rect x="674.1" y="503.0" width="10" height="20.5" rx="2" fill="#3987e5"><title>violin, onda: ×0.68</title></rect>
+<rect x="686.1" y="500.3" width="10" height="2.8" rx="2" fill="#d95926"><title>violin, Cmajor: ×1.05</title></rect>
+<rect x="698.1" y="503.0" width="10" height="21.1" rx="2" fill="#199e70"><title>violin, YDSP: ×0.67</title></rect>
 <text x="691.1" y="638" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 691.1 638)" fill="#f0f6fc">violin</text>
-<rect x="711.2" y="503.0" width="10" height="22.0" rx="2" fill="#3987e5"><title>frenchbell, onda: ×0.66</title></rect>
-<rect x="723.2" y="503.0" width="10" height="22.8" rx="2" fill="#d95926"><title>frenchbell, Cmajor: ×0.65</title></rect>
-<rect x="735.2" y="500.2" width="10" height="2.8" rx="2" fill="#199e70"><title>frenchbell, YDSP: ×1.06</title></rect>
+<rect x="711.2" y="503.0" width="10" height="29.0" rx="2" fill="#3987e5"><title>frenchbell, onda: ×0.58</title></rect>
+<rect x="723.2" y="503.0" width="10" height="30.0" rx="2" fill="#d95926"><title>frenchbell, Cmajor: ×0.56</title></rect>
+<rect x="735.2" y="503.0" width="10" height="4.1" rx="2" fill="#199e70"><title>frenchbell, YDSP: ×0.92</title></rect>
 <text x="728.2" y="638" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 728.2 638)" fill="#f0f6fc">frenchbell</text>
-<rect x="748.3" y="483.0" width="10" height="20.0" rx="2" fill="#3987e5"><title>karplus, onda: ×1.46</title></rect>
-<rect x="760.3" y="503.0" width="10" height="11.5" rx="2" fill="#d95926"><title>karplus, Cmajor: ×0.80</title></rect>
-<rect x="772.3" y="503.0" width="10" height="10.9" rx="2" fill="#199e70"><title>karplus, YDSP: ×0.81</title></rect>
+<rect x="748.3" y="482.7" width="10" height="20.3" rx="2" fill="#3987e5"><title>karplus, onda: ×1.47</title></rect>
+<rect x="760.3" y="503.0" width="10" height="12.3" rx="2" fill="#d95926"><title>karplus, Cmajor: ×0.79</title></rect>
+<rect x="772.3" y="503.0" width="10" height="11.1" rx="2" fill="#199e70"><title>karplus, YDSP: ×0.81</title></rect>
 <text x="765.3" y="638" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 765.3 638)" fill="#f0f6fc">karplus</text>
-<rect x="785.4" y="503.0" width="10" height="1.5" rx="2" fill="#3987e5"><title>flute, onda: ×0.98</title></rect>
-<rect x="797.4" y="501.7" width="10" height="1.5" rx="2" fill="#d95926"><title>flute, Cmajor: ×1.03</title></rect>
-<rect x="809.4" y="503.0" width="10" height="32.6" rx="2" fill="#199e70"><title>flute, YDSP: ×0.54</title></rect>
+<rect x="785.4" y="503.0" width="10" height="5.2" rx="2" fill="#3987e5"><title>flute, onda: ×0.91</title></rect>
+<rect x="797.4" y="503.0" width="10" height="3.0" rx="2" fill="#d95926"><title>flute, Cmajor: ×0.94</title></rect>
+<rect x="809.4" y="503.0" width="10" height="34.1" rx="2" fill="#199e70"><title>flute, YDSP: ×0.52</title></rect>
 <text x="802.4" y="638" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 802.4 638)" fill="#f0f6fc">flute</text>
 <text x="728.2" y="436" font-size="10" font-weight="600" letter-spacing="0.5" text-anchor="middle" fill="#9198a1">PHYSICAL MODELS</text>
 <rect x="830.5" y="424" width="46" height="200" rx="4" fill="#161b22"/>
-<rect x="836.5" y="503.0" width="10" height="2.3" rx="2" fill="#3987e5"><title>mean, onda: ×0.96</title></rect>
-<rect x="848.5" y="503.0" width="10" height="17.2" rx="2" fill="#d95926"><title>mean, Cmajor: ×0.72</title></rect>
-<rect x="860.5" y="503.0" width="10" height="22.5" rx="2" fill="#199e70"><title>mean, YDSP: ×0.65</title></rect>
+<rect x="836.5" y="503.0" width="10" height="3.0" rx="2" fill="#3987e5"><title>mean, onda: ×0.94</title></rect>
+<rect x="848.5" y="503.0" width="10" height="18.0" rx="2" fill="#d95926"><title>mean, Cmajor: ×0.71</title></rect>
+<rect x="860.5" y="503.0" width="10" height="23.8" rx="2" fill="#199e70"><title>mean, YDSP: ×0.64</title></rect>
 <text x="853.5" y="638" font-size="11.5" font-weight="600" text-anchor="end" transform="rotate(-40 853.5 638)" fill="#f0f6fc">mean</text>
 <line x1="64" x2="916" y1="503.0" y2="503.0" stroke="#9198a1" stroke-width="1.5"/>
 <line x1="229.4" x2="229.4" y1="424" y2="624" stroke="#3d444d" stroke-width="1" stroke-dasharray="3 3"/>
 <line x1="354.7" x2="354.7" y1="424" y2="624" stroke="#3d444d" stroke-width="1" stroke-dasharray="3 3"/>
 <line x1="628.4" x2="628.4" y1="424" y2="624" stroke="#3d444d" stroke-width="1" stroke-dasharray="3 3"/>
-<text x="64" y="710" font-size="14" font-weight="600" fill="#f0f6fc">fast-math<tspan dx="12" font-size="12" font-weight="400" fill="#9198a1">geometric means: onda ×0.81 · Cmajor ×0.62 · YDSP ×0.62</tspan></text>
+<text x="64" y="710" font-size="14" font-weight="600" fill="#f0f6fc">fast-math<tspan dx="12" font-size="12" font-weight="400" fill="#9198a1">geometric means: onda ×0.79 · Cmajor ×0.60 · YDSP ×0.60</tspan></text>
 <line x1="64" x2="916" y1="908.3" y2="908.3" stroke="#3d444d" stroke-width="1"/>
 <text x="56" y="912.3" font-size="11.5" text-anchor="end" fill="#9198a1">×⅛</text>
 <line x1="64" x2="916" y1="871.9" y2="871.9" stroke="#3d444d" stroke-width="1"/>
@@ -220,83 +220,83 @@
 <text x="56" y="766.6" font-size="11.5" text-anchor="end" fill="#9198a1">×2</text>
 <line x1="64" x2="916" y1="726.2" y2="726.2" stroke="#3d444d" stroke-width="1"/>
 <text x="56" y="730.2" font-size="11.5" text-anchor="end" fill="#9198a1">×4</text>
-<rect x="75.5" y="799.0" width="10" height="1.5" rx="2" fill="#3987e5"><title>sine, onda: ×1.00</title></rect>
-<rect x="87.5" y="799.0" width="10" height="36.4" rx="2" fill="#d95926"><title>sine, Cmajor: ×0.50</title></rect>
-<rect x="99.5" y="799.0" width="10" height="1.8" rx="2" fill="#199e70"><title>sine, YDSP: ×0.97</title></rect>
+<rect x="75.5" y="799.0" width="10" height="1.5" rx="2" fill="#3987e5"><title>sine, onda: ×0.99</title></rect>
+<rect x="87.5" y="799.0" width="10" height="36.6" rx="2" fill="#d95926"><title>sine, Cmajor: ×0.50</title></rect>
+<rect x="99.5" y="799.0" width="10" height="2.0" rx="2" fill="#199e70"><title>sine, YDSP: ×0.96</title></rect>
 <text x="92.5" y="934" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 92.5 934)" fill="#f0f6fc">sine</text>
-<rect x="112.6" y="799.0" width="10" height="44.3" rx="2" fill="#3987e5"><title>fm_pad, onda: ×0.43</title></rect>
-<rect x="124.6" y="799.0" width="10" height="42.0" rx="2" fill="#d95926"><title>fm_pad, Cmajor: ×0.45</title></rect>
-<rect x="136.6" y="799.0" width="10" height="41.5" rx="2" fill="#199e70"><title>fm_pad, YDSP: ×0.45</title></rect>
+<rect x="112.6" y="799.0" width="10" height="44.1" rx="2" fill="#3987e5"><title>fm_pad, onda: ×0.43</title></rect>
+<rect x="124.6" y="799.0" width="10" height="42.2" rx="2" fill="#d95926"><title>fm_pad, Cmajor: ×0.45</title></rect>
+<rect x="136.6" y="799.0" width="10" height="41.8" rx="2" fill="#199e70"><title>fm_pad, YDSP: ×0.45</title></rect>
 <text x="129.6" y="934" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 129.6 934)" fill="#f0f6fc">fm_pad</text>
-<rect x="149.8" y="753.4" width="10" height="45.7" rx="2" fill="#3987e5"><title>additive64, onda: ×2.38</title></rect>
-<rect x="161.8" y="799.0" width="10" height="36.6" rx="2" fill="#d95926"><title>additive64, Cmajor: ×0.50</title></rect>
-<rect x="173.8" y="799.0" width="10" height="37.9" rx="2" fill="#199e70"><title>additive64, YDSP: ×0.49</title></rect>
+<rect x="149.8" y="753.0" width="10" height="46.0" rx="2" fill="#3987e5"><title>additive64, onda: ×2.40</title></rect>
+<rect x="161.8" y="799.0" width="10" height="37.8" rx="2" fill="#d95926"><title>additive64, Cmajor: ×0.49</title></rect>
+<rect x="173.8" y="799.0" width="10" height="39.5" rx="2" fill="#199e70"><title>additive64, YDSP: ×0.47</title></rect>
 <text x="166.8" y="934" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 166.8 934)" fill="#f0f6fc">additive64</text>
-<rect x="186.8" y="795.8" width="10" height="3.2" rx="2" fill="#3987e5"><title>noise, onda: ×1.06</title></rect>
-<rect x="198.8" y="799.0" width="10" height="12.2" rx="2" fill="#d95926"><title>noise, Cmajor: ×0.79</title></rect>
-<rect x="210.8" y="799.0" width="10" height="37.1" rx="2" fill="#199e70"><title>noise, YDSP: ×0.49</title></rect>
+<rect x="186.8" y="796.3" width="10" height="2.8" rx="2" fill="#3987e5"><title>noise, onda: ×1.05</title></rect>
+<rect x="198.8" y="799.0" width="10" height="12.5" rx="2" fill="#d95926"><title>noise, Cmajor: ×0.79</title></rect>
+<rect x="210.8" y="799.0" width="10" height="40.4" rx="2" fill="#199e70"><title>noise, YDSP: ×0.46</title></rect>
 <text x="203.8" y="934" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 203.8 934)" fill="#f0f6fc">noise</text>
-<rect x="223.9" y="799.0" width="10" height="9.7" rx="2" fill="#3987e5"><title>bubble, onda: ×0.83</title></rect>
-<rect x="235.9" y="799.0" width="10" height="18.9" rx="2" fill="#d95926"><title>bubble, Cmajor: ×0.70</title></rect>
-<rect x="247.9" y="799.0" width="10" height="25.2" rx="2" fill="#199e70"><title>bubble, YDSP: ×0.62</title></rect>
+<rect x="223.9" y="799.0" width="10" height="13.4" rx="2" fill="#3987e5"><title>bubble, onda: ×0.78</title></rect>
+<rect x="235.9" y="799.0" width="10" height="23.4" rx="2" fill="#d95926"><title>bubble, Cmajor: ×0.64</title></rect>
+<rect x="247.9" y="799.0" width="10" height="29.9" rx="2" fill="#199e70"><title>bubble, YDSP: ×0.57</title></rect>
 <text x="240.9" y="934" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 240.9 934)" fill="#f0f6fc">bubble</text>
-<rect x="261.1" y="790.1" width="10" height="8.9" rx="2" fill="#3987e5"><title>virtual_analog, onda: ×1.18</title></rect>
-<rect x="273.1" y="789.8" width="10" height="9.2" rx="2" fill="#d95926"><title>virtual_analog, Cmajor: ×1.19</title></rect>
-<rect x="285.1" y="799.0" width="10" height="10.2" rx="2" fill="#199e70"><title>virtual_analog, YDSP: ×0.82</title></rect>
+<rect x="261.1" y="799.0" width="10" height="4.0" rx="2" fill="#3987e5"><title>virtual_analog, onda: ×0.93</title></rect>
+<rect x="273.1" y="799.0" width="10" height="3.7" rx="2" fill="#d95926"><title>virtual_analog, Cmajor: ×0.93</title></rect>
+<rect x="285.1" y="799.0" width="10" height="23.2" rx="2" fill="#199e70"><title>virtual_analog, YDSP: ×0.64</title></rect>
 <text x="278.1" y="934" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 278.1 934)" fill="#f0f6fc">virtual_analog</text>
 <text x="185.3" y="732" font-size="10" font-weight="600" letter-spacing="0.5" text-anchor="middle" fill="#9198a1">SOURCES</text>
-<rect x="312.2" y="781.2" width="10" height="17.9" rx="2" fill="#3987e5"><title>tanh_drive, onda: ×1.40</title></rect>
-<rect x="324.2" y="799.0" width="10" height="29.8" rx="2" fill="#d95926"><title>tanh_drive, Cmajor: ×0.57</title></rect>
-<rect x="336.2" y="777.6" width="10" height="21.4" rx="2" fill="#199e70"><title>tanh_drive, YDSP: ×1.50</title></rect>
+<rect x="312.2" y="780.4" width="10" height="18.6" rx="2" fill="#3987e5"><title>tanh_drive, onda: ×1.43</title></rect>
+<rect x="324.2" y="799.0" width="10" height="31.0" rx="2" fill="#d95926"><title>tanh_drive, Cmajor: ×0.55</title></rect>
+<rect x="336.2" y="777.0" width="10" height="22.0" rx="2" fill="#199e70"><title>tanh_drive, YDSP: ×1.52</title></rect>
 <text x="329.2" y="934" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 329.2 934)" fill="#f0f6fc">tanh_drive</text>
-<rect x="349.3" y="799.0" width="10" height="15.8" rx="2" fill="#3987e5"><title>distortion, onda: ×0.74</title></rect>
-<rect x="361.3" y="799.0" width="10" height="56.4" rx="2" fill="#d95926"><title>distortion, Cmajor: ×0.34</title></rect>
-<rect x="373.3" y="799.0" width="10" height="25.8" rx="2" fill="#199e70"><title>distortion, YDSP: ×0.61</title></rect>
+<rect x="349.3" y="799.0" width="10" height="15.7" rx="2" fill="#3987e5"><title>distortion, onda: ×0.74</title></rect>
+<rect x="361.3" y="799.0" width="10" height="56.1" rx="2" fill="#d95926"><title>distortion, Cmajor: ×0.34</title></rect>
+<rect x="373.3" y="799.0" width="10" height="25.7" rx="2" fill="#199e70"><title>distortion, YDSP: ×0.61</title></rect>
 <text x="366.3" y="934" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 366.3 934)" fill="#f0f6fc">distortion</text>
 <rect x="386.4" y="799.0" width="10" height="7.8" rx="2" fill="#3987e5"><title>compressor, onda: ×0.86</title></rect>
 <rect x="398.4" y="799.0" width="10" height="15.9" rx="2" fill="#d95926"><title>compressor, Cmajor: ×0.74</title></rect>
-<rect x="410.4" y="799.0" width="10" height="11.4" rx="2" fill="#199e70"><title>compressor, YDSP: ×0.80</title></rect>
+<rect x="410.4" y="799.0" width="10" height="11.5" rx="2" fill="#199e70"><title>compressor, YDSP: ×0.80</title></rect>
 <text x="403.4" y="934" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 403.4 934)" fill="#f0f6fc">compressor</text>
-<rect x="423.5" y="785.3" width="10" height="13.8" rx="2" fill="#3987e5"><title>noise_gate, onda: ×1.30</title></rect>
-<rect x="435.5" y="799.0" width="10" height="11.0" rx="2" fill="#d95926"><title>noise_gate, Cmajor: ×0.81</title></rect>
-<rect x="447.5" y="799.0" width="10" height="22.0" rx="2" fill="#199e70"><title>noise_gate, YDSP: ×0.66</title></rect>
+<rect x="423.5" y="785.4" width="10" height="13.6" rx="2" fill="#3987e5"><title>noise_gate, onda: ×1.30</title></rect>
+<rect x="435.5" y="799.0" width="10" height="6.5" rx="2" fill="#d95926"><title>noise_gate, Cmajor: ×0.88</title></rect>
+<rect x="447.5" y="799.0" width="10" height="21.5" rx="2" fill="#199e70"><title>noise_gate, YDSP: ×0.66</title></rect>
 <text x="440.5" y="934" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 440.5 934)" fill="#f0f6fc">noise_gate</text>
-<rect x="460.6" y="793.3" width="10" height="5.7" rx="2" fill="#3987e5"><title>exciter, onda: ×1.12</title></rect>
-<rect x="472.6" y="799.0" width="10" height="8.9" rx="2" fill="#d95926"><title>exciter, Cmajor: ×0.84</title></rect>
-<rect x="484.6" y="799.0" width="10" height="13.4" rx="2" fill="#199e70"><title>exciter, YDSP: ×0.78</title></rect>
+<rect x="460.6" y="794.8" width="10" height="4.3" rx="2" fill="#3987e5"><title>exciter, onda: ×1.08</title></rect>
+<rect x="472.6" y="799.0" width="10" height="10.0" rx="2" fill="#d95926"><title>exciter, Cmajor: ×0.83</title></rect>
+<rect x="484.6" y="799.0" width="10" height="14.9" rx="2" fill="#199e70"><title>exciter, YDSP: ×0.75</title></rect>
 <text x="477.6" y="934" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 477.6 934)" fill="#f0f6fc">exciter</text>
 <text x="403.4" y="732" font-size="10" font-weight="600" letter-spacing="0.5" text-anchor="middle" fill="#9198a1">DYNAMICS</text>
-<rect x="511.7" y="799.0" width="10" height="21.8" rx="2" fill="#3987e5"><title>biquad8, onda: ×0.66</title></rect>
+<rect x="511.7" y="799.0" width="10" height="22.0" rx="2" fill="#3987e5"><title>biquad8, onda: ×0.66</title></rect>
 <rect x="523.7" y="799.0" width="10" height="48.2" rx="2" fill="#d95926"><title>biquad8, Cmajor: ×0.40</title></rect>
-<rect x="535.7" y="799.0" width="10" height="35.0" rx="2" fill="#199e70"><title>biquad8, YDSP: ×0.51</title></rect>
+<rect x="535.7" y="799.0" width="10" height="35.3" rx="2" fill="#199e70"><title>biquad8, YDSP: ×0.51</title></rect>
 <text x="528.7" y="934" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 528.7 934)" fill="#f0f6fc">biquad8</text>
-<rect x="548.8" y="799.0" width="10" height="36.4" rx="2" fill="#3987e5"><title>peq10, onda: ×0.50</title></rect>
-<rect x="560.8" y="799.0" width="10" height="42.9" rx="2" fill="#d95926"><title>peq10, Cmajor: ×0.44</title></rect>
-<rect x="572.8" y="799.0" width="10" height="46.1" rx="2" fill="#199e70"><title>peq10, YDSP: ×0.42</title></rect>
+<rect x="548.8" y="799.0" width="10" height="42.2" rx="2" fill="#3987e5"><title>peq10, onda: ×0.45</title></rect>
+<rect x="560.8" y="799.0" width="10" height="48.8" rx="2" fill="#d95926"><title>peq10, Cmajor: ×0.40</title></rect>
+<rect x="572.8" y="799.0" width="10" height="51.8" rx="2" fill="#199e70"><title>peq10, YDSP: ×0.37</title></rect>
 <text x="565.8" y="934" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 565.8 934)" fill="#f0f6fc">peq10</text>
-<rect x="585.9" y="796.7" width="10" height="2.3" rx="2" fill="#3987e5"><title>svf_mod, onda: ×1.04</title></rect>
-<rect x="597.9" y="799.0" width="10" height="3.2" rx="2" fill="#d95926"><title>svf_mod, Cmajor: ×0.94</title></rect>
-<rect x="609.9" y="799.0" width="10" height="3.3" rx="2" fill="#199e70"><title>svf_mod, YDSP: ×0.94</title></rect>
+<rect x="585.9" y="797.2" width="10" height="1.8" rx="2" fill="#3987e5"><title>svf_mod, onda: ×1.04</title></rect>
+<rect x="597.9" y="799.0" width="10" height="4.1" rx="2" fill="#d95926"><title>svf_mod, Cmajor: ×0.92</title></rect>
+<rect x="609.9" y="799.0" width="10" height="4.2" rx="2" fill="#199e70"><title>svf_mod, YDSP: ×0.92</title></rect>
 <text x="602.9" y="934" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 602.9 934)" fill="#f0f6fc">svf_mod</text>
 <rect x="623.0" y="799.0" width="10" height="1.5" rx="2" fill="#3987e5"><title>fir32c, onda: ×0.98</title></rect>
-<rect x="635.0" y="799.0" width="10" height="14.3" rx="2" fill="#d95926"><title>fir32c, Cmajor: ×0.76</title></rect>
-<rect x="647.0" y="799.0" width="10" height="54.5" rx="2" fill="#199e70"><title>fir32c, YDSP: ×0.35</title></rect>
+<rect x="635.0" y="799.0" width="10" height="14.6" rx="2" fill="#d95926"><title>fir32c, Cmajor: ×0.76</title></rect>
+<rect x="647.0" y="799.0" width="10" height="55.2" rx="2" fill="#199e70"><title>fir32c, YDSP: ×0.35</title></rect>
 <text x="640.0" y="934" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 640.0 934)" fill="#f0f6fc">fir32c</text>
-<rect x="660.1" y="799.0" width="10" height="14.3" rx="2" fill="#3987e5"><title>crybaby, onda: ×0.76</title></rect>
-<rect x="672.1" y="799.0" width="10" height="78.9" rx="2" fill="#d95926"><title>crybaby, Cmajor: ×0.22</title></rect>
-<rect x="684.1" y="799.0" width="10" height="30.3" rx="2" fill="#199e70"><title>crybaby, YDSP: ×0.56</title></rect>
+<rect x="660.1" y="799.0" width="10" height="14.1" rx="2" fill="#3987e5"><title>crybaby, onda: ×0.77</title></rect>
+<rect x="672.1" y="799.0" width="10" height="78.1" rx="2" fill="#d95926"><title>crybaby, Cmajor: ×0.23</title></rect>
+<rect x="684.1" y="799.0" width="10" height="30.0" rx="2" fill="#199e70"><title>crybaby, YDSP: ×0.56</title></rect>
 <text x="677.1" y="934" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 677.1 934)" fill="#f0f6fc">crybaby</text>
-<rect x="697.2" y="799.0" width="10" height="1.5" rx="2" fill="#3987e5"><title>moog_vcf, onda: ×1.00</title></rect>
-<rect x="709.2" y="799.0" width="10" height="28.2" rx="2" fill="#d95926"><title>moog_vcf, Cmajor: ×0.58</title></rect>
+<rect x="697.2" y="798.9" width="10" height="1.5" rx="2" fill="#3987e5"><title>moog_vcf, onda: ×1.00</title></rect>
+<rect x="709.2" y="799.0" width="10" height="27.8" rx="2" fill="#d95926"><title>moog_vcf, Cmajor: ×0.59</title></rect>
 <rect x="721.2" y="799.0" width="10" height="11.0" rx="2" fill="#199e70"><title>moog_vcf, YDSP: ×0.81</title></rect>
 <text x="714.2" y="934" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 714.2 934)" fill="#f0f6fc">moog_vcf</text>
-<rect x="734.3" y="799.0" width="10" height="12.2" rx="2" fill="#3987e5"><title>diode_ladder, onda: ×0.79</title></rect>
-<rect x="746.3" y="799.0" width="10" height="15.3" rx="2" fill="#d95926"><title>diode_ladder, Cmajor: ×0.75</title></rect>
-<rect x="758.3" y="799.0" width="10" height="1.7" rx="2" fill="#199e70"><title>diode_ladder, YDSP: ×0.97</title></rect>
+<rect x="734.3" y="799.0" width="10" height="12.4" rx="2" fill="#3987e5"><title>diode_ladder, onda: ×0.79</title></rect>
+<rect x="746.3" y="799.0" width="10" height="15.5" rx="2" fill="#d95926"><title>diode_ladder, Cmajor: ×0.74</title></rect>
+<rect x="758.3" y="799.0" width="10" height="3.5" rx="2" fill="#199e70"><title>diode_ladder, YDSP: ×0.94</title></rect>
 <text x="751.3" y="934" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 751.3 934)" fill="#f0f6fc">diode_ladder</text>
-<rect x="771.4" y="799.0" width="10" height="5.1" rx="2" fill="#3987e5"><title>filter_bank, onda: ×0.91</title></rect>
-<rect x="783.4" y="799.0" width="10" height="9.2" rx="2" fill="#d95926"><title>filter_bank, Cmajor: ×0.84</title></rect>
-<rect x="795.4" y="799.0" width="10" height="26.8" rx="2" fill="#199e70"><title>filter_bank, YDSP: ×0.60</title></rect>
+<rect x="771.4" y="799.0" width="10" height="1.8" rx="2" fill="#3987e5"><title>filter_bank, onda: ×0.97</title></rect>
+<rect x="783.4" y="799.0" width="10" height="5.7" rx="2" fill="#d95926"><title>filter_bank, Cmajor: ×0.90</title></rect>
+<rect x="795.4" y="799.0" width="10" height="23.2" rx="2" fill="#199e70"><title>filter_bank, YDSP: ×0.64</title></rect>
 <text x="788.4" y="934" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 788.4 934)" fill="#f0f6fc">filter_bank</text>
 <text x="658.5" y="732" font-size="10" font-weight="600" letter-spacing="0.5" text-anchor="middle" fill="#9198a1">FILTERS</text>
 <line x1="64" x2="916" y1="799.0" y2="799.0" stroke="#9198a1" stroke-width="1.5"/>
@@ -315,90 +315,90 @@
 <text x="56" y="1062.6" font-size="11.5" text-anchor="end" fill="#9198a1">×2</text>
 <line x1="64" x2="916" y1="1022.2" y2="1022.2" stroke="#3d444d" stroke-width="1"/>
 <text x="56" y="1026.2" font-size="11.5" text-anchor="end" fill="#9198a1">×4</text>
-<rect x="75.5" y="1095.0" width="10" height="7.1" rx="2" fill="#3987e5"><title>phaser, onda: ×0.87</title></rect>
-<rect x="87.5" y="1095.0" width="10" height="7.0" rx="2" fill="#d95926"><title>phaser, Cmajor: ×0.88</title></rect>
-<rect x="99.5" y="1095.0" width="10" height="14.9" rx="2" fill="#199e70"><title>phaser, YDSP: ×0.75</title></rect>
+<rect x="75.5" y="1095.0" width="10" height="1.9" rx="2" fill="#3987e5"><title>phaser, onda: ×0.96</title></rect>
+<rect x="87.5" y="1095.0" width="10" height="1.9" rx="2" fill="#d95926"><title>phaser, Cmajor: ×0.97</title></rect>
+<rect x="99.5" y="1095.0" width="10" height="10.1" rx="2" fill="#199e70"><title>phaser, YDSP: ×0.83</title></rect>
 <text x="92.5" y="1230" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 92.5 1230)" fill="#f0f6fc">phaser</text>
-<rect x="112.6" y="1095.0" width="10" height="12.8" rx="2" fill="#3987e5"><title>flanger, onda: ×0.78</title></rect>
-<rect x="124.6" y="1095.0" width="10" height="37.0" rx="2" fill="#d95926"><title>flanger, Cmajor: ×0.49</title></rect>
+<rect x="112.6" y="1095.0" width="10" height="13.0" rx="2" fill="#3987e5"><title>flanger, onda: ×0.78</title></rect>
+<rect x="124.6" y="1095.0" width="10" height="37.1" rx="2" fill="#d95926"><title>flanger, Cmajor: ×0.49</title></rect>
 <rect x="136.6" y="1095.0" width="10" height="22.8" rx="2" fill="#199e70"><title>flanger, YDSP: ×0.65</title></rect>
 <text x="129.6" y="1230" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 129.6 1230)" fill="#f0f6fc">flanger</text>
-<rect x="149.8" y="1095.0" width="10" height="3.5" rx="2" fill="#3987e5"><title>pitch_shifter, onda: ×0.94</title></rect>
-<rect x="161.8" y="1067.0" width="10" height="28.1" rx="2" fill="#d95926"><title>pitch_shifter, Cmajor: ×1.71</title></rect>
-<rect x="173.8" y="1095.0" width="10" height="5.0" rx="2" fill="#199e70"><title>pitch_shifter, YDSP: ×0.91</title></rect>
+<rect x="149.8" y="1095.0" width="10" height="3.3" rx="2" fill="#3987e5"><title>pitch_shifter, onda: ×0.94</title></rect>
+<rect x="161.8" y="1066.8" width="10" height="28.3" rx="2" fill="#d95926"><title>pitch_shifter, Cmajor: ×1.71</title></rect>
+<rect x="173.8" y="1095.0" width="10" height="4.3" rx="2" fill="#199e70"><title>pitch_shifter, YDSP: ×0.92</title></rect>
 <text x="166.8" y="1230" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 166.8 1230)" fill="#f0f6fc">pitch_shifter</text>
-<rect x="186.8" y="1095.0" width="10" height="26.5" rx="2" fill="#3987e5"><title>autopan, onda: ×0.60</title></rect>
-<rect x="198.8" y="1095.0" width="10" height="12.2" rx="2" fill="#d95926"><title>autopan, Cmajor: ×0.79</title></rect>
-<rect x="210.8" y="1095.0" width="10" height="36.4" rx="2" fill="#199e70"><title>autopan, YDSP: ×0.50</title></rect>
+<rect x="186.8" y="1095.0" width="10" height="28.9" rx="2" fill="#3987e5"><title>autopan, onda: ×0.58</title></rect>
+<rect x="198.8" y="1095.0" width="10" height="14.6" rx="2" fill="#d95926"><title>autopan, Cmajor: ×0.76</title></rect>
+<rect x="210.8" y="1095.0" width="10" height="39.2" rx="2" fill="#199e70"><title>autopan, YDSP: ×0.47</title></rect>
 <text x="203.8" y="1230" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 203.8 1230)" fill="#f0f6fc">autopan</text>
 <text x="148.2" y="1028" font-size="10" font-weight="600" letter-spacing="0.5" text-anchor="middle" fill="#9198a1">MODULATION</text>
-<rect x="237.9" y="1095.0" width="10" height="1.5" rx="2" fill="#3987e5"><title>hoa_decoder, onda: ×0.98</title></rect>
-<rect x="249.9" y="1095.0" width="10" height="91.5" rx="2" fill="#d95926"><title>hoa_decoder, Cmajor: ×0.18</title></rect>
+<rect x="237.9" y="1095.0" width="10" height="1.7" rx="2" fill="#3987e5"><title>hoa_decoder, onda: ×0.97</title></rect>
+<rect x="249.9" y="1095.0" width="10" height="91.6" rx="2" fill="#d95926"><title>hoa_decoder, Cmajor: ×0.18</title></rect>
 <rect x="261.9" y="1095.0" width="10" height="59.0" rx="2" fill="#199e70"><title>hoa_decoder, YDSP: ×0.33</title></rect>
 <text x="254.9" y="1230" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 254.9 1230)" fill="#f0f6fc">hoa_decoder</text>
-<rect x="275.1" y="1081.7" width="10" height="13.3" rx="2" fill="#3987e5"><title>mixer16, onda: ×1.29</title></rect>
-<rect x="287.1" y="1095.0" width="10" height="71.0" rx="2" fill="#d95926"><title>mixer16, Cmajor: ×0.26</title></rect>
-<rect x="299.1" y="1095.0" width="10" height="24.1" rx="2" fill="#199e70"><title>mixer16, YDSP: ×0.63</title></rect>
+<rect x="275.1" y="1081.0" width="10" height="14.0" rx="2" fill="#3987e5"><title>mixer16, onda: ×1.30</title></rect>
+<rect x="287.1" y="1095.0" width="10" height="70.4" rx="2" fill="#d95926"><title>mixer16, Cmajor: ×0.26</title></rect>
+<rect x="299.1" y="1095.0" width="10" height="23.8" rx="2" fill="#199e70"><title>mixer16, YDSP: ×0.64</title></rect>
 <text x="292.1" y="1230" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 292.1 1230)" fill="#f0f6fc">mixer16</text>
-<rect x="312.2" y="1095.0" width="10" height="11.2" rx="2" fill="#3987e5"><title>hoa_octo, onda: ×0.81</title></rect>
-<rect x="324.2" y="1092.0" width="10" height="3.1" rx="2" fill="#d95926"><title>hoa_octo, Cmajor: ×1.06</title></rect>
-<rect x="336.2" y="1095.0" width="10" height="32.6" rx="2" fill="#199e70"><title>hoa_octo, YDSP: ×0.54</title></rect>
+<rect x="312.2" y="1095.0" width="10" height="12.5" rx="2" fill="#3987e5"><title>hoa_octo, onda: ×0.79</title></rect>
+<rect x="324.2" y="1094.3" width="10" height="1.5" rx="2" fill="#d95926"><title>hoa_octo, Cmajor: ×1.01</title></rect>
+<rect x="336.2" y="1095.0" width="10" height="50.4" rx="2" fill="#199e70"><title>hoa_octo, YDSP: ×0.38</title></rect>
 <text x="329.2" y="1230" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 329.2 1230)" fill="#f0f6fc">hoa_octo</text>
 <text x="292.1" y="1028" font-size="10" font-weight="600" letter-spacing="0.5" text-anchor="middle" fill="#9198a1">SPATIAL</text>
 <rect x="363.3" y="1095.0" width="10" height="45.2" rx="2" fill="#3987e5"><title>freeverb, onda: ×0.42</title></rect>
-<rect x="375.3" y="1095.0" width="10" height="57.2" rx="2" fill="#d95926"><title>freeverb, Cmajor: ×0.34</title></rect>
-<rect x="387.3" y="1095.0" width="10" height="9.9" rx="2" fill="#199e70"><title>freeverb, YDSP: ×0.83</title></rect>
+<rect x="375.3" y="1095.0" width="10" height="57.0" rx="2" fill="#d95926"><title>freeverb, Cmajor: ×0.34</title></rect>
+<rect x="387.3" y="1095.0" width="10" height="10.0" rx="2" fill="#199e70"><title>freeverb, YDSP: ×0.83</title></rect>
 <text x="380.3" y="1230" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 380.3 1230)" fill="#f0f6fc">freeverb</text>
-<rect x="400.4" y="1095.0" width="10" height="43.6" rx="2" fill="#3987e5"><title>fdn8, onda: ×0.44</title></rect>
+<rect x="400.4" y="1095.0" width="10" height="43.7" rx="2" fill="#3987e5"><title>fdn8, onda: ×0.44</title></rect>
 <rect x="412.4" y="1095.0" width="10" height="62.2" rx="2" fill="#d95926"><title>fdn8, Cmajor: ×0.31</title></rect>
-<rect x="424.4" y="1095.0" width="10" height="44.0" rx="2" fill="#199e70"><title>fdn8, YDSP: ×0.43</title></rect>
+<rect x="424.4" y="1095.0" width="10" height="44.1" rx="2" fill="#199e70"><title>fdn8, YDSP: ×0.43</title></rect>
 <text x="417.4" y="1230" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 417.4 1230)" fill="#f0f6fc">fdn8</text>
-<rect x="437.5" y="1095.0" width="10" height="47.9" rx="2" fill="#3987e5"><title>diffuser32, onda: ×0.40</title></rect>
-<rect x="449.5" y="1095.0" width="10" height="43.2" rx="2" fill="#d95926"><title>diffuser32, Cmajor: ×0.44</title></rect>
+<rect x="437.5" y="1095.0" width="10" height="48.2" rx="2" fill="#3987e5"><title>diffuser32, onda: ×0.40</title></rect>
+<rect x="449.5" y="1095.0" width="10" height="43.1" rx="2" fill="#d95926"><title>diffuser32, Cmajor: ×0.44</title></rect>
 <rect x="461.5" y="1095.0" width="10" height="30.1" rx="2" fill="#199e70"><title>diffuser32, YDSP: ×0.56</title></rect>
 <text x="454.5" y="1230" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 454.5 1230)" fill="#f0f6fc">diffuser32</text>
-<rect x="474.6" y="1093.7" width="10" height="1.5" rx="2" fill="#3987e5"><title>zita_rev, onda: ×1.03</title></rect>
-<rect x="486.6" y="1095.0" width="10" height="12.1" rx="2" fill="#d95926"><title>zita_rev, Cmajor: ×0.79</title></rect>
-<rect x="498.6" y="1095.0" width="10" height="13.2" rx="2" fill="#199e70"><title>zita_rev, YDSP: ×0.78</title></rect>
+<rect x="474.6" y="1093.4" width="10" height="1.6" rx="2" fill="#3987e5"><title>zita_rev, onda: ×1.03</title></rect>
+<rect x="486.6" y="1095.0" width="10" height="11.9" rx="2" fill="#d95926"><title>zita_rev, Cmajor: ×0.80</title></rect>
+<rect x="498.6" y="1095.0" width="10" height="13.4" rx="2" fill="#199e70"><title>zita_rev, YDSP: ×0.77</title></rect>
 <text x="491.6" y="1230" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 491.6 1230)" fill="#f0f6fc">zita_rev</text>
-<rect x="511.7" y="1095.0" width="10" height="53.5" rx="2" fill="#3987e5"><title>dattorro, onda: ×0.36</title></rect>
-<rect x="523.7" y="1095.0" width="10" height="60.4" rx="2" fill="#d95926"><title>dattorro, Cmajor: ×0.32</title></rect>
-<rect x="535.7" y="1095.0" width="10" height="53.5" rx="2" fill="#199e70"><title>dattorro, YDSP: ×0.36</title></rect>
+<rect x="511.7" y="1095.0" width="10" height="57.3" rx="2" fill="#3987e5"><title>dattorro, onda: ×0.34</title></rect>
+<rect x="523.7" y="1095.0" width="10" height="63.6" rx="2" fill="#d95926"><title>dattorro, Cmajor: ×0.30</title></rect>
+<rect x="535.7" y="1095.0" width="10" height="56.8" rx="2" fill="#199e70"><title>dattorro, YDSP: ×0.34</title></rect>
 <text x="528.7" y="1230" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 528.7 1230)" fill="#f0f6fc">dattorro</text>
-<rect x="548.8" y="1088.6" width="10" height="6.4" rx="2" fill="#3987e5"><title>greyhole, onda: ×1.13</title></rect>
+<rect x="548.8" y="1088.3" width="10" height="6.7" rx="2" fill="#3987e5"><title>greyhole, onda: ×1.14</title></rect>
 <rect x="560.8" y="1093.5" width="10" height="1.5" rx="2" fill="#d95926"><title>greyhole, Cmajor: ×1.03</title></rect>
-<rect x="572.8" y="1095.0" width="10" height="27.6" rx="2" fill="#199e70"><title>greyhole, YDSP: ×0.59</title></rect>
+<rect x="572.8" y="1095.0" width="10" height="27.7" rx="2" fill="#199e70"><title>greyhole, YDSP: ×0.59</title></rect>
 <text x="565.8" y="1230" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 565.8 1230)" fill="#f0f6fc">greyhole</text>
-<rect x="585.9" y="1095.0" width="10" height="63.7" rx="2" fill="#3987e5"><title>tapiir, onda: ×0.30</title></rect>
-<rect x="597.9" y="1095.0" width="10" height="39.8" rx="2" fill="#d95926"><title>tapiir, Cmajor: ×0.47</title></rect>
+<rect x="585.9" y="1095.0" width="10" height="63.6" rx="2" fill="#3987e5"><title>tapiir, onda: ×0.30</title></rect>
+<rect x="597.9" y="1095.0" width="10" height="39.4" rx="2" fill="#d95926"><title>tapiir, Cmajor: ×0.47</title></rect>
 <rect x="609.9" y="1095.0" width="10" height="74.1" rx="2" fill="#199e70"><title>tapiir, YDSP: ×0.24</title></rect>
 <text x="602.9" y="1230" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 602.9 1230)" fill="#f0f6fc">tapiir</text>
 <text x="491.6" y="1028" font-size="10" font-weight="600" letter-spacing="0.5" text-anchor="middle" fill="#9198a1">REVERBS</text>
-<rect x="637.0" y="1095.0" width="10" height="36.1" rx="2" fill="#3987e5"><title>clarinet, onda: ×0.50</title></rect>
-<rect x="649.0" y="1095.0" width="10" height="8.3" rx="2" fill="#d95926"><title>clarinet, Cmajor: ×0.85</title></rect>
-<rect x="661.0" y="1095.0" width="10" height="27.6" rx="2" fill="#199e70"><title>clarinet, YDSP: ×0.59</title></rect>
+<rect x="637.0" y="1095.0" width="10" height="35.7" rx="2" fill="#3987e5"><title>clarinet, onda: ×0.51</title></rect>
+<rect x="649.0" y="1095.0" width="10" height="8.0" rx="2" fill="#d95926"><title>clarinet, Cmajor: ×0.86</title></rect>
+<rect x="661.0" y="1095.0" width="10" height="27.3" rx="2" fill="#199e70"><title>clarinet, YDSP: ×0.59</title></rect>
 <text x="654.0" y="1230" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 654.0 1230)" fill="#f0f6fc">clarinet</text>
-<rect x="674.1" y="1095.0" width="10" height="13.6" rx="2" fill="#3987e5"><title>violin, onda: ×0.77</title></rect>
-<rect x="686.1" y="1073.3" width="10" height="21.7" rx="2" fill="#d95926"><title>violin, Cmajor: ×1.51</title></rect>
-<rect x="698.1" y="1095.0" width="10" height="12.2" rx="2" fill="#199e70"><title>violin, YDSP: ×0.79</title></rect>
+<rect x="674.1" y="1095.0" width="10" height="34.6" rx="2" fill="#3987e5"><title>violin, onda: ×0.52</title></rect>
+<rect x="686.1" y="1094.7" width="10" height="1.5" rx="2" fill="#d95926"><title>violin, Cmajor: ×1.01</title></rect>
+<rect x="698.1" y="1095.0" width="10" height="33.1" rx="2" fill="#199e70"><title>violin, YDSP: ×0.53</title></rect>
 <text x="691.1" y="1230" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 691.1 1230)" fill="#f0f6fc">violin</text>
-<rect x="711.2" y="1095.0" width="10" height="30.8" rx="2" fill="#3987e5"><title>frenchbell, onda: ×0.56</title></rect>
-<rect x="723.2" y="1095.0" width="10" height="10.7" rx="2" fill="#d95926"><title>frenchbell, Cmajor: ×0.82</title></rect>
-<rect x="735.2" y="1095.0" width="10" height="12.2" rx="2" fill="#199e70"><title>frenchbell, YDSP: ×0.79</title></rect>
+<rect x="711.2" y="1095.0" width="10" height="25.9" rx="2" fill="#3987e5"><title>frenchbell, onda: ×0.61</title></rect>
+<rect x="723.2" y="1095.0" width="10" height="6.7" rx="2" fill="#d95926"><title>frenchbell, Cmajor: ×0.88</title></rect>
+<rect x="735.2" y="1095.0" width="10" height="7.9" rx="2" fill="#199e70"><title>frenchbell, YDSP: ×0.86</title></rect>
 <text x="728.2" y="1230" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 728.2 1230)" fill="#f0f6fc">frenchbell</text>
-<rect x="748.3" y="1076.6" width="10" height="18.4" rx="2" fill="#3987e5"><title>karplus, onda: ×1.42</title></rect>
-<rect x="760.3" y="1095.0" width="10" height="8.8" rx="2" fill="#d95926"><title>karplus, Cmajor: ×0.85</title></rect>
-<rect x="772.3" y="1095.0" width="10" height="24.4" rx="2" fill="#199e70"><title>karplus, YDSP: ×0.63</title></rect>
+<rect x="748.3" y="1076.4" width="10" height="18.7" rx="2" fill="#3987e5"><title>karplus, onda: ×1.43</title></rect>
+<rect x="760.3" y="1095.0" width="10" height="8.6" rx="2" fill="#d95926"><title>karplus, Cmajor: ×0.85</title></rect>
+<rect x="772.3" y="1095.0" width="10" height="24.9" rx="2" fill="#199e70"><title>karplus, YDSP: ×0.62</title></rect>
 <text x="765.3" y="1230" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 765.3 1230)" fill="#f0f6fc">karplus</text>
-<rect x="785.4" y="1095.0" width="10" height="2.7" rx="2" fill="#3987e5"><title>flute, onda: ×0.95</title></rect>
-<rect x="797.4" y="1095.0" width="10" height="1.5" rx="2" fill="#d95926"><title>flute, Cmajor: ×0.98</title></rect>
-<rect x="809.4" y="1095.0" width="10" height="29.0" rx="2" fill="#199e70"><title>flute, YDSP: ×0.58</title></rect>
+<rect x="785.4" y="1095.0" width="10" height="9.8" rx="2" fill="#3987e5"><title>flute, onda: ×0.83</title></rect>
+<rect x="797.4" y="1095.0" width="10" height="7.7" rx="2" fill="#d95926"><title>flute, Cmajor: ×0.86</title></rect>
+<rect x="809.4" y="1095.0" width="10" height="33.9" rx="2" fill="#199e70"><title>flute, YDSP: ×0.53</title></rect>
 <text x="802.4" y="1230" font-size="11.5" font-weight="400" text-anchor="end" transform="rotate(-40 802.4 1230)" fill="#f0f6fc">flute</text>
 <text x="728.2" y="1028" font-size="10" font-weight="600" letter-spacing="0.5" text-anchor="middle" fill="#9198a1">PHYSICAL MODELS</text>
 <rect x="830.5" y="1016" width="46" height="200" rx="4" fill="#161b22"/>
-<rect x="836.5" y="1095.0" width="10" height="11.3" rx="2" fill="#3987e5"><title>mean, onda: ×0.81</title></rect>
-<rect x="848.5" y="1095.0" width="10" height="25.4" rx="2" fill="#d95926"><title>mean, Cmajor: ×0.62</title></rect>
-<rect x="860.5" y="1095.0" width="10" height="25.4" rx="2" fill="#199e70"><title>mean, YDSP: ×0.62</title></rect>
+<rect x="836.5" y="1095.0" width="10" height="12.5" rx="2" fill="#3987e5"><title>mean, onda: ×0.79</title></rect>
+<rect x="848.5" y="1095.0" width="10" height="26.6" rx="2" fill="#d95926"><title>mean, Cmajor: ×0.60</title></rect>
+<rect x="860.5" y="1095.0" width="10" height="27.2" rx="2" fill="#199e70"><title>mean, YDSP: ×0.60</title></rect>
 <text x="853.5" y="1230" font-size="11.5" font-weight="600" text-anchor="end" transform="rotate(-40 853.5 1230)" fill="#f0f6fc">mean</text>
 <line x1="64" x2="916" y1="1095.0" y2="1095.0" stroke="#9198a1" stroke-width="1.5"/>
 <line x1="229.4" x2="229.4" y1="1016" y2="1216" stroke="#3d444d" stroke-width="1" stroke-dasharray="3 3"/>
