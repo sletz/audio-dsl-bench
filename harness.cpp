@@ -1,5 +1,5 @@
 // One benchmark binary per DSP: onda AOT objects, Faust C++ classes, the Faust LLVM JIT, Cmajor (generated C++
-// and its LLVM JIT) and YUP's YDSP JIT, measured by the same loop, on the same input, interleaved.
+// and its LLVM JIT), YUP's YDSP JIT and a hand-written C++ port, measured by the same loop, on the same input, interleaved.
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -47,6 +47,8 @@ dsp* make_faust_ocpp48_strict();
 dsp* make_faust_best48_fast();
 dsp* make_cmaj_cpp_strict();  // nullptr when the program has no Cmajor port (dsp/NAME.cmajor)
 dsp* make_cmaj_cpp_fast();
+dsp* make_cxx_strict();  // nullptr when the program has no hand-written C++ port (dsp/NAME.cpp)
+dsp* make_cxx_fast();
 
 // CMAJ_SRC and YDSP_SRC: the dsp/NAME.cmajor and dsp/NAME.ydsp ports, "" when the program has none
 static dsp* make_cmaj_jit(int opt) {
@@ -139,6 +141,9 @@ int main(int argc, char** argv) {
     // YUP's YDSP JIT (asmjit), strict and with its default fastMath
     add_faust("ydsp", make_ydsp(0));
     add_faust("ydsp-fm", make_ydsp(1));
+    // hand-written C++ (dsp/NAME.cpp), clang strict and -ffast-math
+    add_faust("cxx", make_cxx_strict());
+    add_faust("cxx-fm", make_cxx_fast());
     std::vector<llvm_dsp_factory*> factories;
     const char* llvm_variants[][6] = {{"llvm-scal", "-I", FAUSTLIB, "-scal", nullptr, nullptr},
                                       {"llvm-vec", "-I", FAUSTLIB, "-vec", "-vs", "32"},

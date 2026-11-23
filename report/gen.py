@@ -1,4 +1,4 @@
-"""Builds report/audio-dsl-bench.html (onda, Faust, Cmajor and YUP YDSP) from results/results.tsv (default clang contract)
+"""Builds report/audio-dsl-bench.html (onda, Faust, Cmajor, YUP YDSP and hand-written C++) from results/results.tsv (default clang contract)
 and results/results_nocontract.tsv (C++ strict variants at -ffp-contract=off)."""
 import collections, html, json, math, os, re, sys
 
@@ -16,7 +16,7 @@ def load(path):
 
 R = load(f"{B}/results/results.tsv")
 for n, r in load(f"{B}/results/results_nocontract.tsv").items():
-    for k in ('cpp-scal', 'cpp-vec', 'ocpp', 'ocpp48', 'cmaj-cpp'):
+    for k in ('cpp-scal', 'cpp-vec', 'ocpp', 'ocpp48', 'cmaj-cpp', 'cxx'):
         if k in r:
             R[n][k + '-ieee'] = r[k]
 json.dump(R, open(f"{B}/results/results.json", 'w'), indent=1)
@@ -63,7 +63,8 @@ GROUPS = [('Faust 2.95.1', 'g-faust', [('cpp-scal-ieee', 'C++ IEEE'), ('cpp-scal
                                       ('best-fm', 'fcautotool pick'), ('best48-fm', 'pick, fixed SR')]),
           ('Onda', 'g-onda', [('onda', 'strict'), ('onda-fm', '--fast-math')]),
           ('Cmajor', 'g-cmaj', [('cmaj-cpp-ieee', 'C++ IEEE'), ('cmaj-cpp-fm', 'C++ fast-math'), ('cmaj-jit', 'JIT -O3'), ('cmaj-jit-fm', 'JIT -O4')]),
-          ('YDSP', 'g-ydsp', [('ydsp', 'strict'), ('ydsp-fm', 'fastMath')])]
+          ('YDSP', 'g-ydsp', [('ydsp', 'strict'), ('ydsp-fm', 'fastMath')]),
+          ('C++', 'g-cxx', [('cxx-ieee', 'IEEE'), ('cxx-fm', 'fast-math')])]
 cols = [c for _, _, cs in GROUPS for c in cs]
 CMAJ_S, CMAJ_F = ['cmaj-cpp-ieee', 'cmaj-jit'], ['cmaj-cpp-fm', 'cmaj-jit-fm']
 YDSP_S, YDSP_F = ['ydsp'], ['ydsp-fm']
@@ -106,14 +107,14 @@ head = ('<tr class="groups"><th></th>' + ''.join(f'<th colspan="{len(cs)}" class
         + ''.join(f'<th scope="col" class="{cl}">{html.escape(t)}</th>' for _, cl, cs in GROUPS for _, t in cs) + '</tr>')
 
 # best engine of each language per contract, the ratios to the best Faust build, the fastest language per program
-LANG_S = {'faust': IEEE, 'onda': ['onda'], 'cmaj': CMAJ_S, 'ydsp': YDSP_S}
-LANG_F = {'faust': FAST, 'onda': ['onda-fm'], 'cmaj': CMAJ_F, 'ydsp': YDSP_F}
+LANG_S = {'faust': IEEE, 'onda': ['onda'], 'cmaj': CMAJ_S, 'ydsp': YDSP_S, 'cxx': ['cxx-ieee']}
+LANG_F = {'faust': FAST, 'onda': ['onda-fm'], 'cmaj': CMAJ_F, 'ydsp': YDSP_F, 'cxx': ['cxx-fm']}
 drows, st = [], []
 wins_s, wins_f = {k: 0 for k in LANG_S}, {k: 0 for k in LANG_S}
 def cell(v, lo):
     return ('<td class="best">' if v == lo else '<td>') + num(v) + '</td>'
 for cat, progs in CATS:
-    drows.append(f'<tr class="cat"><th colspan="12" scope="rowgroup">{html.escape(cat)}</th></tr>')
+    drows.append(f'<tr class="cat"><th colspan="15" scope="rowgroup">{html.escape(cat)}</th></tr>')
     for n, lab in progs:
         if n in VARIANTS:
             continue
@@ -125,9 +126,11 @@ for cat, progs in CATS:
         wins_f[min(bf, key=bf.get)] += 1
         drows.append(f'<tr><th scope="row"><code>{n}</code><span class="lab">{html.escape(lab)}</span></th>'
                      + ''.join(cell(bs[k], los) for k in LANG_S) + ''.join(cell(bf[k], lof) for k in LANG_F)
-                     + ''.join(rat(bs['faust'] / bs[k]) for k in ('onda', 'cmaj', 'ydsp')) + '</tr>')
+                     + ''.join(rat(bs['faust'] / bs[k]) for k in ('onda', 'cmaj', 'ydsp', 'cxx')) + '</tr>')
         st.append({'n': n, 'os': bs['faust'] / bs['onda'], 'of': bf['faust'] / bf['onda'], 'cs': bs['faust'] / bs['cmaj'],
                    'cf': bf['faust'] / bf['cmaj'], 'ys': bs['faust'] / bs['ydsp'], 'yf': bf['faust'] / bf['ydsp'],
+                   'xs': bs['faust'] / bs['cxx'], 'xf': bf['faust'] / bf['cxx'],
+                   'xcpp': r['cpp-scal-ieee'] / r['cxx-ieee'], 'xcmaj': r['cmaj-cpp-ieee'] / r['cxx-ieee'],
                    'oso': best(r, IEEE_OLD) / r['onda'], 'jit': r['cmaj-jit'] / r['cmaj-cpp-ieee']})
 G = lambda k, sel=lambda x: True: g([x[k] for x in st if sel(x)])
 ocpp_gain = g([R[n]['cpp-scal-ieee'] / R[n]['ocpp-ieee'] for _, p in CATS for n, _ in p if n not in VARIANTS and 'ocpp-ieee' in R[n]])
@@ -152,7 +155,7 @@ src = []
 for cat, progs in CATS:
     for n, lab in progs:
         figs = ''
-        for lang, ext in (('Faust', 'dsp'), ('Onda', 'onda'), ('Cmajor', 'cmajor'), ('YDSP', 'ydsp')):
+        for lang, ext in (('Faust', 'dsp'), ('Onda', 'onda'), ('Cmajor', 'cmajor'), ('YDSP', 'ydsp'), ('C++', 'cpp')):
             if os.path.exists(f"{B}/dsp/{n}.{ext}"):
                 code = html.escape(open(f"{B}/dsp/{n}.{ext}").read())
                 figs += f'<figure><figcaption>{lang} · {n}.{ext}</figcaption><pre><code>{code}</code></pre></figure>\n'
@@ -163,14 +166,16 @@ for cat, progs in CATS:
 fr = lambda x: f'{x:.2f}'
 sub = {'ROWS': '\n'.join(rows), 'HEAD': head, 'SOURCES': '\n'.join(src), 'EROWS': '\n'.join(erows), 'DROWS': '\n'.join(drows),
        'NPROG': str(len(st)), 'GS': fr(G('os')), 'GF': fr(G('of')), 'GSO': fr(G('oso')), 'CS': fr(G('cs')), 'CF': fr(G('cf')),
-       'YS': fr(G('ys')), 'YF': fr(G('yf')), 'ONEW': fr(G('os', lambda x: x['n'] in NEW)), 'JITCPP': fr(G('jit')),
+       'YS': fr(G('ys')), 'YF': fr(G('yf')), 'XS': fr(G('xs')), 'XF': fr(G('xf')), 'ONEW': fr(G('os', lambda x: x['n'] in NEW)), 'JITCPP': fr(G('jit')),
        'OCPPGAIN': fr(ocpp_gain), 'BESTGAIN': fr(best_gain),
-       'FWINS': str(wins_s['faust']), 'OWINS': str(wins_s['onda']), 'CWINS': str(wins_s['cmaj']), 'YWINS': str(wins_s['ydsp']),
-       'FFWINS': str(wins_f['faust']), 'OFWINS': str(wins_f['onda']), 'CFWINS': str(wins_f['cmaj']), 'YFWINS': str(wins_f['ydsp'])}
+       'CXXCPP': fr(G('xcpp')), 'CXXCMAJ': fr(G('xcmaj')),
+       'FWINS': str(wins_s['faust']), 'OWINS': str(wins_s['onda']), 'CWINS': str(wins_s['cmaj']), 'YWINS': str(wins_s['ydsp']), 'XWINS': str(wins_s['cxx']),
+       'FFWINS': str(wins_f['faust']), 'OFWINS': str(wins_f['onda']), 'CFWINS': str(wins_f['cmaj']), 'YFWINS': str(wins_f['ydsp']), 'XFWINS': str(wins_f['cxx'])}
 out = open(f"{B}/report/template.html").read()
 for k, v in sub.items():
     out = out.replace(f'%%{k}%%', v)
 assert not re.findall(r'%%[A-Z]+%%', out), re.findall(r'%%[A-Z]+%%', out)
 open(f"{B}/report/audio-dsl-bench.html", 'w').write(out)
-print(f"{sub['NPROG']} programs; best Faust / onda {sub['GS']} {sub['GF']}, Cmajor {sub['CS']} {sub['CF']}, YDSP {sub['YS']} {sub['YF']}; "
-      f"fastest strict F/O/C/Y {sub['FWINS']}/{sub['OWINS']}/{sub['CWINS']}/{sub['YWINS']}, fast {sub['FFWINS']}/{sub['OFWINS']}/{sub['CFWINS']}/{sub['YFWINS']}")
+print(f"{sub['NPROG']} programs; best Faust / onda {sub['GS']} {sub['GF']}, Cmajor {sub['CS']} {sub['CF']}, YDSP {sub['YS']} {sub['YF']}, C++ {sub['XS']} {sub['XF']}; "
+      f"fastest strict F/O/C/Y/X {sub['FWINS']}/{sub['OWINS']}/{sub['CWINS']}/{sub['YWINS']}/{sub['XWINS']}, "
+      f"fast {sub['FFWINS']}/{sub['OFWINS']}/{sub['CFWINS']}/{sub['YFWINS']}/{sub['XFWINS']}")

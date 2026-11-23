@@ -1,6 +1,6 @@
 #!/bin/bash
 # build.sh NAME : builds build/NAME/bench from dsp/NAME.dsp and dsp/NAME.onda, plus the optional
-# Cmajor (dsp/NAME.cmajor) and YDSP (dsp/NAME.ydsp) ports
+# Cmajor (dsp/NAME.cmajor), YDSP (dsp/NAME.ydsp) and hand-written C++ (dsp/NAME.cpp) ports
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ONDA="${ONDA:-/Users/letz/Developpements/onda/target/release/onda}"
@@ -128,8 +128,19 @@ for v in strict fast; do
   $CXX $fl -I"$HERE/tools" -c Cmaj_$v.cpp -o Cmaj_$v.o
 done
 
+# hand-written C++ port (dsp/NAME.cpp), compiled strict (IEEE pass: -ffp-contract=off) and with -ffast-math
+for v in strict fast; do
+  if [ -f "$HERE/dsp/$N.cpp" ]; then
+    printf '#include <algorithm>\n#include <cmath>\n#include <cstdint>\n#include <cstring>\n#include "ext_dsp.h"\nnamespace cxx_%s {\n#include "%s"\n}\ndsp* make_cxx_%s() { return new cxx_dsp<cxx_%s::Dsp>(); }\n' $v "$HERE/dsp/$N.cpp" $v $v > Cxx_$v.cpp
+  else
+    printf '#include <faust/dsp/dsp.h>\ndsp* make_cxx_%s() { return nullptr; }\n' $v > Cxx_$v.cpp
+  fi
+  fl="-O3 ${STRICT_EXTRA:-}"; [ $v = fast ] && fl="-O3 -ffast-math"
+  $CXX $fl -I"$HERE/tools" -c Cxx_$v.cpp -o Cxx_$v.o
+done
+
 $CXX -O2 -I. -I"$HERE/tools" -I"$HERE/tools/ydsp" -I/usr/local/include -DCMAJ_SRC=\"$CMAJ_SRC\" -DYDSP_SRC=\"$YDSP_SRC\" -DFAUSTLIB=\"$FAUSTLIB\" -DSR48DIR=\"$HERE/sr48\" -c "$HERE/harness.cpp" -o harness.o
-$CXX -o bench harness.o Faust_*.o Cmaj_*.o onda_strict.o onda_fast.o "$HERE/build/_common/cmaj_jit.o" \
+$CXX -o bench harness.o Faust_*.o Cmaj_*.o Cxx_*.o onda_strict.o onda_fast.o "$HERE/build/_common/cmaj_jit.o" \
   "$HERE/build/_ydsp/libydsp_engine.a" /usr/local/lib/libfaustwithllvm.a \
   -L/opt/local/lib -lz -lzstd -lxml2 -lncurses -framework Accelerate \
   -framework Foundation -framework Cocoa -framework IOKit -framework Security -framework CoreAudio \

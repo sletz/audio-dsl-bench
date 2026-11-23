@@ -1,7 +1,7 @@
 """Draws report/languages-light.svg and report/languages-dark.svg, the README chart, from
-results/results.json (written by report/gen.py). For each program, three columns give the speed of
-onda, of the best Cmajor engine and of YDSP relative to the best Faust build (the x1 baseline): up,
-faster than Faust; down, slower. Strict IEEE above, fast-math below."""
+results/results.json (written by report/gen.py). For each program, four columns give the speed of
+onda, of the best Cmajor engine, of YDSP and of the hand-written C++ port relative to the best Faust
+build (the x1 baseline): up, faster than Faust; down, slower. Strict IEEE above, fast-math below."""
 import json, math, sys
 
 B = sys.argv[1]
@@ -22,19 +22,19 @@ progs = [n for _, ns in CATS for n in ns]
 FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
 
 CMAJ_S, CMAJ_F = ['cmaj-cpp-ieee', 'cmaj-jit'], ['cmaj-cpp-fm', 'cmaj-jit-fm']
-LANGS = [('onda', 'onda'), ('cmaj', 'Cmajor'), ('ydsp', 'YDSP')]   # fixed order, left to right in each group
-L_THEMES = {  # categorical slots 1-3 of the dataviz reference palette, validated all-pairs in both modes
+LANGS = [('onda', 'onda'), ('cmaj', 'Cmajor'), ('ydsp', 'YDSP'), ('cxx', 'C++')]   # fixed order, left to right in each group
+L_THEMES = {  # categorical slots 1-4 of the dataviz reference palette, validated on adjacent pairs (fixed column order) in both modes
     'light': dict(bg='#ffffff', ink='#1f2328', ink2='#59636e', grid='#d1d9e0', one='#59636e', band='#f6f8fa',
-                  onda='#2a78d6', cmaj='#eb6834', ydsp='#1baf7a'),
+                  onda='#2a78d6', cmaj='#eb6834', ydsp='#1baf7a', cxx='#eda100'),
     'dark': dict(bg='#0d1117', ink='#f0f6fc', ink2='#9198a1', grid='#3d444d', one='#9198a1', band='#161b22',
-                 onda='#3987e5', cmaj='#d95926', ydsp='#199e70'),
+                 onda='#3987e5', cmaj='#d95926', ydsp='#199e70', cxx='#c98500'),
 }
 
 
 def lang_ratios(n):
     r = R[n]
-    return {'s': {'onda': best(r, IEEE) / r['onda'], 'cmaj': best(r, IEEE) / best(r, CMAJ_S), 'ydsp': best(r, IEEE) / r['ydsp']},
-            'f': {'onda': best(r, FAST) / r['onda-fm'], 'cmaj': best(r, FAST) / best(r, CMAJ_F), 'ydsp': best(r, FAST) / r['ydsp-fm']}}
+    return {'s': {'onda': best(r, IEEE) / r['onda'], 'cmaj': best(r, IEEE) / best(r, CMAJ_S), 'ydsp': best(r, IEEE) / r['ydsp'], 'cxx': best(r, IEEE) / r['cxx-ieee']},
+            'f': {'onda': best(r, FAST) / r['onda-fm'], 'cmaj': best(r, FAST) / best(r, CMAJ_F), 'ydsp': best(r, FAST) / r['ydsp-fm'], 'cxx': best(r, FAST) / r['cxx-fm']}}
 
 
 LD = {n: lang_ratios(n) for n in progs}
@@ -45,9 +45,9 @@ CAT_SHORT = {'Oscillators and sources': 'SOURCES', 'Nonlinearities and dynamics'
              'Modulation and pitch': 'MODULATION', 'Spatialization and mixing': 'SPATIAL', 'Delays and reverbs': 'REVERBS',
              'Physical models': 'PHYSICAL MODELS'}
 L_W, L_PLOTL, L_PLOTR = 940, 64, 916      # plot area, left axis labels before it
-L_PH, L_LABH, L_TOP = 200, 96, 128       # panel height, room for the rotated program names, first panel top
-BAR, BGAP, CATGAP = 10, 2, 14            # column width, gap between the columns of a group, gap between categories
-SPLIT = 3                                # categories 0..SPLIT-1 on the first row of each contract, the rest on the second
+L_PH, L_LABH, L_TOP = 190, 96, 128       # panel height, room for the rotated program names, first panel top
+BAR, BGAP, CATGAP = 8, 1, 14              # column width, gap between the columns of a group, gap between categories
+ROWS = [[0, 1, 2], [3, 4, 5, 6]]          # categories on each panel row of a contract; the mean ends the last row
 
 
 def layout(cats, with_geo, slot, gw):
@@ -65,16 +65,17 @@ def layout(cats, with_geo, slot, gw):
 
 def svg_languages(theme):
     t = L_THEMES[theme]
-    gw = 3 * BAR + 2 * BGAP
-    rows_cats = [CATS[:SPLIT], CATS[SPLIT:]]
+    gw = len(LANGS) * BAR + (len(LANGS) - 1) * BGAP
+    rows_cats = [[CATS[i] for i in r] for r in ROWS]
+    last = len(rows_cats) - 1
     # one column width for every row, set by the fullest row (its programs, categories and the mean)
-    slot = min((L_PLOTR - L_PLOTL - 20 - CATGAP * len(c) - gw * (i == 1)) / (sum(len(ns) for _, ns in c) + (i == 1))
+    slot = min((L_PLOTR - L_PLOTL - 20 - CATGAP * len(c) - gw * (i == last)) / (sum(len(ns) for _, ns in c) + (i == last))
                for i, c in enumerate(rows_cats))
-    panels = [(key, title, i) for key, title in (('s', 'Strict IEEE'), ('f', 'fast-math')) for i in (0, 1)]
+    panels = [(key, title, i) for key, title in (('s', 'Strict IEEE'), ('f', 'fast-math')) for i in range(len(rows_cats))]
     H = L_TOP + len(panels) * (L_PH + L_LABH) + 40
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {L_W} {H}" width="{L_W}" height="{H}" font-family="{FONT}">',
            f'<rect width="{L_W}" height="{H}" fill="{t["bg"]}"/>',
-           f'<text x="24" y="34" font-size="19" font-weight="600" fill="{t["ink"]}">onda, Cmajor and YDSP against the best Faust build</text>',
+           f'<text x="24" y="34" font-size="19" font-weight="600" fill="{t["ink"]}">onda, Cmajor, YDSP and C++ against the best Faust build</text>',
            f'<text x="24" y="56" font-size="13" fill="{t["ink2"]}">Speed relative to the fastest Faust build of the same contract (the ×1 line): up, faster than Faust; down, slower. Log scale.</text>']
     lx = 24
     for k, label in LANGS:
@@ -85,11 +86,10 @@ def svg_languages(theme):
     out.append(f'<text x="{lx + 24}" y="80" font-size="12.5" fill="{t["ink"]}">Faust: best of 13 builds (×1)</text>')
     for p, (key, title, row) in enumerate(panels):
         top = L_TOP + p * (L_PH + L_LABH)
-        groups = layout(rows_cats[row], row == 1, slot, gw)
-        right = groups[-1][1] + gw + 10 if row == 1 else L_PLOTR
+        groups = layout(rows_cats[row], row == last, slot, gw)
         Y = lambda v: top + L_PH - (math.log(min(max(v, 0.1), 4.5)) - L_LO) / (L_HI - L_LO) * L_PH
         g = LGEO[key]
-        if row == 1:
+        if row > 0:
             out.append(f'<text x="{L_PLOTL}" y="{top - 10}" font-size="12" fill="{t["ink2"]}">{title}, continued</text>')
         if row == 0:
             means = ' · '.join(f'{lname} ×{g[k]:.2f}' for k, lname in LANGS)
@@ -123,7 +123,7 @@ def svg_languages(theme):
         for x0, x1, cat in cats[:-1]:     # dashed separators between categories
             sx = x1 + CATGAP / 2
             out.append(f'<line x1="{sx:.1f}" x2="{sx:.1f}" y1="{top}" y2="{top + L_PH}" stroke="{t["grid"]}" stroke-width="1" stroke-dasharray="3 3"/>')
-    out.append(f'<text x="24" y="{H - 24}" font-size="11.5" fill="{t["ink2"]}">Cmajor: the faster of its generated C++ (clang) and its LLVM JIT. YDSP: YUP\'s JIT, strict or fastMath. ns per sample, Apple M5,</text>')
+    out.append(f'<text x="24" y="{H - 24}" font-size="11.5" fill="{t["ink2"]}">Cmajor: the faster of its generated C++ and its LLVM JIT. YDSP: YUP\'s JIT. C++: hand-written port, clang. Apple M5,</text>')
     out.append(f'<text x="24" y="{H - 8}" font-size="11.5" fill="{t["ink2"]}">f32, 48 kHz, 256-frame blocks; means over {len(progs)} programs. Programs grouped by category; columns past ×⅛ are cut at the axis.</text>')
     out.append('</svg>')
     return '\n'.join(out)

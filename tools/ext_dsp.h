@@ -67,3 +67,22 @@ struct c_api_dsp : public ext_dsp {
     void instanceClear() override { fReset(fEngine); }
     void compute(int count, FAUSTFLOAT** in, FAUSTFLOAT** out) override { fProcess(fEngine, in, out, count); }
 };
+
+// Hand-written C++ port (dsp/NAME.cpp, compiled by build.sh inside a namespace, its class aliased Dsp).
+// A port declares numInputs and numOutputs, prepare(sampleRate) and process(in, out, count); its state is
+// zeroed by value-initialization (new P()), so a fresh instance is a reset one.
+template <class P>
+struct cxx_dsp : public ext_dsp {
+    P* fProc = nullptr;
+    cxx_dsp() {
+        fNumInputs = P::numInputs;
+        fNumOutputs = P::numOutputs;
+    }
+    ~cxx_dsp() override { delete fProc; }
+    void instanceClear() override {
+        delete fProc;
+        fProc = new P();
+        fProc->prepare((float)fSampleRate);
+    }
+    void compute(int count, FAUSTFLOAT** in, FAUSTFLOAT** out) override { fProc->process(in, out, count); }
+};
