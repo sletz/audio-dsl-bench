@@ -4,6 +4,8 @@ __pycache__/
 # generated: tools/build-faust-cert.sh and tools/make-sr48.sh
 tools/faust-cert4
 tools/faust-cert7
+tools/faust-cert7-*
+tools/faust-ref
 sr48/
 results/run_all.log
 results/autotune_new.log

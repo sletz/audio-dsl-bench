@@ -1,20 +1,20 @@
-fcautotool: faust = /Users/letz/Developpements/audio-dsl-bench/tools/faust-cert4.sh
+fcautotool: faust = /Users/letz/Developpements/audio-dsl-bench/tools/faust-cert.sh
 fcautotool: c++ = /usr/bin/clang++ (Apple clang version 21.0.0 (clang-2100.4.1.1)) -O3 -ffast-math -fbracket-depth=1024 -mcpu=native
 fcautotool: timed in single precision  (--double to elect for a double build)
 fcautotool: jury = 19/28 candidates supported: ['al', 'cs2', 'cs2b', 'df', 'fu', 'gq', 'gqlz', 'gqsn', 'h2', 'h32', 'lb', 'ls', 'lz', 'lzh', 'rp', 'sn', 't1fu', 't4', 't4fu']
 fcautotool: shortlist by signature: 10/19 of the supported jury (--full races them all): ['df', 'lb', 'fu', 'al', 't1fu', 't4fu', 'h2', 'rp', 'cs2', 'cs2b']
-  cs2b      42.3600 ns  (-lang ocpp -ss 12 -ls-R 32 -ls-U 8)
-  cppmcd0   42.4040 ns  (-lang cpp -mcd 0)
-  cs2       44.5900 ns  (-lang ocpp -ss 11 -ls-R 32 -ls-U 4)
-  df        45.8840 ns  (-lang ocpp)
-  rp        47.2970 ns  (-lang ocpp -rp)
-  lb        48.3510 ns  (-lang ocpp -lsum)
-  cpp       54.2270 ns  (-lang cpp)
-  fu        57.7300 ns  (-lang ocpp -ls-fuse -ls-sched model)
-  t4fu      59.4110 ns  (-lang ocpp -temp 4 -ls-fuse -ls-sched model)
-  t1fu      59.6350 ns  (-lang ocpp -temp 1 -ls-fuse -ls-sched model)
-  al        66.3700 ns  (-lang ocpp -ss 8)
-  cppvec    68.5600 ns  (-lang cpp -vec)
-  h2        69.9240 ns  (-lang ocpp -ss 9 -ls-R 2 -ls-U 4)
+  cppmcd0   43.3560 ns  (-lang cpp -mcd 0)
+  cs2b      43.8540 ns  (-lang ocpp -ss 12 -ls-R 32 -ls-U 8)
+  cs2       45.7380 ns  (-lang ocpp -ss 11 -ls-R 32 -ls-U 4)
+  df        47.8260 ns  (-lang ocpp)
+  rp        49.2510 ns  (-lang ocpp -rp)
+  lb        50.7990 ns  (-lang ocpp -lsum)
+  cpp       55.7750 ns  (-lang cpp)
+  t4fu      59.7790 ns  (-lang ocpp -temp 4 -ls-fuse -ls-sched model)
+  fu        59.9880 ns  (-lang ocpp -ls-fuse -ls-sched model)
+  t1fu      60.4920 ns  (-lang ocpp -temp 1 -ls-fuse -ls-sched model)
+  cppvec    70.6020 ns  (-lang cpp -vec)
+  al        71.3060 ns  (-lang ocpp -ss 8)
+  h2        73.5690 ns  (-lang ocpp -ss 9 -ls-R 2 -ls-U 4)
   -- 13 timed of 13 raced (0 build failures, 0 without a timing)
-fcautotool: winner cs2b (42.3600 ns/frame, single precision) -- -lang ocpp -ss 12 -ls-R 32 -ls-U 8  [44.5 s]
+fcautotool: winner cppmcd0 (43.3560 ns/frame, single precision) -- -lang cpp -mcd 0  [41.6 s]

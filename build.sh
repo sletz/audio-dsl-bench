@@ -22,10 +22,14 @@ ONDA_INCLUDE=$(cd "$ONDA_INCLUDE" && pwd)
 FAUSTLIB=/Users/letz/Developpements/faustlibraries
 OBJCOPY=/opt/local/libexec/llvm-21/bin/llvm-objcopy
 CMAJ="${CMAJ:-cmaj}"
+# faust of the reference engines (cpp-*), master-dev 2.95.3 built by tools/build-faust-cert.sh; the LLVM
+# engines come from /usr/local/lib/libfaustwithllvm.a
+FAUST_REF="${FAUST_REF:-$HERE/tools/faust-ref}"
 YUP_ROOT="${YUP_ROOT:-/Users/letz/Developpements/yup}"
 N=$1
 # generated prerequisites (not versioned)
 [ -x "$HERE/tools/${CERT_BIN:-faust-cert7}" ] || { echo "build.sh: tools/${CERT_BIN:-faust-cert7} missing, run tools/build-faust-cert.sh" >&2; exit 1; }
+[ -x "$FAUST_REF" ] || { echo "build.sh: $FAUST_REF missing, run BRANCH=0b21bae83 OUT=faust-ref tools/build-faust-cert.sh" >&2; exit 1; }
 [ -f "$HERE/sr48/platform.lib" ] || "$HERE/tools/make-sr48.sh"
 # program-independent engines, built once: the YDSP JIT library (YUP, CMake) and the Cmajor JIT wrapper
 # (SKIP_COMMON=1 when several builds run at once and these are already built)
@@ -87,7 +91,7 @@ for mode in scal vec; do
   opt="-scal"; [ $mode = vec ] && opt="-vec -vs 32"
   for v in strict fast; do
     cls="Faust_${mode}_${v}"
-    faust -I $FAUSTLIB "$HERE/dsp/$N.dsp" -lang cpp $opt -cn $cls -o $cls.h
+    "$FAUST_REF" -I $FAUSTLIB "$HERE/dsp/$N.dsp" -lang cpp $opt -cn $cls -o $cls.h
     cat > $cls.cpp <<EOF
 #include <faust/dsp/dsp.h>
 #include <faust/gui/UI.h>
@@ -104,7 +108,7 @@ done
 
 # Faust -vec with clang mapping libm calls to Accelerate's vector functions (vsinf, vtanhf, ...)
 cls=Faust_vecacc_fast
-faust -I $FAUSTLIB "$HERE/dsp/$N.dsp" -lang cpp -vec -vs 32 -cn $cls -o $cls.h
+"$FAUST_REF" -I $FAUSTLIB "$HERE/dsp/$N.dsp" -lang cpp -vec -vs 32 -cn $cls -o $cls.h
 sed -e 's/Faust_vec_fast/Faust_vecacc_fast/g' -e 's/make_faust_vec_fast/make_faust_vecacc_fast/' Faust_vec_fast.cpp > $cls.cpp
 $CXX -O3 -ffast-math -fveclib=Accelerate -c $cls.cpp -o $cls.o
 
