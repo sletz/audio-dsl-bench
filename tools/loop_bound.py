@@ -26,11 +26,12 @@ OBJDUMP = os.environ.get('OBJDUMP', '/opt/local/libexec/llvm-21/bin/llvm-objdump
 
 # object file in build/NAME -> engine key of results/results.json (strict objects are the -ffp-contract=off pass)
 ENGINES = [('Faust_scal_strict.o', 'cpp-scal-ieee'), ('Faust_vec_strict.o', 'cpp-vec-ieee'), ('Faust_ocpp_strict.o', 'ocpp-ieee'),
-           ('Faust_ocpp48_strict.o', 'ocpp48-ieee'), ('onda_strict.o', 'onda'), ('Cmaj_strict.o', 'cmaj-cpp-ieee'),
-           ('Cxx_strict.o', 'cxx-ieee'),
+           ('Faust_ocpp48_strict.o', 'ocpp48-ieee'), ('onda_strict.o', 'onda'), ('onda_block_strict.o', 'onda-block'),
+           ('Cmaj_strict.o', 'cmaj-cpp-ieee'), ('Cxx_strict.o', 'cxx-ieee'),
            ('Faust_scal_fast.o', 'cpp-scal-fm'), ('Faust_vec_fast.o', 'cpp-vec-fm'), ('Faust_vecacc_fast.o', 'cpp-vec-acc'),
            ('Faust_ocpp_fast.o', 'ocpp-fm'), ('Faust_best_fast.o', 'best-fm'), ('Faust_best48_fast.o', 'best48-fm'),
-           ('onda_fast.o', 'onda-fm'), ('Cmaj_fast.o', 'cmaj-cpp-fm'), ('Cxx_fast.o', 'cxx-fm')]
+           ('onda_fast.o', 'onda-fm'), ('onda_block_fast.o', 'onda-block-fm'),
+           ('Cmaj_fast.o', 'cmaj-cpp-fm'), ('Cxx_fast.o', 'cxx-fm')]
 FUNC = re.compile(r'compute|process|advance')
 SKIP_FUNC = re.compile(r'init|Init|7computeEdi')    # dsp::compute(double, ...) is a forwarding stub
 
