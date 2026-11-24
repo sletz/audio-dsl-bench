@@ -14,7 +14,8 @@ on one harness, with the same input, block size and sample rate:
 Faust is the reference: every result below is a speed relative to the fastest Faust build of the
 same floating-point contract (strict IEEE, or fast-math). Measured in November 2026 on an Apple
 M5, f32, 48 kHz, 256-frame blocks. Raw numbers in `results/`, full tables, findings and the
-sources side by side in the report, `report/audio-dsl-bench.html`.
+sources side by side in the report, `report/audio-dsl-bench.html`, also online at
+<https://sletz.github.io/audio-dsl-bench/>.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="report/languages-dark.svg">
