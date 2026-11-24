@@ -13,7 +13,7 @@ the number of workloads where Onda was faster.
 
 | | Strict vs best Faust | Fast-math vs best Faust |
 | --- | ---: | ---: |
-| Onda | ×1.567 (32/38) | ×1.312 (23/38) |
+| Onda | ×1.546 (31/38) | ×1.291 (22/38) |
 
 Explicit loops were faster on nine of the ten workloads in both math modes. The raw TSV
 includes the output comparison against strict scalar Faust for each timed engine.
@@ -24,3 +24,4 @@ Onda 0.9.2, 48 kHz, 256-frame blocks, 21 interleaved rounds targeting 12 ms for 
 slowest engine, and x86 FTZ/DAZ enabled. The run was pinned to logical CPU 12 on
 CachyOS Linux with Clang and LLVM 23.1.5 and glibc 2.44. The reproduction guide lists
 the toolchain revisions and command line.
+The `fdn8` timings were refreshed together after the switch to the dense Hadamard mix.

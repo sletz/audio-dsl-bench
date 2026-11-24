@@ -1,54 +1,58 @@
 const Lines = 8
 const Capacity = 2048
+const HistorySize = Lines * Capacity
 
 # The feedback loop contributes the remaining one-sample delay.
 const DelaySamples: i32[Lines] = [1008, 1150, 1278, 1380, 1498, 1606, 1732, 1860]
 
-namespace Butterfly<Half = 1>:
-  def mix(values: f32[Lines]):
-    for group in 0..Lines / (2 * Half):
-      for j in 0..Half:
-        i = group * (2 * Half) + j
-        a = values[i]
-        b = values[i + Half]
-        values[i] = a + b
-        values[i + Half] = a - b
+# Store each input column contiguously. Column zero has only positive signs.
+const def hadamard_signs() -> f32[(Lines - 1) * Lines]:
+  signs: f32[(Lines - 1) * Lines]
+  for col in 1..Lines:
+    for row in 0..Lines:
+      bits = row & col
+      parity = (bits ^ (bits >> 1) ^ (bits >> 2)) & 1
+      signs[(col - 1) * Lines + row] = 1.0 - 2.0 * f32(parity)
+  return signs
+
+const HadamardSigns = hadamard_signs()
 
 params:
   g = 0.9 {0.0, 0.999}
   damp = 0.3 {0.0, 0.99}
 
 init:
-  # Each row holds the samples arriving together. Writes select a future row
-  # using each line's delay, and reads take one contiguous row.
-  history: f32[Lines * Capacity]
+  # Each row holds the eight line inputs written at the same frame.
+  history: f32[HistorySize]
   cursor = 0 {Capacity, wrap}
   delayed: f32[Lines]
   lowpass: f32[Lines]
+  signs: f32[(Lines - 1) * Lines] = HadamardSigns
 
 block:
   gain = g / sqrt(f32(Lines))
   feed = 1.0 - damp
 
   sample:
-    mixed: f32[Lines]
     for i in 0..Lines:
       lowpass[i] = fma(feed, delayed[i], damp * lowpass[i])
-      mixed[i] = lowpass[i]
 
-    # The three butterfly stages implement the eight-line Hadamard mix.
-    Butterfly<1>::mix(mixed)
-    Butterfly<2>::mix(mixed)
-    Butterfly<4>::mix(mixed)
+    # Evaluate the eight dense signed sums from the Faust matrix.
+    mixed: f32[Lines]
+    for row in 0..Lines:
+      mixed[row] = lowpass[0]
+    for col in 1..Lines:
+      for row in 0..Lines:
+        mixed[row] = fma(signs[(col - 1) * Lines + row], lowpass[col], mixed[row])
 
     excitation = in1
     frame = cursor * Lines
     for i in 0..Lines:
-      delayed[i] = history[frame + i]
+      read = (frame - DelaySamples[i] * Lines + i) {HistorySize, wrap}
+      delayed[i] = history[read]
     for i in 0..Lines:
-      write = (cursor + DelaySamples[i]) {Capacity, wrap}
-      history[write * Lines + i] = fma(mixed[i], gain, excitation)
-    cursor += 1
+      history[frame + i] = fma(mixed[i], gain, excitation)
+    cursor = (cursor + 1) & (Capacity - 1)
     a = (delayed[0] + delayed[1]) + (delayed[2] + delayed[3])
     b = (delayed[4] + delayed[5]) + (delayed[6] + delayed[7])
     out1 = 0.25 * (a + b)
