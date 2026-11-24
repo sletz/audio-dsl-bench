@@ -13,8 +13,8 @@ mkdir -p "$RD"
 run_pass() {  # $1 = output file, $2 = extra flags for the strict C++ variants
   : > "$1"
   for n in $KERNELS; do
-    STRICT_EXTRA="$2" ./build.sh "$n" 2>&1 | grep -E "error" || true
-    (cd "build/$n" && ./bench "$HERE/dsp/$n.dsp" "$n" "$ROUNDS" 2>/dev/null) | tee -a "$1"
+    STRICT_EXTRA="$2" ./build.sh "$n"
+    (cd "build/$n" && ./bench "$HERE/dsp/$n.dsp" "$n" "$ROUNDS") | tee -a "$1"
   done
 }
 run_pass "$RD/results.tsv" ""

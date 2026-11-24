@@ -17,6 +17,8 @@ M5, f32, 48 kHz, 256-frame blocks. Raw numbers in `results/`, full tables, findi
 sources side by side in the report, `report/audio-dsl-bench.html`, also online at
 <https://sletz.github.io/audio-dsl-bench/>.
 
+To run the same benchmark on x86-64 Linux, see the [Linux reproduction guide](tools/linux/README.md).
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="report/languages-dark.svg">
   <img alt="Speed of onda, Cmajor, YDSP and hand-written C++ relative to the best Faust build, for 38 programs in seven categories, strict IEEE and fast-math, log scale. Geometric means, strict: onda x0.93, Cmajor x0.70, YDSP x0.63, C++ x0.94; fast-math: onda x0.77, Cmajor x0.59, YDSP x0.59, C++ x0.83. Faust is faster on most programs; the clearest wins over it are onda on additive64, noise_gate and tanh_drive, C++ on zita_rev, greyhole, mixer16 and hoa_octo, Cmajor on tapiir and pitch_shifter, YDSP on diode_ladder and moog_vcf and, with fastMath, tanh_drive." src="report/languages-light.svg">
@@ -183,10 +185,13 @@ language. These measurements, taken while porting, decided the form of the ports
 
 ## Requirements
 
-- **onda**: `tools/build-onda.sh` builds `../onda/target/release/onda` against MacPorts LLVM 21,
+- **onda**: use the [latest Onda release](https://github.com/onda-lang/onda/releases/latest)
+  with its bundled ABI headers. Put `onda` on the `PATH` or set `ONDA=/path/to/onda`.
+  Set `ONDA_INCLUDE` if the matching ABI header is installed separately.
+  `tools/build-onda.sh` also builds the compiler from an Onda checkout against MacPorts LLVM 21,
   through a "shadow" prefix (`tools/make-llvm-shadow.sh`) limited to AArch64/ARM/X86/WebAssembly,
   because onda's `native/target.cpp` shim initializes every target of the LLVM installation
-  (AMDGPU, etc.), which `build.rs` does not link. Otherwise: `ONDA=/path/to/onda ./build.sh ...`.
+  (AMDGPU, etc.), which `build.rs` does not link.
   `llvm-objcopy` from LLVM 21 (`/opt/local/libexec/llvm-21/bin`) renames the symbols of the
   strict and fast-math objects, which export the same names.
 - **Faust**: `faust` and `/usr/local/lib/libfaustwithllvm.a` (with libz, libzstd, libxml2,
