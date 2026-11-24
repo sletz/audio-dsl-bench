@@ -1,19 +1,19 @@
-fcautotool: faust = /Users/letz/Developpements/audio-dsl-bench/tools/faust-cert4.sh
+fcautotool: faust = /Users/letz/Developpements/audio-dsl-bench/tools/faust-cert.sh
 fcautotool: c++ = /usr/bin/clang++ (Apple clang version 21.0.0 (clang-2100.4.1.1)) -O3 -ffast-math -fbracket-depth=1024 -mcpu=native
 fcautotool: timed in single precision  (--double to elect for a double build)
 fcautotool: jury = 19/28 candidates supported: ['al', 'cs2', 'cs2b', 'df', 'fu', 'gq', 'gqlz', 'gqsn', 'h2', 'h32', 'lb', 'ls', 'lz', 'lzh', 'rp', 'sn', 't1fu', 't4', 't4fu']
 fcautotool: shortlist by signature: 9/19 of the supported jury (--full races them all): ['df', 'lb', 'fu', 'al', 't1fu', 't4fu', 'h2', 'cs2', 'cs2b']
-  lb        18.3820 ns  (-lang ocpp -lsum)
-  al        19.7270 ns  (-lang ocpp -ss 8)
-  h2        19.7970 ns  (-lang ocpp -ss 9 -ls-R 2 -ls-U 4)
-  df        20.1720 ns  (-lang ocpp)
-  cppmcd0   20.2120 ns  (-lang cpp -mcd 0)
-  cs2       21.8730 ns  (-lang ocpp -ss 11 -ls-R 32 -ls-U 4)
-  cs2b      22.0300 ns  (-lang ocpp -ss 12 -ls-R 32 -ls-U 8)
-  cpp       22.3160 ns  (-lang cpp)
-  cppvec    22.3490 ns  (-lang cpp -vec)
-  t4fu      33.4830 ns  (-lang ocpp -temp 4 -ls-fuse -ls-sched model)
-  t1fu      33.4880 ns  (-lang ocpp -temp 1 -ls-fuse -ls-sched model)
-  fu        33.4890 ns  (-lang ocpp -ls-fuse -ls-sched model)
+  lb        19.4810 ns  (-lang ocpp -lsum)
+  h2        20.0200 ns  (-lang ocpp -ss 9 -ls-R 2 -ls-U 4)
+  al        20.9860 ns  (-lang ocpp -ss 8)
+  df        21.1370 ns  (-lang ocpp)
+  cppmcd0   21.5030 ns  (-lang cpp -mcd 0)
+  cs2b      22.5880 ns  (-lang ocpp -ss 12 -ls-R 32 -ls-U 8)
+  cppvec    23.4510 ns  (-lang cpp -vec)
+  cs2       23.5910 ns  (-lang ocpp -ss 11 -ls-R 32 -ls-U 4)
+  cpp       24.0690 ns  (-lang cpp)
+  t4fu      36.1160 ns  (-lang ocpp -temp 4 -ls-fuse -ls-sched model)
+  fu        36.1210 ns  (-lang ocpp -ls-fuse -ls-sched model)
+  t1fu      36.1220 ns  (-lang ocpp -temp 1 -ls-fuse -ls-sched model)
   -- 12 timed of 12 raced (0 build failures, 0 without a timing)
-fcautotool: winner lb (18.3820 ns/frame, single precision) -- -lang ocpp -lsum  [26.5 s]
+fcautotool: winner lb (19.4810 ns/frame, single precision) -- -lang ocpp -lsum  [26.9 s]

@@ -1,17 +1,17 @@
-fcautotool: faust = /Users/letz/Developpements/audio-dsl-bench/tools/faust-cert4.sh
+fcautotool: faust = /Users/letz/Developpements/audio-dsl-bench/tools/faust-cert.sh
 fcautotool: c++ = /usr/bin/clang++ (Apple clang version 21.0.0 (clang-2100.4.1.1)) -O3 -ffast-math -fbracket-depth=1024 -mcpu=native
 fcautotool: timed in single precision  (--double to elect for a double build)
 fcautotool: jury = 19/28 candidates supported: ['al', 'cs2', 'cs2b', 'df', 'fu', 'gq', 'gqlz', 'gqsn', 'h2', 'h32', 'lb', 'ls', 'lz', 'lzh', 'rp', 'sn', 't1fu', 't4', 't4fu']
 fcautotool: shortlist by signature: 7/19 of the supported jury (--full races them all): ['df', 'lb', 'fu', 'al', 't4fu', 'h2', 'rp']
-  t4fu       2.9570 ns  (-lang ocpp -temp 4 -ls-fuse -ls-sched model)
-  fu         2.9650 ns  (-lang ocpp -ls-fuse -ls-sched model)
-  al         4.4860 ns  (-lang ocpp -ss 8)
-  lb         4.5080 ns  (-lang ocpp -lsum)
-  df         4.5130 ns  (-lang ocpp)
-  h2         4.5710 ns  (-lang ocpp -ss 9 -ls-R 2 -ls-U 4)
-  rp         4.6280 ns  (-lang ocpp -rp)
-  cppmcd0    6.0470 ns  (-lang cpp -mcd 0)
-  cppvec     7.0480 ns  (-lang cpp -vec)
-  cpp        8.7630 ns  (-lang cpp)
+  t4fu       3.1080 ns  (-lang ocpp -temp 4 -ls-fuse -ls-sched model)
+  fu         3.1530 ns  (-lang ocpp -ls-fuse -ls-sched model)
+  df         4.7530 ns  (-lang ocpp)
+  al         4.7710 ns  (-lang ocpp -ss 8)
+  lb         4.8140 ns  (-lang ocpp -lsum)
+  h2         4.8630 ns  (-lang ocpp -ss 9 -ls-R 2 -ls-U 4)
+  rp         4.9240 ns  (-lang ocpp -rp)
+  cppmcd0    6.5550 ns  (-lang cpp -mcd 0)
+  cppvec     7.4820 ns  (-lang cpp -vec)
+  cpp        9.3210 ns  (-lang cpp)
   -- 10 timed of 10 raced (0 build failures, 0 without a timing)
-fcautotool: winner t4fu (2.9570 ns/frame, single precision) -- -lang ocpp -temp 4 -ls-fuse -ls-sched model  [22.8 s]
+fcautotool: winner t4fu (3.1080 ns/frame, single precision) -- -lang ocpp -temp 4 -ls-fuse -ls-sched model  [24.2 s]

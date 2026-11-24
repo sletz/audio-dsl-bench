@@ -57,7 +57,7 @@ CATS = [
 ]
 VARIANTS = {'fir32', 'hoa_decoder', 'mixer16', 'frenchbell_x'}
 # the "all engines" table: columns grouped by language
-GROUPS = [('Faust 2.95.1', 'g-faust', [('cpp-scal-ieee', 'C++ IEEE'), ('cpp-scal-fm', 'C++ fast-math'), ('cpp-vec-fm', 'C++ -vec fast-math'),
+GROUPS = [('Faust 2.95.3', 'g-faust', [('cpp-scal-ieee', 'C++ IEEE'), ('cpp-scal-fm', 'C++ fast-math'), ('cpp-vec-fm', 'C++ -vec fast-math'),
                                       ('cpp-vec-acc', 'C++ -vec + Accelerate'), ('llvm-scal', 'LLVM'), ('llvm48', 'LLVM, fixed SR')]),
           ('Faust cert-7', 'g-faust', [('ocpp-ieee', 'ocpp IEEE'), ('ocpp48-ieee', 'ocpp IEEE, fixed SR'), ('ocpp-fm', 'ocpp fast-math'),
                                       ('best-fm', 'fcautotool pick'), ('best48-fm', 'pick, fixed SR')]),
@@ -72,7 +72,7 @@ NEW = {'crybaby', 'moog_vcf', 'compressor', 'distortion', 'phaser', 'flanger', '
        'virtual_analog', 'diode_ladder', 'filter_bank', 'noise_gate', 'exciter', 'autopan', 'greyhole', 'tapiir', 'hoa_octo', 'flute'}
 IEEE = ['cpp-scal-ieee', 'cpp-vec-ieee', 'ocpp-ieee', 'ocpp48-ieee']
 FAST = ['cpp-scal-fm', 'cpp-vec-fm', 'cpp-vec-acc', 'llvm-scal', 'llvm-vec', 'llvm48', 'ocpp-fm', 'best-fm', 'best48-fm']
-IEEE_OLD = ['cpp-scal-ieee', 'cpp-vec-ieee']                                   # Faust 2.95.1
+IEEE_OLD = ['cpp-scal-ieee', 'cpp-vec-ieee']                                   # Faust 2.95.3
 FAST_OLD = ['cpp-scal-fm', 'cpp-vec-fm', 'cpp-vec-acc', 'llvm-scal', 'llvm-vec']
 
 

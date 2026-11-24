@@ -18,58 +18,58 @@ sources side by side in the report, `report/audio-dsl-bench.html`.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="report/languages-dark.svg">
-  <img alt="Speed of onda, Cmajor, YDSP and hand-written C++ relative to the best Faust build, for 38 programs in seven categories, strict IEEE and fast-math, log scale. Geometric means, strict: onda x0.95, Cmajor x0.71, YDSP x0.65, C++ x0.95; fast-math: onda x0.79, Cmajor x0.60, YDSP x0.61, C++ x0.84. Faust is faster on most programs; the clearest wins over it are onda on additive64, noise_gate and karplus, C++ on karplus, zita_rev, greyhole and the violin, Cmajor on tapiir and pitch_shifter, YDSP on diode_ladder and moog_vcf and, with fastMath, tanh_drive." src="report/languages-light.svg">
+  <img alt="Speed of onda, Cmajor, YDSP and hand-written C++ relative to the best Faust build, for 38 programs in seven categories, strict IEEE and fast-math, log scale. Geometric means, strict: onda x0.93, Cmajor x0.70, YDSP x0.63, C++ x0.94; fast-math: onda x0.77, Cmajor x0.59, YDSP x0.59, C++ x0.83. Faust is faster on most programs; the clearest wins over it are onda on additive64, noise_gate and tanh_drive, C++ on zita_rev, greyhole, mixer16 and hoa_octo, Cmajor on tapiir and pitch_shifter, YDSP on diode_ladder and moog_vcf and, with fastMath, tanh_drive." src="report/languages-light.svg">
 </picture>
 
 ## Results
 
 Geometric means; above ×1 the language (or the C++ port) is faster than Faust.
 
-| | best Faust, strict | best Faust, fast-math | Faust 2.95.1 alone, strict | Faust 2.95.1 alone, fast-math |
+| | best Faust, strict | best Faust, fast-math | Faust 2.95.3 alone, strict | Faust 2.95.3 alone, fast-math |
 | --- | ---: | ---: | ---: | ---: |
-| onda | ×0.95 | ×0.79 | ×1.24 | ×1.06 |
-| Cmajor (faster of its C++ and its JIT) | ×0.71 | ×0.60 | ×0.93 | ×0.81 |
-| YDSP | ×0.65 | ×0.61 | ×0.84 | ×0.81 |
-| C++, hand-written | ×0.95 | ×0.84 | ×1.24 | ×1.13 |
+| onda | ×0.93 | ×0.77 | ×1.23 | ×1.05 |
+| Cmajor (faster of its C++ and its JIT) | ×0.70 | ×0.59 | ×0.92 | ×0.81 |
+| YDSP | ×0.63 | ×0.59 | ×0.83 | ×0.81 |
+| C++, hand-written | ×0.94 | ×0.83 | ×1.23 | ×1.13 |
 
-Over the 38 programs. "Faust 2.95.1 alone" leaves out the certification-7 branch (C++ and
-LLVM, every option). On the 20 Faust examples alone, onda is level with the best Faust
-(×1.00 strict), the C++ port just ahead (×1.02) and Cmajor closer to it (×0.84) than on the
-18 programs written for the benchmark (onda ×0.89, C++ ×0.88, Cmajor ×0.60); YDSP is at ×0.68
-and ×0.62.
+Over the 38 programs. "Faust 2.95.3 alone" leaves out the certification-7 branch (C++ and
+LLVM, every option). On the 20 Faust examples alone, onda is close to the best Faust
+(×0.98 strict), the C++ port level with it (×1.00) and Cmajor closer to it (×0.82) than on the
+18 programs written for the benchmark (onda ×0.89, C++ ×0.87, Cmajor ×0.60); YDSP is at ×0.66
+and ×0.60.
 
-Fastest engine per program, strict: Faust 14, C++ 12, onda 9, Cmajor 3, YDSP 0; fast-math:
-Faust 21, C++ 11, onda 4, Cmajor 1, YDSP 1.
+Fastest engine per program, strict: Faust 15, C++ 11, onda 9, Cmajor 3, YDSP 0; fast-math:
+Faust 22, C++ 10, onda 4, Cmajor 1, YDSP 1.
 
-**How far from the optimum.** Taking the fastest engine of all for each program would be ×1.18
-faster than the best Faust build in strict mode and ×1.13 with fast-math: no engine is best
-everywhere, Faust is not the fastest on 24 and 17 of the 38 programs. From below,
+**How far from the optimum.** Taking the fastest engine of all for each program would be ×1.16
+faster than the best Faust build in strict mode and ×1.12 with fast-math: no engine is best
+everywhere, Faust is not the fastest on 23 and 16 of the 38 programs. From below,
 `tools/loop_bound.py` computes the machine floor of the sample loops it can read (19 programs:
 no libm call, no split or nested loop), from latencies and issue rates measured on the M5 by
 `tools/m_latency.c`. In strict mode the fastest code runs within 0.9 to 1.15 of the floor of the
-leanest analysed instruction sequence on 14 of 18 programs (median ×1.04); with fast-math on 8 of
+leanest analysed instruction sequence on 14 of 18 programs (median ×1.03); with fast-math on 7 of
 19 (median ×1.06). Where the code is at the floor, a further gain needs fewer instructions or
 shorter recurrences, a rewrite of the computation, not better scheduling.
 
 - **Faust** is fastest on filters, delay lines and reverbs, mostly through the certification-7
   branch, which reorders operations and reads delay lines one sample ahead (dattorro: 3.2 ns for
   the options elected by fcautotool with fast-math, against 5.2 for the C++ port and 9 to 15 ns
-  for onda, Cmajor, YDSP and Faust 2.95.1).
+  for onda, Cmajor, YDSP and Faust 2.95.3).
 - **onda** wins as soon as it vectorizes (additive64 ×3.6 strict) and keeps its state in
-  registers (noise_gate ×1.9, tanh_drive ×1.7, karplus ×1.5); it loses most on freeverb,
+  registers (noise_gate ×2.0, tanh_drive ×1.7); it loses most on freeverb,
   frenchbell, hoa_decoder and peq10, and with fast-math on the delay-line programs (tapiir, dattorro, diffuser32).
 - **Cmajor** is the fastest of all on tapiir (×1.9) and pitch_shifter (×1.8), and level with
   Faust on phaser, in strict mode; its JIT is 9 % faster than its generated C++ on average. Its runtime runs
   the processor one frame at a time and exchanges audio by copies: about 2 ns per sample, much
   more with many channels (hoa_decoder ×0.12, mixer16 ×0.25).
 - **YDSP** is the fastest of all, with `fastMath`, on tanh_drive (×1.5); in strict mode it beats
-  the best Faust on diode_ladder and moog_vcf (×1.07). Strict, it keeps transcendentals on scalar
+  the best Faust on diode_ladder and moog_vcf (×1.08 and ×1.07). Strict, it keeps transcendentals on scalar
   libm, which costs it most on autopan, filter_bank and phaser; its FIR (fir32c) and its delay matrices (tapiir,
   hoa_decoder) are its weakest programs.
-- **C++**, written by hand, is 1.39 times faster than the generated C++ of Faust 2.95.1 and 1.57
+- **C++**, written by hand, is 1.35 times faster than the generated C++ of Faust 2.95.3 and 1.57
   times faster than Cmajor's, and level with onda and with cert-7 `ocpp` in strict mode (×1.00,
-  ×0.99). It is the fastest of all on karplus (×1.6), zita_rev (×1.4), greyhole (×1.3), the
-  violin, hoa_octo and mixer16 (×1.2) and exciter. It loses where Faust rewrites the
+  ×0.98). It is the fastest of all on zita_rev (×1.4), greyhole (×1.3), mixer16 and hoa_octo
+  (×1.2), the violin, exciter, moog_vcf and karplus (×1.1). It loses where Faust rewrites the
   computation: peq10 (×0.41), freeverb (×0.60) and frenchbell (×0.63), and with fast-math on
   the delay lines that the elected options read ahead (tapiir, dattorro).
 
@@ -80,10 +80,10 @@ channels), interleaved and shuffled. The name is the one printed by `bench` and 
 
 | Language | Engine | What runs |
 | --- | --- | --- |
-| Faust 2.95.1 | `cpp-scal`, `cpp-vec` | `faust -lang cpp`, `-scal` or `-vec -vs 32`, clang `-O3` with its default contract (FMA) or at `-ffp-contract=off` (the IEEE pass) |
+| Faust 2.95.3 | `cpp-scal`, `cpp-vec` | `faust -lang cpp`, `-scal` or `-vec -vs 32`, clang `-O3` with its default contract (FMA) or at `-ffp-contract=off` (the IEEE pass) |
 | | `cpp-scal-fm`, `cpp-vec-fm`, `cpp-vec-acc` | the same with `-ffast-math`; `cpp-vec-acc` adds `-fveclib=Accelerate` |
 | | `llvm-scal`, `llvm-vec`, `llvm48` | `libfaustwithllvm` JIT, `-scal` or `-vec`; `llvm48` with the sample rate fixed at 48 kHz |
-| Faust cert-7 | `ocpp`, `ocpp-fm`, `ocpp48` | faust of the `master-dev-certification-7` branch (2.94.1), `-lang ocpp`, strict or `-ffast-math`, `ocpp48` with a fixed sample rate |
+| Faust cert-7 | `ocpp`, `ocpp-fm`, `ocpp48` | faust of the `master-dev-certification-7` branch (2.94.1, 7db0ae9cd), `-lang ocpp`, strict or `-ffast-math`, `ocpp48` with a fixed sample rate |
 | | `best-fm`, `best48-fm` | the options elected by `fcautotool` (`results/autotool/`), compiled with `-ffast-math` |
 | onda | `onda`, `onda-fm` | AOT object (`--emit obj -b 256 --sr 48000`), strict or `--fast-math`, called through the raw ABI |
 | Cmajor | `cmaj-cpp`, `cmaj-cpp-fm` | the C++ class of `cmaj generate --target=cpp`, clang `-O3` (IEEE pass: `-ffp-contract=off`) or `-O3 -ffast-math` |
@@ -96,7 +96,13 @@ faust compiles all 38 programs, the violin and the flute included, which the cer
 branch rejected (its interval analysis could not bound the `de.fdelay4` index). At equal build,
 cert-7 and cert-4 are level on average (geometric means within 2 %), with large moves on single
 programs in both directions (peq10 `ocpp-fm` 2.3 times faster, distortion `ocpp48` IEEE 1.8 times
-slower).
+slower). From commit 06dd38660 to 7db0ae9cd of the branch (integer narrowing, common sub-sums
+factored before the sums of products), the cert-7 engines are level on average (geometric means
+×1.01 to ×1.05, the untouched engines within 1 %), with gains on the physical models: karplus
+1.4 to 1.7 times faster on every cert-7 engine (`ocpp` IEEE 7.9 to 6.0 ns, `ocpp48` 7.7 to 4.9),
+the clarinet and the flute 1.1 to 1.2 times, the violin up to 1.3 times; fcautotool changes its pick
+on 11 programs, mostly near-ties. The floors of `tools/loop_bound.py` are the same, in cycles,
+for every program.
 
 ## Programs
 
@@ -184,7 +190,10 @@ language. These measurements, taken while porting, decided the form of the ports
   strict and fast-math objects, which export the same names.
 - **Faust**: `faust` and `/usr/local/lib/libfaustwithllvm.a` (with libz, libzstd, libxml2,
   libncurses from MacPorts in `/opt/local/lib`), and the libraries of the `../faustlibraries`
-  checkout (`FAUSTLIB` in `build.sh`). `tools/faust-cert7`, the faust of the
+  checkout (`FAUSTLIB` in `build.sh`). The `cpp-*` engines use `tools/faust-ref` (`FAUST_REF=...`
+otherwise), master-dev 2.95.3, the build of `libfaustwithllvm.a`, rebuilt by
+`BRANCH=0b21bae83 OUT=faust-ref tools/build-faust-cert.sh`, so that the reference does not follow
+whatever `faust` is installed. `tools/faust-cert7`, the faust of the
   `master-dev-certification-7` branch, is not versioned: `tools/build-faust-cert.sh` rebuilds it
   from `/Users/letz/faust` (`git archive`, the working tree is not touched; `BRANCH=... OUT=...`
   for another branch, then `CERT_BIN=...` to use it). `sr48/`, the
@@ -240,7 +249,7 @@ python3 report/gen.py .                # then regenerate the report
 | `report/gen.py`, `report/template.html` | Merge the two passes (`results/results.json`) and generate the HTML report |
 | `report/readme_chart.py` | The README chart, `report/languages-light.svg` and `report/languages-dark.svg` |
 | `tools/faust-cert.sh`, `tools/faust-cert-sr48.sh` | cert-7 faust with the faustlibraries libraries, or with `sr48/` |
-| `tools/build-faust-cert.sh`, `tools/make-sr48.sh` | Recreate the two generated, unversioned items |
+| `tools/build-faust-cert.sh`, `tools/make-sr48.sh` | Recreate the generated, unversioned items (`tools/faust-cert7`, `tools/faust-ref`, `sr48/`) |
 | `tools/autotune_all.sh` | Elects the options of each program with `fcautotool` |
 | `tools/dumpir.cpp` | Writes the LLVM IR of a Faust LLVM factory (`writeDSPFactoryToIRFile`) |
 | `tools/ctime.cpp` | Time to create a Faust LLVM factory and an instance |

@@ -1,18 +1,18 @@
-fcautotool: faust = /Users/letz/Developpements/audio-dsl-bench/tools/faust-cert4.sh
+fcautotool: faust = /Users/letz/Developpements/audio-dsl-bench/tools/faust-cert.sh
 fcautotool: c++ = /usr/bin/clang++ (Apple clang version 21.0.0 (clang-2100.4.1.1)) -O3 -ffast-math -fbracket-depth=1024 -mcpu=native
 fcautotool: timed in single precision  (--double to elect for a double build)
 fcautotool: jury = 19/28 candidates supported: ['al', 'cs2', 'cs2b', 'df', 'fu', 'gq', 'gqlz', 'gqsn', 'h2', 'h32', 'lb', 'ls', 'lz', 'lzh', 'rp', 'sn', 't1fu', 't4', 't4fu']
 fcautotool: shortlist by signature: 8/19 of the supported jury (--full races them all): ['df', 'lb', 'fu', 'al', 't4fu', 'h2', 'rp', 'cs2b']
-  cs2b      13.8750 ns  (-lang ocpp -ss 12 -ls-R 32 -ls-U 8)
-  lb        14.8940 ns  (-lang ocpp -lsum)
-  h2        15.2520 ns  (-lang ocpp -ss 9 -ls-R 2 -ls-U 4)
-  df        15.3210 ns  (-lang ocpp)
-  cppmcd0   16.1460 ns  (-lang cpp -mcd 0)
-  fu        17.5940 ns  (-lang ocpp -ls-fuse -ls-sched model)
-  t4fu      17.8580 ns  (-lang ocpp -temp 4 -ls-fuse -ls-sched model)
-  rp        19.5410 ns  (-lang ocpp -rp)
-  cpp       21.6820 ns  (-lang cpp)
-  cppvec    24.3820 ns  (-lang cpp -vec)
-  al        47.7970 ns  (-lang ocpp -ss 8)
+  cs2b      14.7460 ns  (-lang ocpp -ss 12 -ls-R 32 -ls-U 8)
+  lb        15.6230 ns  (-lang ocpp -lsum)
+  df        16.1880 ns  (-lang ocpp)
+  h2        16.2990 ns  (-lang ocpp -ss 9 -ls-R 2 -ls-U 4)
+  cppmcd0   16.9580 ns  (-lang cpp -mcd 0)
+  t4fu      18.7190 ns  (-lang ocpp -temp 4 -ls-fuse -ls-sched model)
+  fu        18.9670 ns  (-lang ocpp -ls-fuse -ls-sched model)
+  rp        20.6540 ns  (-lang ocpp -rp)
+  cpp       22.9380 ns  (-lang cpp)
+  cppvec    26.0920 ns  (-lang cpp -vec)
+  al        52.3540 ns  (-lang ocpp -ss 8)
   -- 11 timed of 11 raced (0 build failures, 0 without a timing)
-fcautotool: winner cs2b (13.8750 ns/frame, single precision) -- -lang ocpp -ss 12 -ls-R 32 -ls-U 8  [29.7 s]
+fcautotool: winner cs2b (14.7460 ns/frame, single precision) -- -lang ocpp -ss 12 -ls-R 32 -ls-U 8  [31.1 s]

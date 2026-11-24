@@ -1,18 +1,18 @@
-fcautotool: faust = /Users/letz/Developpements/audio-dsl-bench/tools/faust-cert4.sh
+fcautotool: faust = /Users/letz/Developpements/audio-dsl-bench/tools/faust-cert.sh
 fcautotool: c++ = /usr/bin/clang++ (Apple clang version 21.0.0 (clang-2100.4.1.1)) -O3 -ffast-math -fbracket-depth=1024 -mcpu=native
 fcautotool: timed in single precision  (--double to elect for a double build)
 fcautotool: jury = 19/28 candidates supported: ['al', 'cs2', 'cs2b', 'df', 'fu', 'gq', 'gqlz', 'gqsn', 'h2', 'h32', 'lb', 'ls', 'lz', 'lzh', 'rp', 'sn', 't1fu', 't4', 't4fu']
 fcautotool: shortlist by signature: 8/19 of the supported jury (--full races them all): ['df', 'lb', 'fu', 'al', 't4fu', 'h2', 'rp', 'cs2b']
-  t4fu      10.6380 ns  (-lang ocpp -temp 4 -ls-fuse -ls-sched model)
-  fu        10.6510 ns  (-lang ocpp -ls-fuse -ls-sched model)
-  cppvec    22.3920 ns  (-lang cpp -vec)
-  cppmcd0   23.5300 ns  (-lang cpp -mcd 0)
-  df        23.8050 ns  (-lang ocpp)
-  h2        23.9390 ns  (-lang ocpp -ss 9 -ls-R 2 -ls-U 4)
-  al        23.9430 ns  (-lang ocpp -ss 8)
-  rp        24.0060 ns  (-lang ocpp -rp)
-  cs2b      26.3450 ns  (-lang ocpp -ss 12 -ls-R 32 -ls-U 8)
-  cpp       27.9100 ns  (-lang cpp)
-  lb        43.1230 ns  (-lang ocpp -lsum)
+  fu        10.6880 ns  (-lang ocpp -ls-fuse -ls-sched model)
+  t4fu      10.7760 ns  (-lang ocpp -temp 4 -ls-fuse -ls-sched model)
+  cppvec    22.3130 ns  (-lang cpp -vec)
+  h2        23.7610 ns  (-lang ocpp -ss 9 -ls-R 2 -ls-U 4)
+  al        23.8710 ns  (-lang ocpp -ss 8)
+  df        23.9300 ns  (-lang ocpp)
+  cppmcd0   24.1100 ns  (-lang cpp -mcd 0)
+  rp        24.1240 ns  (-lang ocpp -rp)
+  cs2b      26.2610 ns  (-lang ocpp -ss 12 -ls-R 32 -ls-U 8)
+  cpp       28.8330 ns  (-lang cpp)
+  lb        42.6120 ns  (-lang ocpp -lsum)
   -- 11 timed of 11 raced (0 build failures, 0 without a timing)
-fcautotool: winner t4fu (10.6380 ns/frame, single precision) -- -lang ocpp -temp 4 -ls-fuse -ls-sched model  [23.6 s]
+fcautotool: winner fu (10.6880 ns/frame, single precision) -- -lang ocpp -ls-fuse -ls-sched model  [23.4 s]
