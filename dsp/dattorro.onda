@@ -5,8 +5,6 @@
 # samples (its @(t) followed by mem); as in Faust's C++, the tank blocks read the tank outputs
 # of the previous sample (the ~ delay), and the bandwidth filter recurses on y[n-2]
 # (+~(mem : *(1-bw))). Same operation order as Faust's C++.
-ins 2
-outs 2
 
 params:
   prefilter = 0.7 {0.0, 1.0}
@@ -27,11 +25,11 @@ namespace dt<M = 2>:
     def get(self):
       return self.buf[self.idx]
 
-    def put(self, x: f32):
+    def put(self, x):
       self.buf[self.idx] = x
       self.idx += 1
 
-    def tick(self, x: f32):
+    def tick(self, x):
       y = self.buf[self.idx]
       self.buf[self.idx] = x
       self.idx += 1
@@ -42,9 +40,12 @@ struct Smooth:
   e = 0.0
   xp = 0.0
 
-  def step(self, x: f32, pole: f32):
-    self.e = pole * ((self.xp - x) + self.e)
+  def prepare(self, x):
+    self.e = (self.xp - x) + self.e
     self.xp = x
+
+  def step(self, pole):
+    self.e *= pole
     return self.e
 
 init:
@@ -57,58 +58,67 @@ init:
   sdmp = Smooth()
   sdw = Smooth()
   sg = Smooth()
-  pf1 = 0.0                            # bandwidth filter output, one and two samples ago
+  pf1 = 0.0  # bandwidth filter output, one and two samples ago
   pf2 = 0.0
-  ap142 = dt<143>::Ring()              # input diffusion allpasses
+  ap142 = dt<143>::Ring()  # input diffusion allpasses
   ap107 = dt<108>::Ring()
   ap379 = dt<380>::Ring()
   ap277 = dt<278>::Ring()
-  ap672 = dt<673>::Ring()              # tank, block 0
+  ap672 = dt<673>::Ring()  # tank, block 0
   dl4453 = dt<4453>::Ring()
   ap1800 = dt<1801>::Ring()
   dl1800 = dt<1800>::Ring()
-  ap908 = dt<909>::Ring()              # tank, block 1
+  ap908 = dt<909>::Ring()  # tank, block 1
   dl4217 = dt<4217>::Ring()
   ap2656 = dt<2657>::Ring()
   dl2656 = dt<2656>::Ring()
-  lp0 = 0.0                            # damping lowpasses
+  lp0 = 0.0  # damping lowpasses
   lp1 = 0.0
-  o1p = 0.0                            # tank outputs of the previous sample
+  o1p = 0.0  # tank outputs of the previous sample
   o2p = 0.0
-  c = 1.0 - 44.1 / SR                  # si.smoo pole
+  c = 1.0 - 44.1 / SR  # si.smoo pole
 
 block:
   dwp1 = drywet + 1.0
   omdmp = 1.0 - damping
   ombw = 1.0 - prefilter
   gl = pow(10.0, 0.05 * level)
+  sdw.prepare(drywet)
+  sdd1.prepare(fbDiffusion1)
+  sdmp.prepare(damping)
+  sdec.prepare(decay)
+  sdd2.prepare(fbDiffusion2)
+  sid2.prepare(inDiffusion2)
+  sbw.prepare(prefilter)
+  sid1.prepare(inDiffusion1)
+  sg.prepare(gl)
   sample:
     x0 = in1
-    dw = dwp1 + sdw.step(drywet, c)
+    dw = dwp1 + sdw.step(c)
     dry = 1.0 - 0.5 * dw
-    dd1 = fbDiffusion1 + sdd1.step(fbDiffusion1, c)
+    dd1 = fbDiffusion1 + sdd1.step(c)
     # tank block 1: allpass(908, -dd1), delay 4217, damping, allpass(2656, dd2), delay 2656
     r1 = ap908.get()
     w1 = r1 * dd1 + o2p
     ap908.put(w1)
-    edmp = sdmp.step(damping, c)
+    edmp = sdmp.step(c)
     dmp = damping + edmp
     y4217 = dl4217.tick(r1 + -(dd1 * w1))
     omd = omdmp - edmp
     lp1 = lp1 * dmp + y4217 * omd
-    dec = decay + sdec.step(decay, c)
-    dd2 = fbDiffusion2 + sdd2.step(fbDiffusion2, c)
+    dec = decay + sdec.step(c)
+    dd2 = fbDiffusion2 + sdd2.step(c)
     r4 = ap2656.get()
     w4 = lp1 * dec - r4 * dd2
     ap2656.put(w4)
-    id2 = inDiffusion2 + sid2.step(inDiffusion2, c)
+    id2 = inDiffusion2 + sid2.step(c)
     # input: bandwidth filter, then 4 diffusion allpasses
-    ebw = sbw.step(prefilter, c)
+    ebw = sbw.step(c)
     x1 = in2
     pf = pf2 * (ombw - ebw) + 0.5 * (x0 + x1) * (prefilter + ebw)
     pf2 = pf1
     pf1 = pf
-    id1 = inDiffusion1 + sid1.step(inDiffusion1, c)
+    id1 = inDiffusion1 + sid1.step(c)
     r20 = ap142.get()
     t13 = pf - id1 * r20
     ap142.put(t13)
@@ -135,7 +145,7 @@ block:
     ap1800.put(w10)
     y1800 = dl1800.tick(r10 + dd2 * w10)
     o2 = r24 + t17 + dec * y1800
-    g = gl + sg.step(gl, c)
+    g = gl + sg.step(c)
     out1 = (x0 * dry + 0.5 * dw * o1) * g
     out2 = g * (x1 * dry + 0.5 * dw * o2)
     o1p = o1

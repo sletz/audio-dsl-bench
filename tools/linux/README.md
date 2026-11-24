@@ -97,16 +97,17 @@ python3 tools/linux/summarize.py build/linux-run/results.tsv
 ```
 
 The harness runs interleaved rounds at 48 kHz with 256-frame blocks. Onda uses the raw
-processor ABI with both block-boundary flags.
+processor ABI with both block-boundary flags. The runner automatically measures
+`dsp/NAME_explicit_loops.onda` when present, using `onda-block` and `onda-block-fm`.
 Every engine has the same x86 denormal setting for the run. `--flush-denormals` enables
 FTZ/DAZ and the default preserves denormals.
 
 The harness first renders four seconds with each engine's default parameters. The TSV
 reports the maximum absolute difference and relative RMS difference against strict scalar
 Faust C++, whether the output is finite, and the RMS of the reference. As in the macOS
-report, these diagnostics do not filter the timing summary. The summary compares the fastest
-engine in each language family against the fastest Faust engine in the same math mode. Each
-cell shows the geometric mean speedup and win count for workloads with timings on both sides.
+report, these diagnostics do not filter the timing summary. Each comparison uses the fastest
+Faust engine in the same math mode. The chart shows both Onda versions where measured.
+The geometric mean and win count use the faster Onda version per workload and math mode.
 Check each workload's `build.log` and `run.log` for compiler or JIT diagnostics.
 
 The Linux and macOS figures are not directly comparable. On Linux, the best Faust build is
@@ -119,3 +120,12 @@ Append workload names to run a subset. `--ir NAME` writes Onda MIR and optimized
 IR, LLVM IR from Clang for the C++ translation units, and IR from the timed Faust LLVM
 factories. `--llvm-no-fast` requests a separate Faust LLVM diagnostic and labels its
 rows `-no-fm`.
+
+## Regenerate the Linux README chart
+
+```bash
+python3 report/readme_chart.py . --linux-results results/linux-x86_64/results.tsv \
+  --machine "Intel Core i9-14900HX" --flush-denormals
+```
+
+Use `--flush-denormals` for timings recorded with FTZ/DAZ enabled.

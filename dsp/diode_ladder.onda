@@ -4,40 +4,102 @@
 # then four one-pole stages with the zero-delay feedback solved through the coefficients G, B,
 # SG, gamma. The equations are those of vaeffects.lib; g = tan(2 pi 10^(3 normFreq + 1) / SR)
 # is (2 / T) tan(wd T / 2) T / 2 as faust simplifies it. The input is not read.
-outs 2
 
 params:
   Q = 1.0 {0.7072, 25.0}
   freq = 0.1 {0.0, 1.0}
 
+struct Coefficients:
+  SG1
+  SG3
+  d1
+  d2
+  B1
+  B2
+  B3
+  B4
+  k
+  alpha0
+  G2
+  G3
+  G4
+  gam1
+  gam2
+  gam3
+  alpha
+
+def coefficients(nf, c1, qk) -> Coefficients:
+  g = tan(c1 * pow(10.0, 1.0 + 3.0 * nf))
+  k = (17.0 - pow(nf, 10.0) * 9.7) * qk
+  G4 = 0.5 * g / (1.0 + g)
+  G3 = 0.5 * g / (1.0 + g - 0.5 * g * G4)
+  G2 = 0.5 * g / (1.0 + g - 0.5 * g * G3)
+  G1 = g / (1.0 + g - g * G2)
+  Gamma = G1 * G2 * G3 * G4
+  SG1 = G4 * G3 * G2
+  SG3 = G4
+  alpha = g / (1.0 + g)
+  alpha0 = 1.0 / (1.0 + k * Gamma)
+  gam1 = 1.0 + G1 * G2
+  gam2 = 1.0 + G2 * G3
+  gam3 = 1.0 + G3 * G4
+  B1 = 1.0 / (1.0 + g - g * G2)
+  B2 = 1.0 / (1.0 + g - 0.5 * g * G3)
+  B3 = 1.0 / (1.0 + g - 0.5 * g * G4)
+  B4 = 1.0 / (1.0 + g)
+  d1 = g
+  d2 = 0.5 * g
+  return Coefficients(
+    SG1,
+    SG3,
+    d1,
+    d2,
+    B1,
+    B2,
+    B3,
+    B4,
+    k,
+    alpha0,
+    G2,
+    G3,
+    G4,
+    gam1,
+    gam2,
+    gam3,
+    alpha
+  )
+
 init:
   c1 = TWO_PI / SR
-  sp = 1.0 - 44.1 / SR                 # si.smoo pole
-  t0 = 100.0 / SR                      # saw2ptr phase increment
-  p0 = 0.01 * SR                       # saw2ptr period in samples (SR / 100)
-  cm = -1.0 - t0                       # 2 p - 1 - t0
-  xc = 1073741824.0 * (t0 - floor(t0))  # increment in counts, whole and fraction
+  sp = 1.0 - 44.1 / SR  # si.smoo pole
+  t0 = 100.0 / SR  # saw2ptr phase increment
+  p0 = 0.01 * SR  # saw2ptr period in samples (SR / 100)
+  cm = -1.0 - t0  # 2 p - 1 - t0
+  xc = f32(1 << 30) * (t0 - floor(t0))  # increment in counts, whole and fraction
   xfl = floor(xc)
   xi = i32(xfl)
   xs = i32(16777216.0 * (xc - xfl))
-  ph: i32 = 0                          # phase counts and fraction
+  ph: i32 = 0  # phase counts and fraction
   phs: i32 = 0
-  nE = 0.0                             # si.smoo of normFreq (error, previous input)
+  nE = 0.0  # si.smoo of normFreq (error, previous input)
   nXp = 0.0
-  s1 = 0.0                             # the four stage states
+  s1 = 0.0  # the four stage states
   s2 = 0.0
   s3 = 0.0
   s4 = 0.0
 
 block:
   qk = (Q - 0.70710677) / (25.0 - 0.70710677)
+  # Once the smoothed cutoff rounds to the target, its value stays constant.
+  settled = sp >= 0.0 && nXp == freq && freq + nE == freq
+  fixed = coefficients(freq, c1, qk)
   sample:
     # os.sawtooth(100)
     t = phs + xs
     phs = t & 16777215
     q = ph + xi + (t >> 24)
     ph = q & 1073741823
-    phi = f32(ph) * 0.0000000009313226
+    phi = f32(ph) * pow(2.0, -30.0)
     p = phi
     if q > 1073741823:
       p = phi * (1.0 - p0) + 1.0
@@ -48,49 +110,31 @@ block:
     nE = sp * ((nXp - freq) + nE)
     nXp = freq
     nf = freq + nE
-    g = tan(c1 * pow(10.0, 1.0 + 3.0 * nf))
-    k = (17.0 - pow(nf, 10.0) * 9.7) * qk
-    G4 = 0.5 * g / (1.0 + g)
-    G3 = 0.5 * g / (1.0 + g - 0.5 * g * G4)
-    G2 = 0.5 * g / (1.0 + g - 0.5 * g * G3)
-    G1 = g / (1.0 + g - g * G2)
-    Gamma = G1 * G2 * G3 * G4
-    SG1 = G4 * G3 * G2
-    SG3 = G4
-    alpha = g / (1.0 + g)
-    alpha0 = 1.0 / (1.0 + k * Gamma)
-    gam1 = 1.0 + G1 * G2
-    gam2 = 1.0 + G2 * G3
-    gam3 = 1.0 + G3 * G4
-    B1 = 1.0 / (1.0 + g - g * G2)
-    B2 = 1.0 / (1.0 + g - 0.5 * g * G3)
-    B3 = 1.0 / (1.0 + g - 0.5 * g * G4)
-    B4 = 1.0 / (1.0 + g)
-    d1 = g
-    d2 = 0.5 * g
-    d3 = 0.5 * g
+    coefs: Coefficients = fixed
+    if !settled:
+      coefs = coefficients(nf, c1, qk)
     # feedback sums S4 .. S1 of the previous states
-    S4 = s4 * B4
-    S3 = (S4 * d3 + s3) * B3
-    S2 = (S3 * d2 + s2) * B2
-    S1 = (S2 * d1 + s1) * B1
-    # (the library uses SG3 for the S2 term, kept as is)
-    u = x - S4 * k - S3 * SG3 * k - S2 * SG3 * k - S1 * SG1 * k
-    v1 = u * alpha0 * gam1 + S2 + S1 * G2
+    S4 = s4 * coefs.B4
+    S3 = (S4 * coefs.d2 + s3) * coefs.B3
+    S2 = (S3 * coefs.d2 + s2) * coefs.B2
+    S1 = (S2 * coefs.d1 + s1) * coefs.B1
+    # (the library uses coefs.SG3 for the S2 term, kept as is)
+    u = x - S4 * coefs.k - S3 * coefs.SG3 * coefs.k - S2 * coefs.SG3 * coefs.k - S1 * coefs.SG1 * coefs.k
+    v1 = u * coefs.alpha0 * coefs.gam1 + S2 + S1 * coefs.G2
     e1 = v1 - s1
-    lp1 = e1 * alpha + s1
-    v2 = (lp1 * gam2 + S3 + S2 * G3) * 0.5
+    lp1 = e1 * coefs.alpha + s1
+    v2 = (lp1 * coefs.gam2 + S3 + S2 * coefs.G3) * 0.5
     e2 = v2 - s2
-    lp2 = e2 * alpha + s2
-    v3 = (lp2 * gam3 + S4 + S3 * G4) * 0.5
+    lp2 = e2 * coefs.alpha + s2
+    v3 = (lp2 * coefs.gam3 + S4 + S3 * coefs.G4) * 0.5
     e3 = v3 - s3
-    lp3 = e3 * alpha + s3
+    lp3 = e3 * coefs.alpha + s3
     v4 = lp3 * 0.5
     e4 = v4 - s4
-    y = e4 * alpha + s4
-    s1 = e1 * alpha * 2.0 + s1
-    s2 = e2 * alpha * 2.0 + s2
-    s3 = e3 * alpha * 2.0 + s3
-    s4 = e4 * alpha * 2.0 + s4
+    y = e4 * coefs.alpha + s4
+    s1 = e1 * coefs.alpha * 2.0 + s1
+    s2 = e2 * coefs.alpha * 2.0 + s2
+    s3 = e3 * coefs.alpha * 2.0 + s3
+    s4 = e4 * coefs.alpha * 2.0 + s4
     out1 = y
     out2 = y

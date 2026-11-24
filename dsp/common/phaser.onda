@@ -1,0 +1,32 @@
+const PhaseToRadians = TWO_PI * pow(2.0, -24.0)
+
+# hyperbolic sine (no builtin): Taylor series to x^9 below 0.5, where (e^x - e^-x)/2 cancels
+def sinh1(x):
+  if abs(x) < 0.5:
+    x2 = x * x
+    tail = 1.0 / 362880.0
+    tail = 1.0 / 5040.0 + x2 * tail
+    tail = 1.0 / 120.0 + x2 * tail
+    tail = 1.0 / 6.0 + x2 * tail
+    return x * (1.0 + x2 * tail)
+  return 0.5 * (exp(x) - exp(-x))
+
+# The angular terms are independent of the audio feedback.
+def coefficients(h, om2q, omc, kq) -> f32[3]:
+  sine = sin(h)
+  sin_sq = sine * sine
+  sq = om2q + omc * (1.0 - sin_sq)
+  pq = om2q + omc * sin_sq
+  g = sqrt(pq / sq)
+  return [4.0 * pq - kq, sq * g, 2.0 * g]
+
+struct Ap2:
+  s1 = 0.0
+  s2 = 0.0
+
+  def tick(self, x, coeff: f32[3], uq):
+    t = 0.25 * (coeff[0] * self.s1 + uq * x) + coeff[1] * self.s2
+    bp = self.s1 - t
+    self.s1 -= 2.0 * t
+    self.s2 += coeff[2] * bp
+    return bp

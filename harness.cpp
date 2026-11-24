@@ -31,10 +31,6 @@
 #ifdef CMAJ_SRC
 #include "cmaj_jit.h"
 #endif
-#ifndef BENCH_GENERATED_ENGINES
-#include "onda_meta.h"
-#endif
-
 static_assert(ONDA_PROCESSOR_ABI_VERSION == 7, "benchmark requires Onda processor ABI 7");
 
 static const int BS = 256;  // also given to the Cmajor C++ generator (build.sh)
@@ -42,8 +38,6 @@ static const int SR = 48000;
 static const int NCH = 16;  // input and output channels provided to every engine
 
 #ifndef BENCH_GENERATED_ENGINES
-extern "C" decltype(onda_processor_init) onda_init_strict, onda_init_fast;
-extern "C" decltype(onda_process) onda_process_strict, onda_process_fast;
 dsp* make_faust_scal_strict();
 dsp* make_faust_scal_fast();
 dsp* make_faust_vec_strict();
@@ -138,6 +132,8 @@ struct FaustEngine : Engine {
 
 #ifdef BENCH_GENERATED_ENGINES
 #include "engines.inc"
+#else
+#include "onda_engines.inc"
 #endif
 
 void OndaEngine::compute(InputPorts& in, OutputPorts& out) {
@@ -195,12 +191,7 @@ int main(int argc, char** argv) {
 #ifdef BENCH_GENERATED_ENGINES
     add_engines(engines, add_faust);
 #else
-    unsigned char defaults[std::max(1, ONDA_PARAM_SIZE)] = {};
-    onda_write_defaults(defaults);
-    engines.emplace_back(new OndaEngine("onda", onda_init_strict, onda_process_strict,
-        ONDA_STATE_SIZE, ONDA_STATE_ALIGN, ONDA_PARAM_ALIGN, defaults, ONDA_PARAM_SIZE));
-    engines.emplace_back(new OndaEngine("onda-fm", onda_init_fast, onda_process_fast,
-        ONDA_STATE_SIZE, ONDA_STATE_ALIGN, ONDA_PARAM_ALIGN, defaults, ONDA_PARAM_SIZE));
+    add_onda_engines(engines);
     add_faust("cpp-scal", make_faust_scal_strict());
     add_faust("cpp-scal-fm", make_faust_scal_fast());
     add_faust("cpp-vec", make_faust_vec_strict());

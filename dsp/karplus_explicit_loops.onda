@@ -1,0 +1,141 @@
+# pm.ks_ui_MIDI of Faust's physmodels.lib (examples/physicalModeling/karplus.dsp) ported to Onda,
+# gate held at 1 like karplus.dsp: the string is plucked once, at the first sample. Karplus-Strong
+# string: impulse excitation (ba.impulsify of the gate) injected into both directions of a
+# waveguide made of two fractional delay lines read by 4th-order Lagrange interpolation
+# (de.fdelay4), closed by a rigid termination on one side and by the averaging reflection filter
+# (pm.ksReflexionFilter) scaled by the damping on the other.
+
+params:
+  freq = 440.0 {50.0, 1000.0}
+  bend = 0.0 {-2.0, 2.0}
+  gain = 0.8 {0.0, 1.0}
+  sustain = 0.0 {0.0, 1.0}
+  damping = 0.01 {0.0, 1.0}
+  gate = 1.0 {0.0, 1.0}
+
+# si.smooth (error form): y = x + e, e = pole * (e + x[n-1] - x)
+struct Smooth:
+  e = 0.0
+  xp = 0.0
+
+  def tick(self, x, pole):
+    self.e = pole * (self.e + (self.xp - x))
+    self.xp = x
+    return x + self.e
+
+init:
+  bendSmooth = Smooth()
+  dampSmooth = Smooth()
+  gatePrev = 0.0
+  toEnd: f32[2048]  # wave going to the reflection filter
+  toStart: f32[2048]  # wave coming back from it
+  w = 0 {2048, wrap}  # write position of both lines
+  r2 = 0.0  # toEnd output, one sample late
+  r3a = 0.0  # excitation + r2, one and two samples late
+  r3b = 0.0
+  r4a = 0.0  # toStart output, one and two samples late
+  r4b = 0.0
+  c1 = (1.0 / 680.0) * SR  # SR / (2 * pm.speedOfSound): half of pm.l2s
+  c2 = 2210.0 / SR  # 6.5 samples of loop delay, in meters
+  c4 = 0.00882353 * SR + 4.0  # the de.fdelay4 bound: l2s(pm.maxLength) + 4
+  smoo = 1.0 - 44.1 / SR  # si.smoo
+  nmax = i32(c4)  # the integer taps clamped by c4
+
+block:
+  len = 340.0 / freq  # pm.f2l
+  ratio = pow(2.0, (1.0 / 12.0) * bend)
+  gt = min(1.0, gate + sustain)
+  delays: f32[BS]
+  excitation: f32[BS]
+  for i in 0..BS:
+    hold = 0.0
+    if gt == gatePrev || gt == 0.0:
+      hold = 0.999
+    bendRatio = bendSmooth.tick(ratio, hold)
+    # delay of each line, de.fdelay4 fractional part and Lagrange products
+    delays[i] = c1 * (len / bendRatio - c2)
+    # excitation: pm.impulseExcitation(gate) * gain
+    dg = gt - gatePrev
+    gatePrev = gt
+    exc = 0.0
+    if dg > 0.0:
+      exc = gain * dg
+    excitation[i] = exc
+  # The Lagrange coefficients depend on pitch, independently of the delay contents.
+  by_k0: i32[BS]
+  weight0: f32[BS]
+  by_k1: i32[BS]
+  weight1: f32[BS]
+  by_k2: i32[BS]
+  weight2: f32[BS]
+  by_k3: i32[BS]
+  weight3: f32[BS]
+  by_k4: i32[BS]
+  weight4: f32[BS]
+  for i in 0..BS:
+    d = delays[i]
+    dmo = d - 1.499995
+    fl = floor(dmo)
+    t3 = d - fl
+    t4 = -1.0 - fl + d
+    t5 = t3 * t4
+    t6 = -2.0 - fl + d
+    t7 = t5 * t6
+    t8 = -3.0 - fl + d
+    t9 = t7 * t8
+    t13 = -4.0 - fl + d
+    id = i32(min(c4, max(-4.0, dmo)))
+    k0 = 1 + min(nmax, max(0, id))
+    k1 = 1 + min(nmax, max(0, id + 1))
+    k2 = 1 + min(nmax, max(0, id + 2))
+    k3 = 1 + min(nmax, max(0, id + 3))
+    k4 = 1 + min(nmax, max(0, id + 4))
+    by_k0[i] = k0
+    by_k1[i] = k1
+    by_k2[i] = k2
+    by_k3[i] = k3
+    by_k4[i] = k4
+    weight0[i] = (1.0 / 24.0) * t4 * t6 * t8 * t13
+    weight1[i] = -(1.0 / 6.0) * t3 * t6 * t8 * t13
+    weight2[i] = 0.25 * t5 * t8 * t13
+    weight3[i] = -(1.0 / 6.0) * t7 * t13
+    weight4[i] = (1.0 / 24.0) * t9
+
+  frame = 0 {BS, wrap}
+  sample:
+    w += 1
+    exc = excitation[frame]
+    k0 = by_k0[frame]
+    k1 = by_k1[frame]
+    k2 = by_k2[frame]
+    k3 = by_k3[frame]
+    k4 = by_k4[frame]
+    # reflection: pm.ksReflexionFilter * ((1 - damping) * 0.2 + 0.8)
+    dampSmooth.tick(damping, smoo)
+    t12 = 0.5 * (r4a + r4b) * (0.8 + 0.2 * ((1.0 - damping) - dampSmooth.e))
+    toEnd[w] = t12
+    x0 = toEnd[(w - k0) & 2047]
+    x1 = toEnd[(w - k1) & 2047]
+    x2 = toEnd[(w - k2) & 2047]
+    x3 = toEnd[(w - k3) & 2047]
+    x4 = toEnd[(w - k4) & 2047]
+    r2n = x0 * weight0[frame] + x1 * weight1[frame] + x2 * weight2[frame] + x3 * weight3[frame] + x4 * weight4[frame]
+    # rigid termination: the excitation enters both directions
+    r3n = exc + r2
+    toStart[w] = exc + r3b
+    y0 = toStart[(w - k0) & 2047]
+    y1 = toStart[(w - k1) & 2047]
+    y2 = toStart[(w - k2) & 2047]
+    y3 = toStart[(w - k3) & 2047]
+    y4 = toStart[(w - k4) & 2047]
+    t21 = y0 * weight0[frame] + y1 * weight1[frame] + y2 * weight2[frame] + y3 * weight3[frame]
+    t22 = y4 * weight4[frame]
+    out = t22 + t12 + t21
+    out1 = out
+    out2 = out
+    r2 = r2n
+    r3b = r3a
+    r3a = r3n
+    r4b = r4a
+    r4a = t21 + t22
+    frame += 1

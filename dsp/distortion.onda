@@ -1,30 +1,37 @@
 # dm.cubicnl_demo (ef.cubicnl_nodc with si.smoo on drive and offset) ported to Onda, without the
 # bypass, like distortion.dsp: pregain 10^(2*drive), offset, clip to [-1, 1], cubic soft clipper
 # x - x^3/3, then fi.dcblocker. Operations in the order of Faust's generated C++.
-ins 1
+
+include "common/float_limits.onda"
 
 params:
   drive = 0.0 {0.0, 1.0}
   offset = 0.0 {0.0, 1.0}
 
 init:
-  drivePrev = 0.0                      # si.smoo on drive: input, previous sample ...
-  driveErr = 0.0                       # ... and error state (si.smooth, error form)
-  offsetPrev = 0.0                     # si.smoo on offset
+  drivePrev = 0.0  # si.smoo on drive: input, previous sample ...
+  driveErr = 0.0  # ... and error state (si.smooth, error form)
+  offsetPrev = 0.0  # si.smoo on offset
   offsetErr = 0.0
-  xPrev = 0.0                          # fi.dcblocker: input, previous sample ...
-  y = 0.0                              # ... and output
+  xPrev = 0.0  # fi.dcblocker: input, previous sample ...
+  y = 0.0  # ... and output
 
 block:
-  pSmoo = 1.0 - 44.1 / SR              # si.smoo pole
-  pDc = pow(0.995, 44100.0 / SR)       # fi.dcblocker pole
+  pSmoo = 1.0 - 44.1 / SR  # si.smoo pole
+  pDc = pow(0.995, 44100.0 / SR)  # fi.dcblocker pole
+  # Advance the smoother even when its result already rounds to the target.
+  settled = pSmoo >= 0.0 && drivePrev == drive && drive + driveErr == drive
+  fixed_gain = pow(10.0, 2.0 * drive)
   sample:
     # si.smooth: y = x + e, e = pole * (e + x[n-1] - x); min(ma.MAX) is Faust's no-op
-    driveErr = pSmoo * (min(340282346638528859811704183484516925440.0, drivePrev - drive) + driveErr)
+    driveErr = pSmoo * (min(float_limits::MaxFinite, drivePrev - drive) + driveErr)
     drivePrev = drive
-    offsetErr = pSmoo * (min(340282346638528859811704183484516925440.0, offsetPrev - offset) + offsetErr)
+    offsetErr = pSmoo * (min(float_limits::MaxFinite, offsetPrev - offset) + offsetErr)
     offsetPrev = offset
-    x = max(-1.0, min(1.0, offset + in1 * pow(10.0, 2.0 * (drive + driveErr)) + offsetErr))
+    gain = fixed_gain
+    if !settled:
+      gain = pow(10.0, 2.0 * (drive + driveErr))
+    x = max(-1.0, min(1.0, offset + in1 * gain + offsetErr))
     c = x * (1.0 - 0.33333334 * (x * x))
     y = pDc * y + c - xPrev
     xPrev = c

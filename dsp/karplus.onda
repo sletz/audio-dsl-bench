@@ -4,7 +4,6 @@
 # waveguide made of two fractional delay lines read by 4th-order Lagrange interpolation
 # (de.fdelay4), closed by a rigid termination on one side and by the averaging reflection filter
 # (pm.ksReflexionFilter) scaled by the damping on the other.
-outs 2
 
 params:
   freq = 440.0 {50.0, 1000.0}
@@ -19,7 +18,7 @@ struct Smooth:
   e = 0.0
   xp = 0.0
 
-  def tick(self, x: f32, pole: f32):
+  def tick(self, x, pole):
     self.e = pole * (self.e + (self.xp - x))
     self.xp = x
     return x + self.e
@@ -28,23 +27,23 @@ init:
   bendSmooth = Smooth()
   dampSmooth = Smooth()
   gatePrev = 0.0
-  toEnd: f32[2048]                     # wave going to the reflection filter
-  toStart: f32[2048]                   # wave coming back from it
-  w = 0 {2048, wrap}                   # write position of both lines
-  r2 = 0.0                             # toEnd output, one sample late
-  r3a = 0.0                            # excitation + r2, one and two samples late
+  toEnd: f32[2048]  # wave going to the reflection filter
+  toStart: f32[2048]  # wave coming back from it
+  w = 0 {2048, wrap}  # write position of both lines
+  r2 = 0.0  # toEnd output, one sample late
+  r3a = 0.0  # excitation + r2, one and two samples late
   r3b = 0.0
-  r4a = 0.0                            # toStart output, one and two samples late
+  r4a = 0.0  # toStart output, one and two samples late
   r4b = 0.0
-  c1 = 0.0014705883 * SR               # SR / (2 * pm.speedOfSound): half of pm.l2s
-  c2 = 2210.0 / SR                     # 6.5 samples of loop delay, in meters
-  c4 = 0.00882353 * SR + 4.0           # the de.fdelay4 bound: l2s(pm.maxLength) + 4
-  smoo = 1.0 - 44.1 / SR               # si.smoo
-  nmax = i32(c4)                       # the integer taps clamped by c4
+  c1 = (1.0 / 680.0) * SR  # SR / (2 * pm.speedOfSound): half of pm.l2s
+  c2 = 2210.0 / SR  # 6.5 samples of loop delay, in meters
+  c4 = 0.00882353 * SR + 4.0  # the de.fdelay4 bound: l2s(pm.maxLength) + 4
+  smoo = 1.0 - 44.1 / SR  # si.smoo
+  nmax = i32(c4)  # the integer taps clamped by c4
 
 block:
-  len = 340.0 / freq                   # pm.f2l
-  ratio = pow(2.0, 0.083333336 * bend)
+  len = 340.0 / freq  # pm.f2l
+  ratio = pow(2.0, (1.0 / 12.0) * bend)
   gt = min(1.0, gate + sustain)
   sample:
     w += 1
@@ -86,7 +85,7 @@ block:
     x2 = toEnd[(w - k2) & 2047]
     x3 = toEnd[(w - k3) & 2047]
     x4 = toEnd[(w - k4) & 2047]
-    r2n = t13 * (t8 * (t6 * (0.041666668 * x0 * t4 - 0.16666667 * t3 * x1) + 0.25 * t5 * x2) - 0.16666667 * t7 * x3) + 0.041666668 * t9 * x4
+    r2n = t13 * (t8 * (t6 * ((1.0 / 24.0) * x0 * t4 - (1.0 / 6.0) * t3 * x1) + 0.25 * t5 * x2) - (1.0 / 6.0) * t7 * x3) + (1.0 / 24.0) * t9 * x4
     # rigid termination: the excitation enters both directions
     r3n = exc + r2
     toStart[w] = exc + r3b
@@ -95,8 +94,8 @@ block:
     y2 = toStart[(w - k2) & 2047]
     y3 = toStart[(w - k3) & 2047]
     y4 = toStart[(w - k4) & 2047]
-    t21 = t13 * (t8 * (t6 * (0.041666668 * t4 * y0 - 0.16666667 * t3 * y1) + 0.25 * t5 * y2) - 0.16666667 * t7 * y3)
-    t22 = 0.041666668 * t9 * y4
+    t21 = t13 * (t8 * (t6 * ((1.0 / 24.0) * t4 * y0 - (1.0 / 6.0) * t3 * y1) + 0.25 * t5 * y2) - (1.0 / 6.0) * t7 * y3)
+    t22 = (1.0 / 24.0) * t9 * y4
     out = t22 + t12 + t21
     out1 = out
     out2 = out

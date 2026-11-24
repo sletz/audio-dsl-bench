@@ -4,8 +4,6 @@
 # delay follows a recursive quadrature LFO (fi.nlf2 driven by an impulse: os.oscrs on the left,
 # os.oscrc on the right); the output is half the sum of the input and the delayed signal one
 # sample late. The delay is written as the Faust compiler simplifies it.
-ins 2
-outs 2
 
 params:
   flangeDelay = 10.0 {0.0, 20.0}
@@ -19,28 +17,30 @@ params:
 # linearly interpolated between the taps int(d) and int(d) + 1.
 struct Line:
   buf: f32[16384]
-  w = 0 {16384, wrap}
 
-  def tick(self, x: f32, d: f32):
-    self.buf[self.w] = x
-    id = i32(min(8193.0, max(-1.0, d)))
+  def tick(self, cursor: i32, x, d):
+    self.buf[cursor] = x
+    id = i32(min(8193.0, d))
     fl = floor(d)
-    y = self.buf[(self.w - min(8193, max(0, id))) & 16383] * (1.0 - d + fl) + (d - fl) * self.buf[(self.w - min(8193, max(0, id + 1))) & 16383]
-    self.w += 1
+    y = self.buf[(cursor - id) & 16383] * (1.0 - d + fl) + (d - fl) * self.buf[(cursor - min(
+          8193,
+          id + 1
+      )) & 16383]
     return y
 
 init:
+  cursor = 0 {16384, wrap}
   lineL = Line()
   lineR = Line()
-  oscS = 0.0                           # fi.nlf2 states: sine (os.oscrs) ...
-  oscC = 0.0                           # ... and cosine (os.oscrc)
-  imp = 1.0                            # impulse driving fi.nlf2 (1 - 1')
-  yl = 0.0                             # delay line outputs, previous sample
+  oscS = 0.0  # fi.nlf2 states: sine (os.oscrs) ...
+  oscC = 0.0  # ... and cosine (os.oscrc)
+  imp = 1.0  # impulse driving fi.nlf2 (1 - 1')
+  yl = 0.0  # delay line outputs, previous sample
   yr = 0.0
 
 block:
-  lvl = pow(10.0, 0.05 * level)        # ba.db2linear
-  off = 0.001 * delayOffset            # delay in seconds: off + half * (1 + lfo)
+  lvl = pow(10.0, 0.05 * level)  # ba.db2linear
+  off = 0.001 * delayOffset  # delay in seconds: off + half * (1 + lfo)
   half = 0.0005 * flangeDelay
   w = TWO_PI / SR * speed
   sw = sin(w)
@@ -53,13 +53,14 @@ block:
     imp = 0.0
     # left channel
     xl = lvl * in1
-    dl = max(0.0, -1.0 + SR * (off + half * (1.0 + s)))   # de.fdelay(dmax, curdel - 1)
-    nl = lineL.tick(xl + fb * yl, dl)
+    dl = max(0.0, -1.0 + SR * (off + half * (1.0 + s)))  # de.fdelay(dmax, curdel - 1)
+    nl = lineL.tick(cursor, xl + fb * yl, dl)
     out1 = 0.5 * (xl + depth * yl)
     yl = nl
     # right channel
     xr = lvl * in2
     dr = max(0.0, -1.0 + SR * (off + half * (1.0 + c)))
-    nr = lineR.tick(xr + fb * yr, dr)
+    nr = lineR.tick(cursor, xr + fb * yr, dr)
     out2 = 0.5 * (xr + depth * yr)
     yr = nr
+    cursor += 1

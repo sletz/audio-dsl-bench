@@ -1,0 +1,124 @@
+include "common/tapiir.onda"
+
+# Read a logical block from the past as one or two contiguous spans.
+def read_block(history: f32[Capacity], start: i32, previous, delayed: f32[BS + 1]):
+  delayed[0] = previous
+  count = min(BS, Capacity - start)
+  for frame in 0..count:
+    # The first span ends at the end of the ring.
+    delayed[frame + 1] = read_unsafe(history, start + frame)
+  for frame in count..BS:
+    delayed[frame + 1] = history[frame - count]
+
+block:
+  k0 = i32(min(f32(Mask), max(0.0, SR * t0_delay)))
+  k1 = i32(min(f32(Mask), max(0.0, SR * t1_delay)))
+  k2 = i32(min(f32(Mask), max(0.0, SR * t2_delay)))
+  k3 = i32(min(f32(Mask), max(0.0, SR * t3_delay)))
+  k4 = i32(min(f32(Mask), max(0.0, SR * t4_delay)))
+  k5 = i32(min(f32(Mask), max(0.0, SR * t5_delay)))
+  # A long tap cannot observe a write from this block.
+  bulk = k0 >= BS && k1 >= BS && k2 >= BS && k3 >= BS && k4 >= BS && k5 >= BS
+  input_left: f32[BS]
+  input_right: f32[BS]
+  delayed0: f32[BS + 1]
+  delayed1: f32[BS + 1]
+  delayed2: f32[BS + 1]
+  delayed3: f32[BS + 1]
+  delayed4: f32[BS + 1]
+  delayed5: f32[BS + 1]
+  delayed_out0: f32[BS]
+  delayed_out1: f32[BS]
+  if bulk:
+    read_block(b0, (w - k0) & Mask, y0, delayed0)
+    read_block(b1, (w - k1) & Mask, y1, delayed1)
+    read_block(b2, (w - k2) & Mask, y2, delayed2)
+    read_block(b3, (w - k3) & Mask, y3, delayed3)
+    read_block(b4, (w - k4) & Mask, y4, delayed4)
+    read_block(b5, (w - k5) & Mask, y5, delayed5)
+    for j in 0..BS:
+      delayed_out0[j] = (o0_tap0 * delayed0[j + 1] + o0_tap1 * delayed1[j + 1]) + (o0_tap2 * delayed2[j + 1] + o0_tap3 * delayed3[j + 1]) + (o0_tap4 * delayed4[j + 1] + o0_tap5 * delayed5[j + 1])
+      delayed_out1[j] = (o1_tap0 * delayed0[j + 1] + o1_tap1 * delayed1[j + 1]) + (o1_tap2 * delayed2[j + 1] + o1_tap3 * delayed3[j + 1]) + (o1_tap4 * delayed4[j + 1] + o1_tap5 * delayed5[j + 1])
+  frame = 0 {BS + 1, clamp}
+  sample:
+    if bulk:
+      x0 = in1
+      x1 = in2
+      input_left[frame] = x0
+      input_right[frame] = x1
+      out1 = o0_gain * (o0_in0 * x0 + o0_in1 * x1 + delayed_out0[frame])
+      out2 = o1_gain * (o1_in0 * x0 + o1_in1 * x1 + delayed_out1[frame])
+      frame += 1
+    else:
+      x0 = in1
+      x1 = in2
+      b0[w] = t0_gain * (t0_in0 * x0 + t0_in1 * x1 + t0_tap0 * y0 + t0_tap1 * y1 + t0_tap2 * y2 + t0_tap3 * y3 + t0_tap4 * y4 + t0_tap5 * y5)
+      n0 = b0[(w - k0) & Mask]
+      b1[w] = t1_gain * (t1_in0 * x0 + t1_in1 * x1 + t1_tap0 * y0 + t1_tap1 * y1 + t1_tap2 * y2 + t1_tap3 * y3 + t1_tap4 * y4 + t1_tap5 * y5)
+      n1 = b1[(w - k1) & Mask]
+      b2[w] = t2_gain * (t2_in0 * x0 + t2_in1 * x1 + t2_tap0 * y0 + t2_tap1 * y1 + t2_tap2 * y2 + t2_tap3 * y3 + t2_tap4 * y4 + t2_tap5 * y5)
+      n2 = b2[(w - k2) & Mask]
+      b3[w] = t3_gain * (t3_in0 * x0 + t3_in1 * x1 + t3_tap0 * y0 + t3_tap1 * y1 + t3_tap2 * y2 + t3_tap3 * y3 + t3_tap4 * y4 + t3_tap5 * y5)
+      n3 = b3[(w - k3) & Mask]
+      b4[w] = t4_gain * (t4_in0 * x0 + t4_in1 * x1 + t4_tap0 * y0 + t4_tap1 * y1 + t4_tap2 * y2 + t4_tap3 * y3 + t4_tap4 * y4 + t4_tap5 * y5)
+      n4 = b4[(w - k4) & Mask]
+      b5[w] = t5_gain * (t5_in0 * x0 + t5_in1 * x1 + t5_tap0 * y0 + t5_tap1 * y1 + t5_tap2 * y2 + t5_tap3 * y3 + t5_tap4 * y4 + t5_tap5 * y5)
+      n5 = b5[(w - k5) & Mask]
+      y0 = n0
+      y1 = n1
+      y2 = n2
+      y3 = n3
+      y4 = n4
+      y5 = n5
+      out1 = o0_gain * (o0_in0 * x0 + o0_in1 * x1 + o0_tap0 * y0 + o0_tap1 * y1 + o0_tap2 * y2 + o0_tap3 * y3 + o0_tap4 * y4 + o0_tap5 * y5)
+      out2 = o1_gain * (o1_in0 * x0 + o1_in1 * x1 + o1_tap0 * y0 + o1_tap1 * y1 + o1_tap2 * y2 + o1_tap3 * y3 + o1_tap4 * y4 + o1_tap5 * y5)
+      w += 1
+  if bulk:
+    # Commit only the frames collected by sample, including segmented calls.
+    # The first span ends at the ring boundary, which bounds every unchecked write.
+    count = min(frame, Capacity - w)
+    for j in 0..count:
+      write_unsafe(
+        b0,
+        w + j,
+        t0_gain * (((t0_in0 * input_left[j] + t0_in1 * input_right[j]) + (t0_tap0 * delayed0[j] + t0_tap1 * delayed1[j])) + ((t0_tap2 * delayed2[j] + t0_tap3 * delayed3[j]) + (t0_tap4 * delayed4[j] + t0_tap5 * delayed5[j])))
+      )
+      write_unsafe(
+        b1,
+        w + j,
+        t1_gain * (((t1_in0 * input_left[j] + t1_in1 * input_right[j]) + (t1_tap0 * delayed0[j] + t1_tap1 * delayed1[j])) + ((t1_tap2 * delayed2[j] + t1_tap3 * delayed3[j]) + (t1_tap4 * delayed4[j] + t1_tap5 * delayed5[j])))
+      )
+      write_unsafe(
+        b2,
+        w + j,
+        t2_gain * (((t2_in0 * input_left[j] + t2_in1 * input_right[j]) + (t2_tap0 * delayed0[j] + t2_tap1 * delayed1[j])) + ((t2_tap2 * delayed2[j] + t2_tap3 * delayed3[j]) + (t2_tap4 * delayed4[j] + t2_tap5 * delayed5[j])))
+      )
+      write_unsafe(
+        b3,
+        w + j,
+        t3_gain * (((t3_in0 * input_left[j] + t3_in1 * input_right[j]) + (t3_tap0 * delayed0[j] + t3_tap1 * delayed1[j])) + ((t3_tap2 * delayed2[j] + t3_tap3 * delayed3[j]) + (t3_tap4 * delayed4[j] + t3_tap5 * delayed5[j])))
+      )
+      write_unsafe(
+        b4,
+        w + j,
+        t4_gain * (((t4_in0 * input_left[j] + t4_in1 * input_right[j]) + (t4_tap0 * delayed0[j] + t4_tap1 * delayed1[j])) + ((t4_tap2 * delayed2[j] + t4_tap3 * delayed3[j]) + (t4_tap4 * delayed4[j] + t4_tap5 * delayed5[j])))
+      )
+      write_unsafe(
+        b5,
+        w + j,
+        t5_gain * (((t5_in0 * input_left[j] + t5_in1 * input_right[j]) + (t5_tap0 * delayed0[j] + t5_tap1 * delayed1[j])) + ((t5_tap2 * delayed2[j] + t5_tap3 * delayed3[j]) + (t5_tap4 * delayed4[j] + t5_tap5 * delayed5[j])))
+      )
+    for j in count..frame:
+      b0[j - count] = t0_gain * (((t0_in0 * input_left[j] + t0_in1 * input_right[j]) + (t0_tap0 * delayed0[j] + t0_tap1 * delayed1[j])) + ((t0_tap2 * delayed2[j] + t0_tap3 * delayed3[j]) + (t0_tap4 * delayed4[j] + t0_tap5 * delayed5[j])))
+      b1[j - count] = t1_gain * (((t1_in0 * input_left[j] + t1_in1 * input_right[j]) + (t1_tap0 * delayed0[j] + t1_tap1 * delayed1[j])) + ((t1_tap2 * delayed2[j] + t1_tap3 * delayed3[j]) + (t1_tap4 * delayed4[j] + t1_tap5 * delayed5[j])))
+      b2[j - count] = t2_gain * (((t2_in0 * input_left[j] + t2_in1 * input_right[j]) + (t2_tap0 * delayed0[j] + t2_tap1 * delayed1[j])) + ((t2_tap2 * delayed2[j] + t2_tap3 * delayed3[j]) + (t2_tap4 * delayed4[j] + t2_tap5 * delayed5[j])))
+      b3[j - count] = t3_gain * (((t3_in0 * input_left[j] + t3_in1 * input_right[j]) + (t3_tap0 * delayed0[j] + t3_tap1 * delayed1[j])) + ((t3_tap2 * delayed2[j] + t3_tap3 * delayed3[j]) + (t3_tap4 * delayed4[j] + t3_tap5 * delayed5[j])))
+      b4[j - count] = t4_gain * (((t4_in0 * input_left[j] + t4_in1 * input_right[j]) + (t4_tap0 * delayed0[j] + t4_tap1 * delayed1[j])) + ((t4_tap2 * delayed2[j] + t4_tap3 * delayed3[j]) + (t4_tap4 * delayed4[j] + t4_tap5 * delayed5[j])))
+      b5[j - count] = t5_gain * (((t5_in0 * input_left[j] + t5_in1 * input_right[j]) + (t5_tap0 * delayed0[j] + t5_tap1 * delayed1[j])) + ((t5_tap2 * delayed2[j] + t5_tap3 * delayed3[j]) + (t5_tap4 * delayed4[j] + t5_tap5 * delayed5[j])))
+    y0 = delayed0[frame]
+    y1 = delayed1[frame]
+    y2 = delayed2[frame]
+    y3 = delayed3[frame]
+    y4 = delayed4[frame]
+    y5 = delayed5[frame]
+    w += frame
