@@ -185,8 +185,10 @@ language. These measurements, taken while porting, decided the form of the ports
 
 ## Requirements
 
-- **onda**: use the [latest Onda release](https://github.com/onda-lang/onda/releases/latest)
-  with its bundled ABI headers. Put `onda` on the `PATH` or set `ONDA=/path/to/onda`.
+- **onda**: the results were measured with Onda 0.9.2 (processor ABI 7). The
+  [0.9.2 release](https://github.com/onda-lang/onda/releases/tag/0.9.2) reproduces them; a later
+  release with the same ABI also builds, but may generate different code. Use it with its bundled
+  ABI headers. Put `onda` on the `PATH` or set `ONDA=/path/to/onda`.
   Set `ONDA_INCLUDE` if the matching ABI header is installed separately.
   `tools/build-onda.sh` also builds the compiler from an Onda checkout against MacPorts LLVM 21,
   through a "shadow" prefix (`tools/make-llvm-shadow.sh`) limited to AArch64/ARM/X86/WebAssembly,
@@ -196,7 +198,8 @@ language. These measurements, taken while porting, decided the form of the ports
   strict and fast-math objects, which export the same names.
 - **Faust**: `faust` and `/usr/local/lib/libfaustwithllvm.a` (with libz, libzstd, libxml2,
   libncurses from MacPorts in `/opt/local/lib`), and the libraries of the `../faustlibraries`
-  checkout (`FAUSTLIB` in `build.sh`). The `cpp-*` engines use `tools/faust-ref` (`FAUST_REF=...`
+  checkout (`FAUSTLIB` in `build.sh`; the results were measured at faustlibraries `cd7555d`).
+  The `cpp-*` engines use `tools/faust-ref` (`FAUST_REF=...`
 otherwise), master-dev 2.95.3, the build of `libfaustwithllvm.a`, rebuilt by
 `BRANCH=0b21bae83 OUT=faust-ref tools/build-faust-cert.sh`, so that the reference does not follow
 whatever `faust` is installed. `tools/faust-cert7`, the faust of the

@@ -173,6 +173,10 @@ int main(int argc, char** argv) {
     int rounds = argc > 3 ? atoi(argv[3]) : 21;
     int round_ms = argc > 4 ? atoi(argv[4]) : 40;
     if (rounds < 1 || round_ms < 1) { fprintf(stderr, "rounds and round-ms must be positive\n"); return 1; }
+    if (input_count > NCH || output_count < 1 || output_count > NCH) {
+        fprintf(stderr, "%s: unsupported audio port count\n", tag);
+        return 1;
+    }
 
     // The factories outlive every DSP instance created from them.
     using FaustFactory = std::unique_ptr<llvm_dsp_factory, decltype(&deleteDSPFactory)>;
@@ -218,10 +222,6 @@ int main(int argc, char** argv) {
     add_faust("cxx", make_cxx_strict());
     add_faust("cxx-fm", make_cxx_fast());
 #endif
-    if (input_count > NCH || output_count < 1 || output_count > NCH) {
-        fprintf(stderr, "%s: unsupported audio port count\n", tag);
-        return 1;
-    }
     // YUP's YDSP JIT (asmjit), strict and with its default fastMath
     add_faust("ydsp", make_ydsp(0));
     add_faust("ydsp-fm", make_ydsp(1));
@@ -255,7 +255,7 @@ int main(int argc, char** argv) {
     std::vector<float> noise((size_t)NB * BS * NCH);
     uint32_t seed = 22222;
     for (auto& x : noise) { seed = seed * 1664525u + 1013904223u; x = ((int32_t)seed) * (0.5f / 2147483648.0f); }
-    float obuf[NCH][BS] = {};
+    alignas(64) float obuf[NCH][BS] = {};  // each channel starts on a cache line
     InputPorts inputs[NB];
     OutputPorts out;
     for (int c = 0; c < NCH; c++) {

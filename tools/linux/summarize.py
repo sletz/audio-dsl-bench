@@ -11,7 +11,7 @@ from statistics import geometric_mean
 
 FAUST = (
     ("cpp-scal", "cpp-vec", "cpp48-scal", "cpp48-vec", "ocpp", "ocpp48"),
-    ("cpp-scal-fm", "cpp-vec-fm", "cpp48-scal-fm", "cpp48-vec-fm", "cpp-vec-libmvec",
+    ("cpp-scal-fm", "cpp-vec-fm", "cpp48-scal-fm", "cpp48-vec-fm", "cpp-vec-libmvec", "cpp-vec-acc",
      "llvm-scal", "llvm-vec", "llvm48", "llvm48-vec", "ocpp-fm", "best-fm", "best48-fm"),
 )
 ENGINE_FAMILIES = (

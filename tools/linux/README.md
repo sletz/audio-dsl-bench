@@ -8,24 +8,32 @@ JIT, and the hand-written C++ ports. It selects the 38 shared workloads by defau
 
 Use Python 3.8 or newer, Clang C++, `llvm-objcopy`, `taskset`, CMake 3.31 or newer, Ninja, Make,
 and the development dependencies for LLVM, Faust, and zlib. Unpack the x86-64 Linux
-package from the [latest Onda release](https://github.com/onda-lang/onda/releases/latest)
-and add its `bin/` directory to `PATH`. The runner finds the bundled ABI header and
-prints the compiler version. Use `ONDA` or `--onda` to select a different compiler,
+package of [Onda 0.9.2](https://github.com/onda-lang/onda/releases/tag/0.9.2), the version
+measured on macOS (the commands below), and add its `bin/` directory to `PATH`. A later
+release with processor ABI 7 also builds, but its timings are not those of 0.9.2. The runner
+finds the bundled ABI header and prints the compiler version. Use `ONDA` or `--onda` to select a different compiler,
 and `ONDA_INCLUDE` or `--onda-include` if its matching ABI header lives elsewhere.
 The strict build uses the release's default arithmetic. The fast build passes `--fast-math`.
 
 From the benchmark checkout, put the dependencies in `build/toolchains/` or substitute
-existing checkouts. The Faust revisions match the upstream report and `fcautotool` picks.
+existing checkouts. The Faust and faustlibraries revisions match the upstream report and
+`fcautotool` picks.
 
 ```bash
 deps="$PWD/build/toolchains"
 mkdir -p "$deps"
+curl -fL https://github.com/onda-lang/onda/releases/download/0.9.2/onda-0.9.2-linux-x64.tar.xz \
+  -o "$deps/onda-0.9.2-linux-x64.tar.xz"
+printf '%s  %s\n' '832bbaddad692590022c08a1c07b48d5942ed790abf37de9552bb9f42e69f0f7' \
+  "$deps/onda-0.9.2-linux-x64.tar.xz" | sha256sum --check
+tar -xJf "$deps/onda-0.9.2-linux-x64.tar.xz" -C "$deps"
+export PATH="$deps/onda-0.9.2-linux-x64/bin:$PATH"
 
 git clone https://github.com/grame-cncm/faust "$deps/onda-faust-main"
 git -C "$deps/onda-faust-main" checkout --detach 0b21bae83
 git -C "$deps/onda-faust-main" worktree add --detach "$deps/onda-faust-cert7" 7db0ae9cd
 git clone https://github.com/grame-cncm/faustlibraries "$deps/onda-faust-libraries"
-git -C "$deps/onda-faust-libraries" checkout --detach c957169
+git -C "$deps/onda-faust-libraries" checkout --detach cd7555d
 git clone https://github.com/kunitoki/yup "$deps/yup"
 git -C "$deps/yup" checkout --detach db4e7c2
 
@@ -100,6 +108,12 @@ report, these diagnostics do not filter the timing summary. The summary compares
 engine in each language family against the fastest Faust engine in the same math mode. Each
 cell shows the geometric mean speedup and win count for workloads with timings on both sides.
 Check each workload's `build.log` and `run.log` for compiler or JIT diagnostics.
+
+The Linux and macOS figures are not directly comparable. On Linux, the best Faust build is
+chosen among more builds: strict adds `cpp48-scal` and `cpp48-vec` to the four of the macOS
+IEEE columns, and fast-math adds the `cpp48-*-fm` builds and `llvm48-vec`, with
+`cpp-vec-libmvec` in place of Accelerate. The cert-7 option sets used by `--cert` were elected
+by `fcautotool` on an Apple M5, not on the x86-64 machine.
 
 Append workload names to run a subset. `--ir NAME` writes Onda MIR and optimized LLVM
 IR, LLVM IR from Clang for the C++ translation units, and IR from the timed Faust LLVM
