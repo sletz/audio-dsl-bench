@@ -184,11 +184,13 @@ language. These measurements, taken while porting, decided the form of the ports
 
 ## Requirements
 
-- **onda**: use Onda 0.9.2 and its matching headers. `tools/build-onda.sh` builds the
-  compiler from an Onda checkout against MacPorts LLVM 21,
+- **onda**: use the [latest Onda release](https://github.com/onda-lang/onda/releases/latest)
+  with its bundled ABI headers. Put `onda` on the `PATH` or set `ONDA=/path/to/onda`.
+  Set `ONDA_INCLUDE` if the matching ABI header is installed separately.
+  `tools/build-onda.sh` also builds the compiler from an Onda checkout against MacPorts LLVM 21,
   through a "shadow" prefix (`tools/make-llvm-shadow.sh`) limited to AArch64/ARM/X86/WebAssembly,
   because onda's `native/target.cpp` shim initializes every target of the LLVM installation
-  (AMDGPU, etc.), which `build.rs` does not link. Otherwise: `ONDA=/path/to/onda ./build.sh ...`.
+  (AMDGPU, etc.), which `build.rs` does not link.
   `llvm-objcopy` from LLVM 21 (`/opt/local/libexec/llvm-21/bin`) renames the symbols of the
   strict and fast-math objects, which export the same names.
 - **Faust**: `faust` and `/usr/local/lib/libfaustwithllvm.a` (with libz, libzstd, libxml2,

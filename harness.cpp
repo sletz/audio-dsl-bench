@@ -7,7 +7,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <limits>
 #include <memory>
 #include <new>
 #include <string>
@@ -35,6 +34,8 @@
 #ifndef BENCH_GENERATED_ENGINES
 #include "onda_meta.h"
 #endif
+
+static_assert(ONDA_PROCESSOR_ABI_VERSION == 7, "benchmark requires Onda processor ABI 7");
 
 static const int BS = 256;  // also given to the Cmajor C++ generator (build.sh)
 static const int SR = 48000;
@@ -276,58 +277,38 @@ int main(int argc, char** argv) {
     const int NCMP = 4 * SR / BS;
     auto reference = std::find_if(engines.begin(), engines.end(), [](const auto& e) { return e->name == "cpp-scal"; });
     if (reference == engines.end()) { fprintf(stderr, "%s: missing cpp-scal reference\n", tag); return 1; }
-    auto render = [&](Engine& e, int b) {
-        for (int c = 0; c < output_count; c++)
-            std::fill_n(obuf[c], BS, std::numeric_limits<float>::quiet_NaN());
-        e.compute(inputs[b % NB], out);
-    };
     std::vector<float> ref;
-    ref.reserve((size_t)NCMP * BS * output_count);
-    std::vector<double> ref_energy(output_count);
+    ref.reserve((size_t)NCMP * BS * NCH);
     (*reference)->init();
     for (int b = 0; b < NCMP; b++) {
-        render(**reference, b);
-        for (int c = 0; c < output_count; c++) {
-            for (float sample : obuf[c]) {
-                if (!std::isfinite(sample)) { fprintf(stderr, "%s: non-finite reference output\n", tag); return 1; }
-                ref_energy[c] += double(sample) * sample;
-            }
-            ref.insert(ref.end(), obuf[c], obuf[c] + BS);
-        }
+        run_blocks(**reference, 1, b);
+        for (const auto& channel : obuf)
+            ref.insert(ref.end(), channel, channel + BS);
     }
-    auto relative_rms = [](double error, double energy) {
-        if (energy > 0) return sqrt(error / energy);
-        return error == 0 ? 0.0 : std::numeric_limits<double>::infinity();
-    };
-    struct Error { double max_abs = 0, rel_rms = 0, worst_channel = 0; bool finite = true; };
-    std::vector<Error> errors(engines.size());
     double energy = 0;
-    for (double x : ref_energy) energy += x;
+    for (float sample : ref) energy += double(sample) * sample;
     double refrms = sqrt(energy / ref.size());
+
+    struct Error { double max_abs = 0, rel_rms = 0; bool finite = true; };
+    std::vector<Error> errors(engines.size());
     for (size_t i = 0; i < engines.size(); i++) {
         Engine& e = *engines[i];
         e.init();
         auto& err = errors[i];
-        std::vector<double> squared(output_count);
+        double squared = 0;
         size_t j = 0;
         for (int b = 0; b < NCMP; b++) {
-            render(e, b);
-            for (int c = 0; c < output_count; c++) {
-                for (float sample : obuf[c]) {
+            run_blocks(e, 1, b);
+            for (const auto& channel : obuf) {
+                for (float sample : channel) {
                     double d = fabs(double(sample) - ref[j++]);
                     if (!std::isfinite(sample)) err.finite = false;
                     err.max_abs = std::max(err.max_abs, d);
-                    squared[c] += d * d;
+                    squared += d * d;
                 }
             }
         }
-        double total = 0;
-        for (int c = 0; c < output_count; c++) {
-            total += squared[c];
-            err.worst_channel = std::max(err.worst_channel, relative_rms(squared[c], ref_energy[c]));
-        }
-        err.rel_rms = relative_rms(total, energy);
-        if (!err.finite) err.rel_rms = err.worst_channel = std::numeric_limits<double>::infinity();
+        err.rel_rms = refrms > 0 ? sqrt(squared / ref.size()) / refrms : 0;
     }
 
     // 2. Timing: warm-up, then rounds interleaved across engines (shuffled order each round).
@@ -361,12 +342,8 @@ int main(int argc, char** argv) {
         for (double x : t) dev.push_back(fabs(x - med));
         std::sort(dev.begin(), dev.end());
         const auto& err = errors[i];
-        printf("%s\t%s\t%.5f\t%.5f\t%.5f\t%.7g\t%.7g\t%s\t%.7g", tag, engines[i]->name.c_str(), med, t[0],
+        printf("%s\t%s\t%.4f\t%.4f\t%.4f\t%.3g\t%.3g\t%s\t%.4g\n", tag, engines[i]->name.c_str(), med, t[0],
                dev[dev.size() / 2], err.max_abs, err.rel_rms, err.finite ? "finite" : "NONFINITE", refrms);
-#ifdef BENCH_GENERATED_ENGINES
-        printf("\t%.7g", err.worst_channel);
-#endif
-        putchar('\n');
     }
     return 0;
 }

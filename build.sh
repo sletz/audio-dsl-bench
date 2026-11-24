@@ -3,19 +3,19 @@
 # Cmajor (dsp/NAME.cmajor), YDSP (dsp/NAME.ydsp) and hand-written C++ (dsp/NAME.cpp) ports
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
-ONDA="${ONDA:-/Users/letz/Developpements/onda/target/release/onda}"
-if ! ONDA=$(command -v "$ONDA") || [ "$("$ONDA" --version)" != "Onda 0.9.2" ]; then
-  echo "Set ONDA to the Onda 0.9.2 compiler." >&2
+ONDA="${ONDA:-$(command -v onda || printf '%s' /Users/letz/Developpements/onda/target/release/onda)}"
+if ! ONDA=$(command -v "$ONDA"); then
+  echo "Set ONDA to the Onda compiler." >&2
   exit 1
 fi
-ONDA_DIR=$(cd "$(dirname "$ONDA")" && pwd)
-ONDA="$ONDA_DIR/$(basename "$ONDA")"
+ONDA=$(python3 -c 'import sys; from pathlib import Path; print(Path(sys.argv[1]).resolve())' "$ONDA")
+ONDA_DIR=$(dirname "$ONDA")
 if [ -z "${ONDA_INCLUDE:-}" ]; then
   ONDA_INCLUDE="$ONDA_DIR/../include"
   [ -f "$ONDA_INCLUDE/onda_processor_abi.h" ] || ONDA_INCLUDE="$ONDA_DIR/../../include"
 fi
 if [ ! -f "$ONDA_INCLUDE/onda_processor_abi.h" ]; then
-  echo "Set ONDA_INCLUDE to the directory containing the Onda 0.9.2 ABI header." >&2
+  echo "Set ONDA_INCLUDE to the directory containing the matching onda_processor_abi.h." >&2
   exit 1
 fi
 ONDA_INCLUDE=$(cd "$ONDA_INCLUDE" && pwd)
@@ -72,10 +72,12 @@ print(f"#define ONDA_STATE_ALIGN {max(16, rt['state_align_bytes'])}")
 print(f"#define ONDA_PARAM_SIZE {rt['param_size_bytes']}")
 print(f"#define ONDA_PARAM_ALIGN {rt['param_align_bytes']}")
 for direction in ("input", "output"):
-    ports = md[f"{direction}s"]
-    assert all(port["scalar"] == "f32" and port["slot_offset"] == sum(p["array_len"] for p in ports[:i])
-               for i, port in enumerate(ports)), f"expected contiguous f32 {direction} ports"
-    print(f"static constexpr int {direction}_count = {sum(p['array_len'] for p in ports)};")
+    count = 0
+    for port in md[f"{direction}s"]:
+        if port["scalar"] != "f32" or port["slot_offset"] != count:
+            sys.exit(f"expected contiguous f32 {direction} ports")
+        count += port["array_len"]
+    print(f"static constexpr int {direction}_count = {count};")
 print("static inline void onda_write_defaults(unsigned char* p) {")
 for prm in md["params"]:
     sc = prm["scalar"]; off = prm["byte_offset"]

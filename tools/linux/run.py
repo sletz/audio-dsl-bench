@@ -8,14 +8,14 @@ import os
 from pathlib import Path
 import re
 import shlex
+import shutil
 import struct
 import subprocess
 
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-ONDA_RELEASE = ROOT / "build" / "toolchains" / "onda-0.9.2-linux-x64"
-HEADER = "workload\tengine\tns_per_frame\tmin\tmad\tmax_abs\trel_rms\tfinite\tref_rms\tworst_channel_rel_rms\n"
+HEADER = "workload\tengine\tns_per_frame\tmin\tmad\tmax_abs\trel_rms\tfinite\tref_rms\n"
 
 
 def command(*argv, **kwargs):
@@ -225,8 +225,10 @@ def main():
     parser.add_argument("--cmajor-include", type=Path, help="directory containing the cmajor/ and choc/ headers")
     parser.add_argument("--cmajor-library", type=Path, help="libCmajPerformer.so for Cmajor JIT")
     parser.add_argument("--ydsp-lib", type=Path, default=ROOT / "build" / "linux-ydsp" / "libydsp_engine.a")
-    parser.add_argument("--onda", type=Path, default=ONDA_RELEASE / "bin" / "onda")
-    parser.add_argument("--onda-include", type=Path, default=ONDA_RELEASE / "include")
+    parser.add_argument("--onda", default=os.getenv("ONDA") or "onda",
+                        help="Onda compiler (default: ONDA or onda on PATH)")
+    parser.add_argument("--onda-include", type=Path, default=os.getenv("ONDA_INCLUDE") or None,
+                        help="Onda ABI header directory (default: ONDA_INCLUDE or relative to the compiler)")
     parser.add_argument("--cxx", default="clang++")
     parser.add_argument("--objcopy", default="llvm-objcopy")
     parser.add_argument("--out", type=Path, required=True, help="new result directory")
@@ -240,7 +242,7 @@ def main():
     parser.add_argument("--llvm-no-fast", action="store_true", help="Faust LLVM no-fast-math diagnostic run")
     parser.add_argument("workloads", nargs="*", help="default: workloads with all four source ports")
     args = parser.parse_args()
-    for key in ("out", "upstream", "faust", "faust_libraries", "libfaust", "faust_include", "cert", "onda",
+    for key in ("out", "upstream", "faust", "faust_libraries", "libfaust", "faust_include", "cert",
                 "onda_include", "ydsp_lib", "cmajor", "cmajor_include", "cmajor_library"):
         if getattr(args, key):
             setattr(args, key, getattr(args, key).absolute())
@@ -253,10 +255,14 @@ def main():
         parser.error("expected workloads with Faust and Onda sources")
     if not args.ydsp_lib.is_file():
         parser.error(f"YDSP library missing: {args.ydsp_lib} (see tools/linux/README.md)")
-    if not args.onda.is_file() or not (args.onda_include / "onda_processor_abi.h").is_file():
-        parser.error("Onda compiler or ABI header missing (see tools/linux/README.md)")
-    if command(args.onda, "--version", capture_output=True).stdout.strip() != "Onda 0.9.2":
-        parser.error("--onda must point to Onda 0.9.2 for this benchmark")
+    onda = shutil.which(args.onda)
+    if onda is None:
+        parser.error("Onda compiler missing. Put onda on PATH, set ONDA or pass --onda.")
+    args.onda = Path(onda).resolve()
+    if args.onda_include is None:
+        args.onda_include = args.onda.parent.parent / "include"
+    if not (args.onda_include / "onda_processor_abi.h").is_file():
+        parser.error("Onda ABI header missing. Set ONDA_INCLUDE or pass --onda-include.")
     if bool(args.cmajor_include) != bool(args.cmajor_library) or (args.cmajor and not args.cmajor_library):
         parser.error("--cmajor-include and --cmajor-library must be supplied together")
     if args.cmajor_library and (
@@ -266,6 +272,7 @@ def main():
     if args.cmajor_library:
         version = command(args.cmajor or "cmaj", "--version", stdout=subprocess.PIPE).stdout.strip()
         print(version, flush=True)
+    command(args.onda, "--version")
     args.out.mkdir(parents=True, exist_ok=False)
     if args.cmajor_library:
         command(args.cxx, "-std=c++17", "-O2", "-I", args.cmajor_include,
