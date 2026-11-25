@@ -24,8 +24,10 @@ const DiffusionTaps = diffusion_taps()
 
 const def feedback_taps() -> i32[LaneCount]:
   taps: i32[LaneCount]
+  # Faust feeds back the previous mix, contributing one sample of the loop delay.
   for lane in 0..LaneCount:
-    taps[lane] = max(1, i32(round(LoopSeconds[lane] * SR)) - DiffusionTaps[lane])
+    loop_samples = i32(round(LoopSeconds[lane] * SR))
+    taps[lane] = max(0, loop_samples - DiffusionTaps[lane] - 1)
   return taps
 
 const FeedbackTaps = feedback_taps()
@@ -48,34 +50,16 @@ const DiffusionCapacity = lane_ring_capacity(DiffusionTaps)
 const FeedbackCapacity = lane_ring_capacity(FeedbackTaps)
 const ClockPeriod = max(PredelayCapacity, max(DiffusionCapacity, FeedbackCapacity))
 
-def butterfly(a, b):
-  return (a + b, a - b)
-
-# Three butterfly stages implement the eight-channel Hadamard matrix.
-def hadamard_mix(lanes):
-  a0, a1 = butterfly(lanes[0], lanes[1])
-  a2, a3 = butterfly(lanes[2], lanes[3])
-  a4, a5 = butterfly(lanes[4], lanes[5])
-  a6, a7 = butterfly(lanes[6], lanes[7])
-
-  b0, b2 = butterfly(a0, a2)
-  b1, b3 = butterfly(a1, a3)
-  b4, b6 = butterfly(a4, a6)
-  b5, b7 = butterfly(a5, a7)
-
-  y0, y4 = butterfly(b0, b4)
-  y1, y5 = butterfly(b1, b5)
-  y2, y6 = butterfly(b2, b6)
-  y3, y7 = butterfly(b3, b7)
-
-  lanes[0] = y0
-  lanes[1] = y1
-  lanes[2] = y2
-  lanes[3] = y3
-  lanes[4] = y4
-  lanes[5] = y5
-  lanes[6] = y6
-  lanes[7] = y7
+# Faust's 8-channel Hadamard mix pairs lanes four apart, then two, then one.
+def butterfly_stage(lanes, stride: i32):
+  for group in 0..LaneCount / (2 * stride):
+    for lane in 0..stride:
+      first = 2 * stride * group + lane
+      second = first + stride
+      a = lanes[first]
+      b = lanes[second]
+      lanes[first] = a + b
+      lanes[second] = a - b
 
 proc Main:
   params:
@@ -89,7 +73,7 @@ proc Main:
     predelay: f32[2 * PredelayCapacity]
     diffusion: f32[LaneCount * DiffusionCapacity]
     feedback: f32[LaneCount * FeedbackCapacity]
-    mixed: f32[LaneCount]
+    previous_mix: f32[LaneCount]  # Hadamard output from the previous frame
     low_state: f32[LaneCount]
     high_state: f32[LaneCount]
     mid_gain: f32[LaneCount]
@@ -143,6 +127,20 @@ proc Main:
       # All lines advance together, using masked taps into interleaved rings.
       diffusion_write = frame {DiffusionCapacity, wrap}
       feedback_write = frame {FeedbackCapacity, wrap}
+      for lane in 0..LaneCount:
+        x = previous_mix[lane]
+        difference = x - low_state[lane]
+        low = fma(low_alpha, difference, low_state[lane])
+        low_state[lane] = fma(low_step, difference, low_state[lane])
+        shaped = mid_gain[lane] * fma(low_shelf[lane], low, x)
+        high_state[lane] = fma(high_pole[lane], high_state[lane], high_weight[lane] * shaped)
+        feedback[feedback_write * LaneCount + lane] = fma(
+          HadamardScale,
+          high_state[lane],
+          DampingBias
+        )
+
+      mixed: f32[LaneCount]
       excitation = [left, left, -left, -left, right, right, -right, -right]
       for lane in 0..LaneCount:
         diffusion_read = (diffusion_write - DiffusionTaps[lane]) {DiffusionCapacity, wrap}
@@ -154,19 +152,10 @@ proc Main:
         diffusion[diffusion_write * LaneCount + lane] = stored
         mixed[lane] = delayed + gain * stored
 
-      hadamard_mix(mixed)
-      for lane in 0..LaneCount:
-        x = mixed[lane]
-        difference = x - low_state[lane]
-        low = fma(low_alpha, difference, low_state[lane])
-        low_state[lane] = fma(low_step, difference, low_state[lane])
-        shaped = mid_gain[lane] * fma(low_shelf[lane], low, x)
-        high_state[lane] = fma(high_pole[lane], high_state[lane], high_weight[lane] * shaped)
-        feedback[feedback_write * LaneCount + lane] = fma(
-          HadamardScale,
-          high_state[lane],
-          DampingBias
-        )
+      butterfly_stage(mixed, 4)
+      butterfly_stage(mixed, 2)
+      butterfly_stage(mixed, 1)
+      previous_mix = mixed
 
       frame += 1
       out1 = (mixed[1] + mixed[2]) * level

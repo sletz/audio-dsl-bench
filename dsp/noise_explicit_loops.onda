@@ -1,23 +1,6 @@
 params:
   damp = 0.9 {0.0, 0.999}
 
-const Lanes = 32
-const Multiplier: i32 = 1103515245
-const Increment: i32 = 12345
-
-const def step_coefficients() -> i32[2 * Lanes]:
-  values: i32[2 * Lanes]
-  mul: i32 = 1
-  add: i32 = 0
-  for lane in 0..Lanes:
-    mul *= Multiplier
-    add = add * Multiplier + Increment
-    values[lane] = mul
-    values[Lanes + lane] = add
-  return values
-
-const Step = step_coefficients()
-
 init:
   seed: i32 = 0
   lp = 0.0
@@ -25,13 +8,8 @@ init:
 block:
   feed = (1.0 - damp) * (1.0 / 2147483647.0)
   noise: f32[BS]
-  for group in 0..BS / Lanes:
-    for lane in 0..Lanes:
-      random = Step[lane] * seed + Step[Lanes + lane]
-      noise[group * Lanes + lane] = f32(random)
-    seed = Step[Lanes - 1] * seed + Step[2 * Lanes - 1]
-  for i in BS / Lanes * Lanes..BS:
-    seed = seed * Multiplier + Increment
+  for i in 0..BS:
+    seed = seed * 1103515245 + 12345
     noise[i] = f32(seed)
 
   frame = 0 {BS, wrap}

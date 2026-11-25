@@ -72,7 +72,7 @@ tr.variant td.best { background: transparent; }
 
 <main>
 <header>
-  <div class="eyebrow prose">Faust 2.95.3 and branch master-dev-certification-7 · Onda 0.9.2 · Cmajor 1.0.3209 · YUP YDSP · macOS · f32 · 48 kHz · 256-frame blocks</div>
+  <div class="eyebrow prose">Faust 2.95.3 and branch master-dev-certification-7 · Onda · Cmajor 1.0.3209 · YUP YDSP · macOS · f32 · 48 kHz · 256-frame blocks</div>
   <h1>Audio DSL Bench</h1>
   <p class="lede prose">The same %%NPROG%% DSP programs written in four audio DSP languages, Faust, Onda, Cmajor and YDSP, and by hand in plain C++, and timed on one harness with the same input. Eighteen were written for the benchmark; twenty reproduce emblematic examples of the Faust distribution, from oscillators and filters to reverbs, spatialization and physical models.</p>
   <p class="lede prose">Every speed is relative to the fastest measured Faust build of the same floating-point contract, strict IEEE or fast-math. Above ×1, the language is faster than Faust.</p>
@@ -194,7 +194,7 @@ tr.variant td.best { background: transparent; }
   <h2>Method</h2>
   <dl class="method">
     <dt>Scheduling</dt><dd>The harness requests user-interactive QoS on macOS.</dd>
-    <dt>Onda</dt><dd>Reference compiler 0.9.2. AOT object <code>--emit obj --target-cpu host -b 256 --sr 48000</code>, with and without <code>--fast-math</code>, called through the raw ABI (<code>onda_process</code>).</dd>
+    <dt>Onda</dt><dd>AOT object <code>--emit obj --target-cpu host -b 256 --sr 48000</code>, in strict and fast-math modes, called through the raw ABI (<code>onda_process</code>).</dd>
     <dt>Faust C++</dt><dd><code>faust -lang cpp</code> 2.95.3, master-dev 0b21bae83 (<code>-scal</code> and <code>-vec -vs 32</code>) with the libraries of the faustlibraries checkout, Apple clang <code>-O3 -mcpu=native</code>, three contracts: default (FMA), <code>-ffp-contract=off</code>, <code>-ffast-math</code>; plus <code>-vec</code> with <code>-fveclib=Accelerate</code>.</dd>
     <dt>Faust LLVM</dt><dd><code>libfaustwithllvm</code> (2.95.3), <code>createDSPFactoryFromFile</code>, opt −1 (max), <code>-scal</code> and <code>-vec -vs 32</code>, plus <code>-scal</code> with a fixed SR.</dd>
     <dt>Faust cert-7</dt><dd>Branch <code>master-dev-certification-7</code> (7db0ae9cd, 2.94.1), exported with <code>git archive</code> and built with the Makefile of <code>build/</code>. <code>-lang ocpp</code> in IEEE (<code>-ffp-contract=off</code>), with the default contract and with <code>-ffast-math</code>; options elected by <code>fcautotool</code> compiled with <code>-O3 -ffast-math</code>, as during the election.</dd>

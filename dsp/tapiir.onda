@@ -1,27 +1,27 @@
 include "common/tapiir.onda"
 
 block:
-  k0 = i32(min(f32(Mask), max(0.0, SR * t0_delay)))
-  k1 = i32(min(f32(Mask), max(0.0, SR * t1_delay)))
-  k2 = i32(min(f32(Mask), max(0.0, SR * t2_delay)))
-  k3 = i32(min(f32(Mask), max(0.0, SR * t3_delay)))
-  k4 = i32(min(f32(Mask), max(0.0, SR * t4_delay)))
-  k5 = i32(min(f32(Mask), max(0.0, SR * t5_delay)))
+  k0 = delay_frames(t0_delay)
+  k1 = delay_frames(t1_delay)
+  k2 = delay_frames(t2_delay)
+  k3 = delay_frames(t3_delay)
+  k4 = delay_frames(t4_delay)
+  k5 = delay_frames(t5_delay)
   sample:
     x0 = in1
     x1 = in2
     b0[w] = t0_gain * (t0_in0 * x0 + t0_in1 * x1 + t0_tap0 * y0 + t0_tap1 * y1 + t0_tap2 * y2 + t0_tap3 * y3 + t0_tap4 * y4 + t0_tap5 * y5)
-    n0 = b0[(w - k0) & Mask]
+    n0 = b0[ring_index(w - k0)]
     b1[w] = t1_gain * (t1_in0 * x0 + t1_in1 * x1 + t1_tap0 * y0 + t1_tap1 * y1 + t1_tap2 * y2 + t1_tap3 * y3 + t1_tap4 * y4 + t1_tap5 * y5)
-    n1 = b1[(w - k1) & Mask]
+    n1 = b1[ring_index(w - k1)]
     b2[w] = t2_gain * (t2_in0 * x0 + t2_in1 * x1 + t2_tap0 * y0 + t2_tap1 * y1 + t2_tap2 * y2 + t2_tap3 * y3 + t2_tap4 * y4 + t2_tap5 * y5)
-    n2 = b2[(w - k2) & Mask]
+    n2 = b2[ring_index(w - k2)]
     b3[w] = t3_gain * (t3_in0 * x0 + t3_in1 * x1 + t3_tap0 * y0 + t3_tap1 * y1 + t3_tap2 * y2 + t3_tap3 * y3 + t3_tap4 * y4 + t3_tap5 * y5)
-    n3 = b3[(w - k3) & Mask]
+    n3 = b3[ring_index(w - k3)]
     b4[w] = t4_gain * (t4_in0 * x0 + t4_in1 * x1 + t4_tap0 * y0 + t4_tap1 * y1 + t4_tap2 * y2 + t4_tap3 * y3 + t4_tap4 * y4 + t4_tap5 * y5)
-    n4 = b4[(w - k4) & Mask]
+    n4 = b4[ring_index(w - k4)]
     b5[w] = t5_gain * (t5_in0 * x0 + t5_in1 * x1 + t5_tap0 * y0 + t5_tap1 * y1 + t5_tap2 * y2 + t5_tap3 * y3 + t5_tap4 * y4 + t5_tap5 * y5)
-    n5 = b5[(w - k5) & Mask]
+    n5 = b5[ring_index(w - k5)]
     y0 = n0
     y1 = n1
     y2 = n2

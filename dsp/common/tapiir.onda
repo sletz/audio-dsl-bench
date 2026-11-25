@@ -86,7 +86,13 @@ params:
   o1_gain = 1.0 {0.0, 1.0}
 
 const Capacity = 524288
-const Mask = Capacity - 1
+
+def delay_frames(seconds):
+  return i32(min(f32(Capacity - 1), max(0.0, SR * seconds)))
+
+def ring_index(value: i32):
+  index = value {Capacity, wrap}
+  return index
 
 init:
   b0: f32[Capacity]  # tap 0 line

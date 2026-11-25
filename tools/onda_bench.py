@@ -32,12 +32,15 @@ def port_count(metadata, direction):
 
 
 def build_onda(run, compiler, objcopy, source, build_dir, *, macho=False, emit_ir=False):
+    # Compilers that predate --strict-math already default to strict arithmetic.
+    supports_strict_math = "--strict-math" in subprocess.check_output([compiler, "--help"], text=True)
     variants = [("onda", source)]
     explicit = source.with_name(f"{source.stem}_explicit_loops.onda")
     if explicit.is_file():
         variants.append(("onda-block", explicit))
     declarations, registration, objects = [], [], []
     ports = None
+    reference_params = None
     prefix = "_" if macho else ""
     for label, path in variants:
         for fast in (False, True):
@@ -51,6 +54,8 @@ def build_onda(run, compiler, objcopy, source, build_dir, *, macho=False, emit_i
             options = [compiler, "compile", path, "--target-cpu", "host", "-b", "256", "--sr", "48000"]
             if fast:
                 options.append("--fast-math")
+            elif supports_strict_math:
+                options.append("--strict-math")
             run(*options, "--emit", "obj", "-o", "raw.o", "--meta-out", f"{stem}.json")
             if emit_ir:
                 run(*options, "--emit", "llvm-ir", "-o", f"{stem}.ll")
@@ -62,6 +67,11 @@ def build_onda(run, compiler, objcopy, source, build_dir, *, macho=False, emit_i
             if ports is not None and ports != shape:
                 raise ValueError("Onda variants have different port counts")
             ports = shape
+            params = {p["name"]: (p["type_repr"], p["default_reprs"]) for p in metadata["metadata"]["params"]}
+            if reference_params is None:
+                reference_params = params
+            elif params != reference_params:
+                raise ValueError(f"{source.stem}/{engine}: parameter names, types or defaults differ from onda")
             exports = metadata["exports"]
             renamed = [f"{prefix}{exports[key]}={prefix}{symbol}_{key}" for key in ("init", "process")]
             # Keep event symbols unique when multiple objects expose the same event index.

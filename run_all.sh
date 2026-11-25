@@ -21,6 +21,6 @@ run_pass() {  # $1 = output file, $2 = extra flags for the strict C++ variants
 run_pass "$RD/results.tsv" ""
 run_pass "$RD/results_nocontract.tsv" "-ffp-contract=off"
 [ "$RD" = results ] || { echo "results in $RD"; exit 0; }
-python3 report/gen.py "$HERE" --source-dir "$HERE/dsp"
+python3 report/gen.py "$HERE" --source-dir "$HERE/dsp" --measure-bounds
 python3 report/readme_chart.py "$HERE"
 echo "report: $HERE/report/audio-dsl-bench.html"

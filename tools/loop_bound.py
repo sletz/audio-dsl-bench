@@ -375,11 +375,10 @@ def analyse(prog, M):
 
 
 if __name__ == '__main__':
-    progs = sys.argv[2:] or sorted(p for p in os.listdir(os.path.join(B, 'build'))
-                                   if not p.startswith('_') and os.path.isdir(os.path.join(B, 'build', p)))
+    R = json.load(open(os.path.join(B, 'results', 'results.json')))
+    progs = sys.argv[2:] or sorted(R)
     M = machine()
     ghz = M['ghz']
-    R = json.load(open(os.path.join(B, 'results', 'results.json')))
     out = {'_machine': M}
     for p in progs:
         out[p] = analyse(p, M)

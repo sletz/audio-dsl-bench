@@ -1,6 +1,6 @@
 """Builds report/audio-dsl-bench.html (Onda, Faust, Cmajor, YUP YDSP and hand-written C++) from results/results.tsv (default clang contract)
 and results/results_nocontract.tsv (C++ strict variants at -ffp-contract=off)."""
-import argparse, collections, html, json, math, os, re, sys
+import argparse, collections, html, json, math, os, re, subprocess, sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools' / 'linux'))
@@ -9,7 +9,9 @@ from summarize import family_time
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('root', type=Path)
 parser.add_argument('--source-dir', type=Path, help='DSP sources used for these timings')
-parser.add_argument('--bounds', type=Path, help='machine-floor data from the same build')
+bounds = parser.add_mutually_exclusive_group()
+bounds.add_argument('--bounds', type=Path, help='machine-floor data from the same build')
+bounds.add_argument('--measure-bounds', action='store_true', help='measure machine floors from the current macOS build')
 args = parser.parse_args()
 if args.source_dir and not args.source_dir.is_dir():
     parser.error('--source-dir must point to a directory')
@@ -30,7 +32,11 @@ for n, r in load(f"{B}/results/results_nocontract.tsv").items():
     for k in ('cpp-scal', 'cpp-vec', 'ocpp', 'ocpp48', 'cmaj-cpp', 'cxx'):
         if k in r:
             R[n][k + '-ieee'] = r[k]
-json.dump(R, open(f"{B}/results/results.json", 'w'), indent=1)
+with (B / 'results/results.json').open('w') as timings:
+    json.dump(R, timings, indent=1)
+if args.measure_bounds:
+    subprocess.run([sys.executable, Path(__file__).resolve().parents[1] / 'tools/loop_bound.py', B], check=True)
+    args.bounds = B / 'results/bound.json'
 
 # programs by DSP category; variants (other ways of writing the same program in Onda) stay out of the means
 CATS = [
@@ -215,6 +221,12 @@ for _, progs in CATS:
                          f'<td>{float(m.group(2)):.2f}</td><td>{float(cpp.group(1)):.2f}</td>'
                          f'<td class="ratio">×{float(cpp.group(1)) / float(m.group(2)):.2f}</td></tr>')
 
+def source_figure(label, path):
+    filename = path.relative_to(args.source_dir).as_posix()
+    return (f'<figure><figcaption>{label} · {html.escape(filename)}</figcaption>'
+            f'<pre><code>{html.escape(path.read_text())}</code></pre></figure>\n')
+
+
 src = []
 if args.source_dir:
     for cat, progs in CATS:
@@ -228,11 +240,14 @@ if args.source_dir:
                     continue
                 path = args.source_dir / filename
                 if path.is_file():
-                    code = html.escape(path.read_text())
-                    figs += f'<figure><figcaption>{lang} · {filename}</figcaption><pre><code>{code}</code></pre></figure>\n'
+                    figs += source_figure(lang, path)
             op = ' open' if n == 'zita_rev' else ''
             src.append(f'''<details{op}><summary><code>{n}</code> — {html.escape(lab)}</summary><div class="pair">
 {figs}</div></details>''')
+    shared = ''.join(source_figure('Onda', path) for path in sorted((args.source_dir / 'common').glob('*.onda')))
+    if shared:
+        src.append('<details><summary>Shared Onda sources · <code>dsp/common/</code></summary>'
+                   f'<div class="pair">{shared}</div></details>')
 
 fr = lambda x: f'{x:.2f}'
 sub = {'ROWS': '\n'.join(rows), 'HEAD': head, 'SOURCES': '\n'.join(src), 'EROWS': '\n'.join(erows), 'DROWS': '\n'.join(drows),

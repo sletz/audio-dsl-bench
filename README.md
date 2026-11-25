@@ -13,7 +13,9 @@ on one harness, with the same input, block size and sample rate:
 
 ## Linux results
 
-The reworked Onda ports were measured with Onda 0.9.2 on an Intel Core i9-14900HX.
+On an Intel Core i9-14900HX, Onda 0.9.3 achieved a geometric mean speedup of **1.562× in strict
+mode** (faster on 31 of 38 workloads) and **1.302× with fast math** (23 of 38) against the
+fastest Faust build for each workload and mode. Both figures are medians of three measurements of all 38 workloads.
 The fastest Faust build sets the ×1 line for each workload and math mode. Bars above ×1
 indicate shorter runtimes. Solid Onda bars show the standard port. Outlined bars show the
 explicit-loop variant where measured. The Onda geometric mean uses the faster version for
@@ -214,9 +216,9 @@ language. These measurements, taken while porting, decided the form of the ports
 
 ## macOS requirements
 
-- **Onda** 0.9.2 with the bundled processor ABI 7 headers. Put `onda` on `PATH` or set `ONDA`.
+- **Onda** 0.9.3 with the bundled processor ABI 7 headers. Put `onda` on `PATH` or set `ONDA`.
   Set `ONDA_INCLUDE` if the headers are installed separately.
-  [Onda 0.9.2 release](https://github.com/onda-lang/onda/releases/tag/0.9.2)
+  [Onda 0.9.3 release](https://github.com/onda-lang/onda/releases/tag/0.9.3)
 - **Build tools** include Python 3, Clang, CMake 3.31 or newer, Ninja, and MacPorts LLVM 21.
   `build.sh` uses `/opt/local/libexec/llvm-21/bin/llvm-objcopy` to rename Onda symbols.
 - **Faust** uses `/usr/local/lib/libfaustwithllvm.a` from 2.95.3 (`0b21bae83`), with libz, libzstd,
@@ -258,6 +260,12 @@ reference.
 
 `run_all.sh` writes new macOS timings and regenerates the macOS report and chart. The second
 pass compiles the strict C++ variants with `-ffp-contract=off` for the IEEE columns.
+The report measures sample-loop floors from the objects left by that pass using
+MacPorts `llvm-objdump` (override with `OBJDUMP`).
+
+For the archived Apple M5 timings in a fresh checkout, regenerate the results tables with
+`python3 report/gen.py . --bounds results/bound.json`. After a fresh local measurement,
+add `--source-dir dsp` to include the sources used for that run while they still match the build.
 
 ## Files
 
