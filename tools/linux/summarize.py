@@ -14,12 +14,14 @@ FAUST = (
     ("cpp-scal-fm", "cpp-vec-fm", "cpp48-scal-fm", "cpp48-vec-fm", "cpp-vec-libmvec", "cpp-vec-acc",
      "llvm-scal", "llvm-vec", "llvm48", "llvm48-vec", "ocpp-fm", "best-fm", "best48-fm"),
 )
-ENGINE_FAMILIES = (
-    ("Onda", (("onda",), ("onda-fm",))),
-    ("Cmajor", (("cmaj-cpp", "cmaj-jit"), ("cmaj-cpp-fm", "cmaj-jit-fm"))),
-    ("YDSP", (("ydsp",), ("ydsp-fm",))),
-    ("Hand-written C++", (("cxx",), ("cxx-fm",))),
-)
+ONDA_STANDARD = ("onda", "onda-fm")
+ONDA_EXPLICIT = ("onda-block", "onda-block-fm")
+ENGINE_FAMILIES = {
+    "Onda": tuple(zip(ONDA_STANDARD, ONDA_EXPLICIT)),
+    "Cmajor": (("cmaj-cpp", "cmaj-jit"), ("cmaj-cpp-fm", "cmaj-jit-fm")),
+    "YDSP": (("ydsp",), ("ydsp-fm",)),
+    "Hand-written C++": (("cxx",), ("cxx-fm",)),
+}
 
 
 def load_results(path):
@@ -41,11 +43,15 @@ def fastest_time(times, engines):
     return min((times[engine] for engine in engines if engine in times), default=None)
 
 
-def compare(accepted, engines, faust_engines):
+def family_time(times, family, mode):
+    return fastest_time(times, ENGINE_FAMILIES[family][mode])
+
+
+def compare(accepted, family, mode):
     ratios = []
     for times in accepted.values():
-        candidate = fastest_time(times, engines)
-        reference = fastest_time(times, faust_engines)
+        candidate = family_time(times, family, mode)
+        reference = fastest_time(times, FAUST[mode])
         if reference is not None and candidate is not None:
             ratios.append(reference / candidate)
     if not ratios:
@@ -62,8 +68,8 @@ def main():
     print(f"{len(accepted)} workloads, {len(rejected)} rejected timing rows")
     print("| Engine family | Strict vs best Faust | Fast-math vs best Faust |")
     print("| --- | ---: | ---: |")
-    for label, modes in ENGINE_FAMILIES:
-        cells = [compare(accepted, engines, faust_engines) for engines, faust_engines in zip(modes, FAUST)]
+    for label in ENGINE_FAMILIES:
+        cells = [compare(accepted, label, mode) for mode in range(len(FAUST))]
         print(f"| {label} | {' | '.join(cells)} |")
     if rejected:
         print("\nRows with invalid timings")

@@ -28,7 +28,7 @@ programs on x86-64 Linux.
   values and 48 kHz constants; its `rel_rms` against `cpp-scal` must stay small (fast-math and
   chaotic programs such as `greyhole` diverge more, which is expected). The C++ ports are plain
   C++17 written for speed: no intrinsics, pragmas or libraries.
-- **Pinned versions.** Onda 0.9.2 (processor ABI 7), Faust reference `0b21bae83` (2.95.3,
+- **Pinned versions.** Onda 0.9.3 (processor ABI 7), Faust reference `0b21bae83` (2.95.3,
   `tools/faust-ref`), cert-7 `7db0ae9cd` (`tools/faust-cert7`), faustlibraries `cd7555d`,
   Cmajor 1.0.3209. Changing one means updating `README.md` and `tools/linux/README.md`, and
   remeasuring. `results/autotool/` was elected with that cert-7 build.

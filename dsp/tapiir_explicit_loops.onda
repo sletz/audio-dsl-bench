@@ -1,0 +1,110 @@
+include "common/tapiir.onda"
+
+# On a ring, a block needs at least BS frames of separation in both directions.
+def has_separate_history(delay: i32):
+  return delay >= BS && delay <= Capacity - BS
+
+def mix_taps(weights, taps, dry = 0.0):
+  return (dry + weights[0] * taps[0] + weights[1] * taps[1]
+    + weights[2] * taps[2] + weights[3] * taps[3]
+    + weights[4] * taps[4] + weights[5] * taps[5])
+
+block:
+  t0_weights = (t0_tap0, t0_tap1, t0_tap2, t0_tap3, t0_tap4, t0_tap5)
+  t1_weights = (t1_tap0, t1_tap1, t1_tap2, t1_tap3, t1_tap4, t1_tap5)
+  t2_weights = (t2_tap0, t2_tap1, t2_tap2, t2_tap3, t2_tap4, t2_tap5)
+  t3_weights = (t3_tap0, t3_tap1, t3_tap2, t3_tap3, t3_tap4, t3_tap5)
+  t4_weights = (t4_tap0, t4_tap1, t4_tap2, t4_tap3, t4_tap4, t4_tap5)
+  t5_weights = (t5_tap0, t5_tap1, t5_tap2, t5_tap3, t5_tap4, t5_tap5)
+  o0_weights = (o0_tap0, o0_tap1, o0_tap2, o0_tap3, o0_tap4, o0_tap5)
+  o1_weights = (o1_tap0, o1_tap1, o1_tap2, o1_tap3, o1_tap4, o1_tap5)
+
+  k0 = delay_frames(t0_delay)
+  k1 = delay_frames(t1_delay)
+  k2 = delay_frames(t2_delay)
+  k3 = delay_frames(t3_delay)
+  k4 = delay_frames(t4_delay)
+  k5 = delay_frames(t5_delay)
+  read0 = w - k0
+  read1 = w - k1
+  read2 = w - k2
+  read3 = w - k3
+  read4 = w - k4
+  read5 = w - k5
+  start = w
+  bulk = (has_separate_history(k0) && has_separate_history(k1) && has_separate_history(k2)
+    && has_separate_history(k3) && has_separate_history(k4) && has_separate_history(k5))
+  wet_left: f32[BS]
+  wet_right: f32[BS]
+  if bulk:
+    for j in 0..BS:
+      tap0 = b0[ring_index(read0 + j)]
+      tap1 = b1[ring_index(read1 + j)]
+      tap2 = b2[ring_index(read2 + j)]
+      tap3 = b3[ring_index(read3 + j)]
+      tap4 = b4[ring_index(read4 + j)]
+      tap5 = b5[ring_index(read5 + j)]
+      taps = (tap0, tap1, tap2, tap3, tap4, tap5)
+      wet_left[j] = mix_taps(o0_weights, taps)
+      wet_right[j] = mix_taps(o1_weights, taps)
+
+  sample:
+    x0 = in1
+    x1 = in2
+    if bulk:
+      frame = ring_index(w - start)
+      # Stage the inputs in the write spans until the feedback pass.
+      b0[w] = x0
+      b1[w] = x1
+      out1 = o0_gain * (o0_in0 * x0 + o0_in1 * x1 + wet_left[frame])
+      out2 = o1_gain * (o1_in0 * x0 + o1_in1 * x1 + wet_right[frame])
+    else:
+      taps = (y0, y1, y2, y3, y4, y5)
+      b0[w] = t0_gain * mix_taps(t0_weights, taps, t0_in0 * x0 + t0_in1 * x1)
+      n0 = b0[ring_index(w - k0)]
+      b1[w] = t1_gain * mix_taps(t1_weights, taps, t1_in0 * x0 + t1_in1 * x1)
+      n1 = b1[ring_index(w - k1)]
+      b2[w] = t2_gain * mix_taps(t2_weights, taps, t2_in0 * x0 + t2_in1 * x1)
+      n2 = b2[ring_index(w - k2)]
+      b3[w] = t3_gain * mix_taps(t3_weights, taps, t3_in0 * x0 + t3_in1 * x1)
+      n3 = b3[ring_index(w - k3)]
+      b4[w] = t4_gain * mix_taps(t4_weights, taps, t4_in0 * x0 + t4_in1 * x1)
+      n4 = b4[ring_index(w - k4)]
+      b5[w] = t5_gain * mix_taps(t5_weights, taps, t5_in0 * x0 + t5_in1 * x1)
+      n5 = b5[ring_index(w - k5)]
+      taps = (n0, n1, n2, n3, n4, n5)
+      y0, y1, y2, y3, y4, y5 = taps
+      out1 = o0_gain * mix_taps(o0_weights, taps, o0_in0 * x0 + o0_in1 * x1)
+      out2 = o1_gain * mix_taps(o1_weights, taps, o1_in0 * x0 + o1_in1 * x1)
+    w += 1
+
+  # w counts only samples consumed, including segmented and early-ended blocks.
+  frames = min(BS, ring_index(w - start))
+  if bulk && frames > 0:
+    # At a delay change, the first feedback sample still uses the previous tap outputs.
+    taps = (y0, y1, y2, y3, y4, y5)
+    for j in 0..frames:
+      if j > 0:
+        taps = (
+          b0[ring_index(read0 + j - 1)],
+          b1[ring_index(read1 + j - 1)],
+          b2[ring_index(read2 + j - 1)],
+          b3[ring_index(read3 + j - 1)],
+          b4[ring_index(read4 + j - 1)],
+          b5[ring_index(read5 + j - 1)]
+        )
+      write_at = start + j {Capacity, wrap}
+      x0 = b0[write_at]
+      x1 = b1[write_at]
+      b0[write_at] = t0_gain * mix_taps(t0_weights, taps, t0_in0 * x0 + t0_in1 * x1)
+      b1[write_at] = t1_gain * mix_taps(t1_weights, taps, t1_in0 * x0 + t1_in1 * x1)
+      b2[write_at] = t2_gain * mix_taps(t2_weights, taps, t2_in0 * x0 + t2_in1 * x1)
+      b3[write_at] = t3_gain * mix_taps(t3_weights, taps, t3_in0 * x0 + t3_in1 * x1)
+      b4[write_at] = t4_gain * mix_taps(t4_weights, taps, t4_in0 * x0 + t4_in1 * x1)
+      b5[write_at] = t5_gain * mix_taps(t5_weights, taps, t5_in0 * x0 + t5_in1 * x1)
+    y0 = b0[ring_index(read0 + frames - 1)]
+    y1 = b1[ring_index(read1 + frames - 1)]
+    y2 = b2[ring_index(read2 + frames - 1)]
+    y3 = b3[ring_index(read3 + frames - 1)]
+    y4 = b4[ring_index(read4 + frames - 1)]
+    y5 = b5[ring_index(read5 + frames - 1)]

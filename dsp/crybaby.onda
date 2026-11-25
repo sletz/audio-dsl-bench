@@ -3,38 +3,39 @@
 # angle follow the wah pedal, written on its state w and its output v = w - w'. The coefficients
 # f2 = 1 + a1 + a2, fq = 1 - a2 and the gain go through si.smooth (error form), and f2 and fq get
 # the correction e = s^(n+1) (ma.FTZ applied) that makes smooth(1) start from 1.
-ins 1
+
+include "common/float_limits.onda"
 
 params:
   wah = 0.8 {0.0, 1.0}
 
 init:
-  s = pow(0.999, 44100.0 / SR)        # smoothing pole
-  imp = 1.0                           # 1 - 1': 1 on the first sample, then 0
-  ei = 0.0                            # (+ : *(s)) ~ _ of the impulse: s^(n+1)
-  gE = 0.0                            # si.smooth states (error and previous input)
+  s = pow(0.999, 44100.0 / SR)  # smoothing pole
+  imp = 1.0  # 1 - 1': 1 on the first sample, then 0
+  ei = 0.0  # (+ : *(s)) ~ _ of the impulse: s^(n+1)
+  gE = 0.0  # si.smooth states (error and previous input)
   gXp = 0.0
   f2E = 0.0
   f2Xp = 0.0
   fqE = 0.0
   fqXp = 0.0
-  w = 0.0                             # direct form II state
-  v = 0.0                             # output, v = w - w'
+  w = 0.0  # direct form II state
+  v = 0.0  # output, v = w - w'
 
 block:
   wc = max(0.0, min(1.0, wah))
-  Q = pow(2.0, 2.0 * (1.0 - wc) + 1.0)      # resonance quality factor
-  fr = 450.0 * pow(2.0, 2.3 * wc)           # resonance tuning
-  g = 0.1 * pow(4.0, wc) * 44100.0 / SR     # gain, peak referred to 44.1 kHz
+  Q = pow(2.0, 2.0 * (1.0 - wc) + 1.0)  # resonance quality factor
+  fr = 450.0 * pow(2.0, 2.3 * wc)  # resonance tuning
+  g = 0.1 * pow(4.0, wc) * 44100.0 / SR  # gain, peak referred to 44.1 kHz
   frn = fr / SR
   d = PI * frn / Q
   sn = sin(PI * frn)
   f2 = d * d + 4.0 * (1.0 - d) * (sn * sn)  # 1 + a1 + a2 = |1 - pole|^2
-  fq = d * (2.0 - d)                        # 1 - a2 = 1 - R^2
+  fq = d * (2.0 - d)  # 1 - a2 = 1 - R^2
   sample:
     ei = (imp + ei) * s
     imp = 0.0
-    e = ei * f32(abs(ei) > 0.000000000000000000000000000000000000011754944)   # ma.FTZ
+    e = ei * f32(abs(ei) > float_limits::MinNormal)  # ma.FTZ
     gE = s * (gE + (gXp - g))
     gXp = g
     gs = g + gE
@@ -44,7 +45,7 @@ block:
     fqE = s * (fqE + (fqXp - fq))
     fqXp = fq
     fqs = fq + fqE + e
-    vn = v + (gs * in1 - f2s * w - fqs * v)
+    vn = fma(1.0 - fqs, v, fma(-f2s, w, gs * in1))
     w = w + vn
     v = vn
     out1 = vn

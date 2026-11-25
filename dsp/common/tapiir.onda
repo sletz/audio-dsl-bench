@@ -1,0 +1,110 @@
+# Port of tapiir(6, 2) (examples/delayEcho/tapiir.dsp), after dsp/tapiir.dsp: 6 delay lines (de.delay,
+# dsize = 524288) in a 6x6 feedback matrix, 2 inputs, 2 output mixers. The example's defaults are all 0;
+# here tap i delays 0.05*(i+1) s (2400*(i+1) samples at 48 kHz), every tap gain is 0.1 (feedback matrix
+# loop gain 0.6, output mixers 0.1 per tap), input gains 1, gains 1. Same sums in the same order as the
+# C++ faust generates. The lines hold dsize samples (faust allocates 2^20 to reach a delay of dsize):
+# delay is clamped to the history capacity minus one.
+
+params:
+  t0_tap0 = 0.1 {0.0, 1.0}
+  t0_tap1 = 0.1 {0.0, 1.0}
+  t0_tap2 = 0.1 {0.0, 1.0}
+  t0_tap3 = 0.1 {0.0, 1.0}
+  t0_tap4 = 0.1 {0.0, 1.0}
+  t0_tap5 = 0.1 {0.0, 1.0}
+  t0_in0 = 1.0 {0.0, 1.0}
+  t0_in1 = 1.0 {0.0, 1.0}
+  t0_gain = 1.0 {0.0, 1.0}
+  t0_delay = 0.05 {0.0, 5.0}
+  t1_tap0 = 0.1 {0.0, 1.0}
+  t1_tap1 = 0.1 {0.0, 1.0}
+  t1_tap2 = 0.1 {0.0, 1.0}
+  t1_tap3 = 0.1 {0.0, 1.0}
+  t1_tap4 = 0.1 {0.0, 1.0}
+  t1_tap5 = 0.1 {0.0, 1.0}
+  t1_in0 = 1.0 {0.0, 1.0}
+  t1_in1 = 1.0 {0.0, 1.0}
+  t1_gain = 1.0 {0.0, 1.0}
+  t1_delay = 0.1 {0.0, 5.0}
+  t2_tap0 = 0.1 {0.0, 1.0}
+  t2_tap1 = 0.1 {0.0, 1.0}
+  t2_tap2 = 0.1 {0.0, 1.0}
+  t2_tap3 = 0.1 {0.0, 1.0}
+  t2_tap4 = 0.1 {0.0, 1.0}
+  t2_tap5 = 0.1 {0.0, 1.0}
+  t2_in0 = 1.0 {0.0, 1.0}
+  t2_in1 = 1.0 {0.0, 1.0}
+  t2_gain = 1.0 {0.0, 1.0}
+  t2_delay = 0.15 {0.0, 5.0}
+  t3_tap0 = 0.1 {0.0, 1.0}
+  t3_tap1 = 0.1 {0.0, 1.0}
+  t3_tap2 = 0.1 {0.0, 1.0}
+  t3_tap3 = 0.1 {0.0, 1.0}
+  t3_tap4 = 0.1 {0.0, 1.0}
+  t3_tap5 = 0.1 {0.0, 1.0}
+  t3_in0 = 1.0 {0.0, 1.0}
+  t3_in1 = 1.0 {0.0, 1.0}
+  t3_gain = 1.0 {0.0, 1.0}
+  t3_delay = 0.2 {0.0, 5.0}
+  t4_tap0 = 0.1 {0.0, 1.0}
+  t4_tap1 = 0.1 {0.0, 1.0}
+  t4_tap2 = 0.1 {0.0, 1.0}
+  t4_tap3 = 0.1 {0.0, 1.0}
+  t4_tap4 = 0.1 {0.0, 1.0}
+  t4_tap5 = 0.1 {0.0, 1.0}
+  t4_in0 = 1.0 {0.0, 1.0}
+  t4_in1 = 1.0 {0.0, 1.0}
+  t4_gain = 1.0 {0.0, 1.0}
+  t4_delay = 0.25 {0.0, 5.0}
+  t5_tap0 = 0.1 {0.0, 1.0}
+  t5_tap1 = 0.1 {0.0, 1.0}
+  t5_tap2 = 0.1 {0.0, 1.0}
+  t5_tap3 = 0.1 {0.0, 1.0}
+  t5_tap4 = 0.1 {0.0, 1.0}
+  t5_tap5 = 0.1 {0.0, 1.0}
+  t5_in0 = 1.0 {0.0, 1.0}
+  t5_in1 = 1.0 {0.0, 1.0}
+  t5_gain = 1.0 {0.0, 1.0}
+  t5_delay = 0.3 {0.0, 5.0}
+  o0_tap0 = 0.1 {0.0, 1.0}
+  o0_tap1 = 0.1 {0.0, 1.0}
+  o0_tap2 = 0.1 {0.0, 1.0}
+  o0_tap3 = 0.1 {0.0, 1.0}
+  o0_tap4 = 0.1 {0.0, 1.0}
+  o0_tap5 = 0.1 {0.0, 1.0}
+  o0_in0 = 1.0 {0.0, 1.0}
+  o0_in1 = 1.0 {0.0, 1.0}
+  o0_gain = 1.0 {0.0, 1.0}
+  o1_tap0 = 0.1 {0.0, 1.0}
+  o1_tap1 = 0.1 {0.0, 1.0}
+  o1_tap2 = 0.1 {0.0, 1.0}
+  o1_tap3 = 0.1 {0.0, 1.0}
+  o1_tap4 = 0.1 {0.0, 1.0}
+  o1_tap5 = 0.1 {0.0, 1.0}
+  o1_in0 = 1.0 {0.0, 1.0}
+  o1_in1 = 1.0 {0.0, 1.0}
+  o1_gain = 1.0 {0.0, 1.0}
+
+const Capacity = 524288
+
+def delay_frames(seconds):
+  return i32(min(f32(Capacity - 1), max(0.0, SR * seconds)))
+
+def ring_index(value: i32):
+  index = value {Capacity, wrap}
+  return index
+
+init:
+  b0: f32[Capacity]  # tap 0 line
+  b1: f32[Capacity]
+  b2: f32[Capacity]
+  b3: f32[Capacity]
+  b4: f32[Capacity]
+  b5: f32[Capacity]
+  w = 0 {Capacity, wrap}  # write position of every line
+  y0 = 0.0  # line outputs, one sample late (the ~)
+  y1 = 0.0
+  y2 = 0.0
+  y3 = 0.0
+  y4 = 0.0
+  y5 = 0.0

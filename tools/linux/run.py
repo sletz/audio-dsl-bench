@@ -9,40 +9,20 @@ from pathlib import Path
 import re
 import shlex
 import shutil
-import struct
 import subprocess
+import sys
 
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
+sys.path.insert(0, str(ROOT / "tools"))
+from onda_bench import build_onda
+
 HEADER = "workload\tengine\tns_per_frame\tmin\tmad\tmax_abs\trel_rms\tfinite\tref_rms\n"
 
 
 def command(*argv, **kwargs):
     return subprocess.run(argv, text=True, check=True, **kwargs)
-
-
-def defaults(metadata):
-    storage = bytearray(max(1, metadata["runtime"]["param_size_bytes"]))
-    formats = {"f32": "f", "f64": "d", "i32": "i", "i64": "q", "bool": "?"}
-    for param in metadata["metadata"]["params"]:
-        kind = param["scalar"]
-        for index, value in enumerate(param["default_reprs"] or []):
-            offset = param["byte_offset"] + index * param["element_size_bytes"]
-            number = (value == "true") if kind == "bool" else (float(value) if kind[0] == "f" else int(value))
-            struct.pack_into("=" + formats[kind], storage, offset, number)
-    return ",".join(map(str, storage))
-
-
-def port_count(metadata, direction):
-    count = 0
-    for port in metadata["metadata"][direction]:
-        if port["scalar"] != "f32" or port["slot_offset"] != count:
-            raise ValueError(f"expected contiguous f32 audio ports in {direction}")
-        count += port["array_len"]
-    if count > 16:
-        raise ValueError(f"too many {direction}")
-    return count
 
 
 def fixed_rate_libraries(original, target):
@@ -70,42 +50,9 @@ def build(args, name, fixed_libs):
     dsp_path = args.upstream / "dsp" / f"{name}.dsp"
     onda_path = dsp_path.with_suffix(".onda")
     cxx = [args.cxx, "-std=c++17", "-march=native", "-I", args.faust_include, "-I", ROOT / "tools"]
-    declarations, registration, objects = [], [], []
-    ports = None
-    for fast in (False, True):
-        engine = "onda-fm" if fast else "onda"
-        symbol = engine.replace("-", "_")
-        options = [args.onda, "compile", onda_path, "--target-cpu", "host", "-b", "256", "--sr", "48000"]
-        if fast:
-            options.append("--fast-math")
-        run(*options, "--emit", "obj", "-o", "raw.o", "--meta-out", f"{engine}.json")
-        if name in args.ir:
-            run(*options, "--emit", "llvm-ir", "-o", f"{engine}.ll")
-            run(*options, "--emit", "mir", "-o", f"{engine}.mir")
-        metadata = json.loads((build_dir / f"{engine}.json").read_text())
-        if metadata["abi_version"] != 7 or metadata["metadata"]["buffers"]:
-            raise ValueError("expected Onda ABI 7 with no external buffers")
-        shape = tuple(port_count(metadata, port) for port in ("inputs", "outputs"))
-        if ports is not None and ports != shape:
-            raise ValueError("Onda variants have different port counts")
-        ports = shape
-        exports = metadata["exports"]
-        mapping = [f"{exports[key]}={symbol}_{key}" for key in ("init", "process")]
-        obj = f"{engine}.o"
-        run(args.objcopy, *(f"--redefine-sym={item}" for item in mapping), "raw.o", obj)
-        # Keep event symbols from different objects separate even though this harness never calls them.
-        run(args.objcopy, "--wildcard", "--localize-symbol=onda_event*", obj)
-        objects.append(obj)
-        for key in ("init", "process"):
-            decltype = "decltype(onda_processor_init)" if key == "init" else "decltype(onda_process)"
-            declarations.append(f'extern "C" {decltype} {symbol}_{key};')
-        declarations.append(f"const unsigned char {symbol}_defaults[] = {{{defaults(metadata)}}};")
-        rt = metadata["runtime"]
-        registration.append(
-            f'    engines.push_back(std::make_unique<OndaEngine>("{engine}", {symbol}_init, {symbol}_process, '
-            f'{rt["state_size_bytes"]}, {rt["state_align_bytes"]}, {rt["param_align_bytes"]}, '
-            f'{symbol}_defaults, {rt["param_size_bytes"]}));'
-        )
+    ports, declarations, registration, objects = build_onda(
+        run, args.onda, args.objcopy, onda_path, build_dir, emit_ir=name in args.ir,
+    )
 
     def compile_cpp(engine, source, flags):
         symbol = engine.replace("-", "_")

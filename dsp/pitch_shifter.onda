@@ -2,7 +2,6 @@
 # pitchShifter.dsp), shift at 5 semitones instead of 0 like pitch_shifter.dsp. A phasor d runs
 # through [0, window) (fmod); two taps of a linearly interpolated delay line (de.fdelay), at d
 # and d + window, are crossfaded by min(d / xfade, 1). Same operation order as Faust's C++.
-ins 1
 
 params:
   window = 1000.0 {50.0, 10000.0}
@@ -10,26 +9,38 @@ params:
   shift = 5.0 {-12.0, 12.0}
 
 init:
-  buf: f32[32768]                      # de.fdelay(65536, ...) line, sized like Faust's (d + window < 20001)
+  buf: f32[32768]  # de.fdelay(65536, ...) line, sized like Faust's (d + window < 20001)
   iota = 0 {32768, wrap}
-  d = 0.0                              # read position, in [0, window)
+  d = 0.0  # read position, in [0, window)
 
 block:
-  step = window + (1.0 - pow(2.0, 0.083333336 * shift))
+  step = window + (1.0 - pow(2.0, (1.0 / 12.0) * shift))
   ix = 1.0 / xfade
+  twice = 2.0 * window
+  thrice = 3.0 * window
   omw = 1.0 - window
   sample:
     buf[iota] = in1
-    d = (step + d) % window
-    i1 = i32(min(65537.0, max(-1.0, d)))
-    f1 = floor(d)
+    # With a fixed window the next phase needs at most two subtractions.
+    # A shrinking window can leave a phase several turns past the new end.
+    next = step + d
+    if next < window:
+      d = next
+    elif next < twice:
+      d = next - window
+    elif next < thrice:
+      d = next - twice
+    else:
+      d = next % window
+    i1 = i32(d)
+    f1 = f32(i1)
     xf = min(ix * d, 1.0)
     d2 = window + d
-    i2 = i32(min(65537.0, max(-1.0, d2)))
-    f2 = floor(d2)
-    a0 = buf[(iota - min(65537, max(0, i1))) & 32767]
-    a1 = buf[(iota - min(65537, max(0, i1 + 1))) & 32767]
-    b0 = buf[(iota - min(65537, max(0, i2))) & 32767]
-    b1 = buf[(iota - min(65537, max(0, i2 + 1))) & 32767]
+    i2 = i32(d2)
+    f2 = f32(i2)
+    a0 = buf[(iota - i1) & 32767]
+    a1 = buf[(iota - (i1 + 1)) & 32767]
+    b0 = buf[(iota - i2) & 32767]
+    b1 = buf[(iota - (i2 + 1)) & 32767]
     out1 = (a0 * (1.0 - d + f1) + (d - f1) * a1) * xf + (b0 * (omw - d + f2) + (window - f2 + d) * b1) * (1.0 - xf)
     iota += 1

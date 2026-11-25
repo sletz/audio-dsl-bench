@@ -7,7 +7,8 @@
 # the others direct form (tf1s_df, tf2s_df). Delay equalizer: band i goes through the allpasses
 # fi.highpass_plus_lowpass(5, fc(j)) (tf2s(1,-1.618,1,1.618,1) or its direct form), j = 1 ... 8-i.
 # All state is scalar and the network is written out in full.
-ins 1
+
+include "common/float_limits.onda"
 
 params:
   band1 = -10.0 {-70.0, 10.0}
@@ -244,87 +245,59 @@ init:
   # band 7 allpass at 39.0625 Hz, TPT (tf2s states)
   p7_1s1 = 0.0
   p7_1s0 = 0.0
-  # si.smoo of band10: error, previous input
-  e10 = 0.0
-  xq10 = 0.0
-  # si.smoo of band9: error, previous input
-  e9 = 0.0
-  xq9 = 0.0
-  # si.smoo of band8: error, previous input
-  e8 = 0.0
-  xq8 = 0.0
-  # si.smoo of band7: error, previous input
-  e7 = 0.0
-  xq7 = 0.0
-  # si.smoo of band6: error, previous input
-  e6 = 0.0
-  xq6 = 0.0
-  # si.smoo of band5: error, previous input
-  e5 = 0.0
-  xq5 = 0.0
-  # si.smoo of band4: error, previous input
-  e4 = 0.0
-  xq4 = 0.0
-  # si.smoo of band3: error, previous input
-  e3 = 0.0
-  xq3 = 0.0
-  # si.smoo of band2: error, previous input
-  e2 = 0.0
-  xq2 = 0.0
-  # si.smoo of band1: error, previous input
-  e1 = 0.0
-  xq1 = 0.0
+  band_errors: f32[10]
+  previous_bands: f32[10]
 
 block:
-  t1 = tan(max(0.0, min(122.71846 / SR, 1.5676547)))    # tan(PI*fc/SR), fc = 39.0625 Hz
-  r1 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t1))
+  t1 = tan(max(0.0, min(122.71846 / SR, 1.5676547)))  # tan(PI*fc/SR), fc = 39.0625 Hz
+  r1 = min(float_limits::MaxFinite, 1.0 / (1.0 + t1))
   gkA1 = t1 + 1.618034
-  rA1 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t1 * gkA1))
+  rA1 = min(float_limits::MaxFinite, 1.0 / (1.0 + t1 * gkA1))
   gkB1 = t1 + 0.618034
-  rB1 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t1 * gkB1))
+  rB1 = min(float_limits::MaxFinite, 1.0 / (1.0 + t1 * gkB1))
   ga1 = 1.618034 * t1
-  ra1 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + ga1 * (1.0 + ga1 * 0.38196602)))
-  t2 = tan(max(0.0, min(245.43693 / SR, 1.5676547)))    # tan(PI*fc/SR), fc = 78.125 Hz
-  r2 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t2))
+  ra1 = min(float_limits::MaxFinite, 1.0 / (1.0 + ga1 * (1.0 + ga1 * 0.38196602)))
+  t2 = tan(max(0.0, min(245.43693 / SR, 1.5676547)))  # tan(PI*fc/SR), fc = 78.125 Hz
+  r2 = min(float_limits::MaxFinite, 1.0 / (1.0 + t2))
   gkA2 = t2 + 1.618034
-  rA2 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t2 * gkA2))
+  rA2 = min(float_limits::MaxFinite, 1.0 / (1.0 + t2 * gkA2))
   gkB2 = t2 + 0.618034
-  rB2 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t2 * gkB2))
+  rB2 = min(float_limits::MaxFinite, 1.0 / (1.0 + t2 * gkB2))
   ga2 = 1.618034 * t2
-  ra2 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + ga2 * (1.0 + ga2 * 0.38196602)))
-  t3 = tan(max(0.0, min(490.87385 / SR, 1.5676547)))    # tan(PI*fc/SR), fc = 156.25 Hz
-  r3 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t3))
+  ra2 = min(float_limits::MaxFinite, 1.0 / (1.0 + ga2 * (1.0 + ga2 * 0.38196602)))
+  t3 = tan(max(0.0, min(490.87385 / SR, 1.5676547)))  # tan(PI*fc/SR), fc = 156.25 Hz
+  r3 = min(float_limits::MaxFinite, 1.0 / (1.0 + t3))
   gkA3 = t3 + 1.618034
-  rA3 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t3 * gkA3))
+  rA3 = min(float_limits::MaxFinite, 1.0 / (1.0 + t3 * gkA3))
   gkB3 = t3 + 0.618034
-  rB3 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t3 * gkB3))
+  rB3 = min(float_limits::MaxFinite, 1.0 / (1.0 + t3 * gkB3))
   ga3 = 1.618034 * t3
-  ra3 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + ga3 * (1.0 + ga3 * 0.38196602)))
-  t4 = tan(max(0.0, min(981.7477 / SR, 1.5676547)))    # tan(PI*fc/SR), fc = 312.5 Hz
-  r4 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t4))
+  ra3 = min(float_limits::MaxFinite, 1.0 / (1.0 + ga3 * (1.0 + ga3 * 0.38196602)))
+  t4 = tan(max(0.0, min(981.7477 / SR, 1.5676547)))  # tan(PI*fc/SR), fc = 312.5 Hz
+  r4 = min(float_limits::MaxFinite, 1.0 / (1.0 + t4))
   gkA4 = t4 + 1.618034
-  rA4 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t4 * gkA4))
+  rA4 = min(float_limits::MaxFinite, 1.0 / (1.0 + t4 * gkA4))
   gkB4 = t4 + 0.618034
-  rB4 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t4 * gkB4))
+  rB4 = min(float_limits::MaxFinite, 1.0 / (1.0 + t4 * gkB4))
   ga4 = 1.618034 * t4
-  ra4 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + ga4 * (1.0 + ga4 * 0.38196602)))
-  t5 = tan(max(0.0, min(1963.4954 / SR, 1.5676547)))    # tan(PI*fc/SR), fc = 625 Hz
-  r5 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t5))
+  ra4 = min(float_limits::MaxFinite, 1.0 / (1.0 + ga4 * (1.0 + ga4 * 0.38196602)))
+  t5 = tan(max(0.0, min(1963.4954 / SR, 1.5676547)))  # tan(PI*fc/SR), fc = 625 Hz
+  r5 = min(float_limits::MaxFinite, 1.0 / (1.0 + t5))
   gkA5 = t5 + 1.618034
-  rA5 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t5 * gkA5))
+  rA5 = min(float_limits::MaxFinite, 1.0 / (1.0 + t5 * gkA5))
   gkB5 = t5 + 0.618034
-  rB5 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t5 * gkB5))
+  rB5 = min(float_limits::MaxFinite, 1.0 / (1.0 + t5 * gkB5))
   ga5 = 1.618034 * t5
-  ra5 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + ga5 * (1.0 + ga5 * 0.38196602)))
-  t6 = tan(max(0.0, min(3926.9908 / SR, 1.5676547)))    # tan(PI*fc/SR), fc = 1250 Hz
-  r6 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t6))
+  ra5 = min(float_limits::MaxFinite, 1.0 / (1.0 + ga5 * (1.0 + ga5 * 0.38196602)))
+  t6 = tan(max(0.0, min(3926.9908 / SR, 1.5676547)))  # tan(PI*fc/SR), fc = 1250 Hz
+  r6 = min(float_limits::MaxFinite, 1.0 / (1.0 + t6))
   gkA6 = t6 + 1.618034
-  rA6 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t6 * gkA6))
+  rA6 = min(float_limits::MaxFinite, 1.0 / (1.0 + t6 * gkA6))
   gkB6 = t6 + 0.618034
-  rB6 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + t6 * gkB6))
+  rB6 = min(float_limits::MaxFinite, 1.0 / (1.0 + t6 * gkB6))
   ga6 = 1.618034 * t6
-  ra6 = min(340282346638528859811704183484516925440.0, 1.0 / (1.0 + ga6 * (1.0 + ga6 * 0.38196602)))
-  t7 = tan(max(0.0, min(7853.9816 / SR, 1.5676547)))    # tan(PI*fc/SR), fc = 2500 Hz
+  ra6 = min(float_limits::MaxFinite, 1.0 / (1.0 + ga6 * (1.0 + ga6 * 0.38196602)))
+  t7 = tan(max(0.0, min(7853.9816 / SR, 1.5676547)))  # tan(PI*fc/SR), fc = 2500 Hz
   c7 = 1.0 / t7
   csq7 = c7 * c7
   d7 = 1.0 + c7
@@ -341,7 +314,7 @@ block:
   a2B7 = (1.0 - 0.618034 * c7 + csq7) / dB7
   lpB7 = 1.0 / dB7
   hpB7 = csq7 / dB7
-  t8 = tan(max(0.0, min(15707.963 / SR, 1.5676547)))    # tan(PI*fc/SR), fc = 5000 Hz
+  t8 = tan(max(0.0, min(15707.963 / SR, 1.5676547)))  # tan(PI*fc/SR), fc = 5000 Hz
   c8 = 1.0 / t8
   csq8 = c8 * c8
   d8 = 1.0 + c8
@@ -358,7 +331,7 @@ block:
   a2B8 = (1.0 - 0.618034 * c8 + csq8) / dB8
   lpB8 = 1.0 / dB8
   hpB8 = csq8 / dB8
-  t9 = tan(max(0.0, min(31415.927 / SR, 1.5676547)))    # tan(PI*fc/SR), fc = 10000 Hz
+  t9 = tan(max(0.0, min(31415.927 / SR, 1.5676547)))  # tan(PI*fc/SR), fc = 10000 Hz
   c9 = 1.0 / t9
   csq9 = c9 * c9
   d9 = 1.0 + c9
@@ -375,7 +348,17 @@ block:
   a2B9 = (1.0 - 0.618034 * c9 + csq9) / dB9
   lpB9 = 1.0 / dB9
   hpB9 = csq9 / dB9
-  smoo = 1.0 - 44.1 / SR    # si.smoo pole
+  smoo = 1.0 - 44.1 / SR  # si.smoo pole
+  # Apply parameter jumps once, then decay the ten independent errors.
+  bands: f32[10] = [band1, band2, band3, band4, band5, band6, band7, band8, band9, band10]
+  # Settled bands share block-rate conversions.
+  block_gains: f32[10]
+  settled = smoo >= 0.0
+  for i in 0..10:
+    band_errors[i] += min(float_limits::MaxFinite, previous_bands[i] - bands[i])
+    previous_bands[i] = bands[i]
+    settled = settled && bands[i] + band_errors[i] == bands[i]
+    block_gains[i] = pow(10.0, 0.05 * bands[i])
   sample:
     # analyzer: band i is hp(9-i) of the lowpassed signal, the dc band is lp(1)
     x = in1
@@ -840,36 +823,11 @@ block:
     p7_1y = p7_1u - p7_1v1 + 0.38196602 * p7_1v0
     p7_1s1 = 2.0 * p7_1v1 - p7_1s1
     p7_1s0 = 2.0 * p7_1v0 - p7_1s0
-    # faders: si.smoo (error form) of each Band slider, ba.db2linear
-    e10 = smoo * (e10 + min(340282346638528859811704183484516925440.0, xq10 - band10))
-    xq10 = band10
-    g10 = pow(10.0, 0.05 * (band10 + e10))
-    e9 = smoo * (e9 + min(340282346638528859811704183484516925440.0, xq9 - band9))
-    xq9 = band9
-    g9 = pow(10.0, 0.05 * (band9 + e9))
-    e8 = smoo * (e8 + min(340282346638528859811704183484516925440.0, xq8 - band8))
-    xq8 = band8
-    g8 = pow(10.0, 0.05 * (band8 + e8))
-    e7 = smoo * (e7 + min(340282346638528859811704183484516925440.0, xq7 - band7))
-    xq7 = band7
-    g7 = pow(10.0, 0.05 * (band7 + e7))
-    e6 = smoo * (e6 + min(340282346638528859811704183484516925440.0, xq6 - band6))
-    xq6 = band6
-    g6 = pow(10.0, 0.05 * (band6 + e6))
-    e5 = smoo * (e5 + min(340282346638528859811704183484516925440.0, xq5 - band5))
-    xq5 = band5
-    g5 = pow(10.0, 0.05 * (band5 + e5))
-    e4 = smoo * (e4 + min(340282346638528859811704183484516925440.0, xq4 - band4))
-    xq4 = band4
-    g4 = pow(10.0, 0.05 * (band4 + e4))
-    e3 = smoo * (e3 + min(340282346638528859811704183484516925440.0, xq3 - band3))
-    xq3 = band3
-    g3 = pow(10.0, 0.05 * (band3 + e3))
-    e2 = smoo * (e2 + min(340282346638528859811704183484516925440.0, xq2 - band2))
-    xq2 = band2
-    g2 = pow(10.0, 0.05 * (band2 + e2))
-    e1 = smoo * (e1 + min(340282346638528859811704183484516925440.0, xq1 - band1))
-    xq1 = band1
-    g1 = pow(10.0, 0.05 * (band1 + e1))
-    y = p0_8y * g10 + p1_7y * g9 + p2_6y * g8 + p3_5y * g7 + p4_4y * g6 + p5_3y * g5 + p6_2y * g4 + p7_1y * g3 + hp1by * g2 + lp1bv2 * g1
+    gains: f32[10]
+    for i in 0..10:
+      band_errors[i] *= smoo
+      gains[i] = block_gains[i]
+      if !settled:
+        gains[i] = pow(10.0, 0.05 * (bands[i] + band_errors[i]))
+    y = p0_8y * gains[9] + p1_7y * gains[8] + p2_6y * gains[7] + p3_5y * gains[6] + p4_4y * gains[5] + p5_3y * gains[4] + p6_2y * gains[3] + p7_1y * gains[2] + hp1by * gains[1] + lp1bv2 * gains[0]
     out1 = y

@@ -4,7 +4,8 @@
 # shaped by a triangular attack-release envelope (en.ar). Bell (pm.frenchBellModel): 50 modes
 # (pm.modeFilter, Chamberlin form) in parallel, averaged.
 # Expert variant: the mode sum split into 4 interleaved partial sums, as ocpp does.
-outs 2
+
+include "common/float_limits.onda"
 
 params:
   strikePosition = 0 {0, 6}
@@ -14,7 +15,6 @@ params:
   gate = 1.0 {0.0, 1.0}
 
 const MODES = 50
-const BIG = 340282350000000000000000000000000000000.0      # ma.MAX
 
 const FREQS: f64[50] = [
   439.077, 440.305, 606.452, 611.776, 709.617, 709.877, 856.966, 899.051,
@@ -104,8 +104,8 @@ init:
     s = sin(ANGLE[i] / SR)
     b0[i] = t2 + s * s * (1.0 - t2)
     op[i] = (t + 1.0) * (t + 1.0)
-    f2[i] = min(4.0 * (b0[i] / op[i]), BIG)
-    qq1[i] = min(t / b0[i], BIG) + 1.0
+    f2[i] = min(4.0 * (b0[i] / op[i]), float_limits::MaxFinite)
+    qq1[i] = min(t / b0[i], float_limits::MaxFinite) + 1.0
   low: f32[50]                         # mode states: lowpass / f ...
   band: f32[50]                        # ... and bandpass
   seed: i32 = 0                        # no.noise
@@ -119,21 +119,21 @@ init:
   gh = tan(max(0.0, min(PI * 10.0 / SR, 1.5676547)))
   ghk = gh + 1.4142135
   gh9 = -1.4142135 - gh
-  ch = gh * min(BIG, 1.0 / (gh * ghk + 1.0))
+  ch = gh * min(float_limits::MaxFinite, 1.0 / (gh * ghk + 1.0))
 
 block:
   p = MODES * strikePosition
   gi: f32[50]                          # input gain per mode, referred to 44.1 kHz
   for i in 0..MODES:
-    gi[i] = min(11025.0 / SR * (op[i] * GAINS[p + i] / b0[i]), BIG)
+    gi[i] = min(11025.0 / SR * (op[i] * GAINS[p + i] / b0[i]), float_limits::MaxFinite)
   gl = tan(max(0.0, min(PI / SR * strikeCutOff, 1.5676547)))
   glk = gl + 1.4142135
-  cl = gl * min(BIG, 1.0 / (gl * glk + 1.0))
+  cl = gl * min(float_limits::MaxFinite, 1.0 / (gl * glk + 1.0))
   invAtt = 1.0 / max(1.0, 0.002 * SR * strikeSharpness)
   sample:
     # strike: noise -> highpass -> lowpass, times the attack-release envelope
     seed = 12345 + 1103515245 * seed
-    n = 0.0000000004656613 * f32(seed)
+    n = pow(2.0, -31.0) * f32(seed)
     t1 = n - (ghk * h1 + h2)
     v1 = h1 + ch * t1
     hp = n + gh9 * v1 - h2

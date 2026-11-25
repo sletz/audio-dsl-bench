@@ -4,7 +4,6 @@
 # Then dm.freeverb_demo: re.stereo_freeverb (8 lowpass-feedback combs and 4 Schroeder allpasses
 # per channel, the right one detuned by the stereo spread) mixed with the dry signal. The delay
 # lengths are the ones reverbs.lib computes for 48 kHz (adaptSR, spread int(0.5*46*48000/44100)).
-outs 2
 
 params:
   drop = 1.0 {0.0, 1.0}
@@ -29,7 +28,7 @@ namespace fv<L = 2>:
     idx: i32 {L, wrap}
     lp = 0.0
 
-    def tick(self, x: f32, fb: f32, damp: f32, damp1: f32):
+    def tick(self, x, fb, damp, damp1):
       y = self.buf[self.idx]
       self.lp = damp * self.lp + damp1 * y
       self.buf[self.idx] = x + fb * self.lp
@@ -44,22 +43,22 @@ namespace fv<L = 2>:
     def read(self):
       return self.buf[self.idx]
 
-    def write(self, s: f32):
+    def write(self, s):
       self.buf[self.idx] = s
       self.idx += 1
 
 init:
-  started = false                      # os.osc phasor reset at the first sample
+  started = false  # os.osc phasor reset at the first sample
   dropPrev = 0.0
-  t = 0                                # bubble time, in samples
-  phase = 0                            # os.osc phasor: 30-bit integer part ...
-  phaseFrac = 0                        # ... and 24-bit fraction
-  ampPrev = 0.0                        # si.smooth(0.99) of the decay (error form)
+  t = 0  # bubble time, in samples
+  phase = 0  # os.osc phasor: 30-bit integer part ...
+  phaseFrac = 0  # ... and 24-bit fraction
+  ampPrev = 0.0  # si.smooth(0.99) of the decay (error form)
   ampE = 0.0
   invSR = 1.0 / SR
   etaSR = 0.075 / SR
-  dampSR = 17640.0 / SR                # scaledamp * origSR / SR
-  roomSR = 12348.0 / SR                # scaleroom * origSR / SR
+  dampSR = 17640.0 / SR  # scaledamp * origSR / SR
+  roomSR = 12348.0 / SR  # scaleroom * origSR / SR
   cl0 = fv<1214>::Comb()
   cl1 = fv<1293>::Comb()
   cl2 = fv<1389>::Comb()
@@ -86,14 +85,14 @@ init:
   ar3 = fv<269>::Allpass()
 
 block:
-  dmp = dampSR * damp                  # freeverb damping
+  dmp = dampSR * damp  # freeverb damping
   dmp1 = 1.0 - dmp
-  wet2 = 0.2 * wet                     # g * fixedgain, both channels summed by stereo_freeverb
+  wet2 = 0.2 * wet  # g * fixedgain, both channels summed by stereo_freeverb
   f0 = invSR * freq
-  dc = 0.043 * freq + 0.0014 * pow(freq, 1.5)   # bubble damping
+  dc = 0.043 * freq + 0.0014 * pow(freq, 1.5)  # bubble damping
   sigma = etaSR * dc
   decay = invSR * dc
-  fb = roomSR * roomSize + 0.7         # comb feedback
+  fb = roomSR * roomSize + 0.7  # comb feedback
   dry = 1.0 - wet
   sample:
     # bubble time: restarts on the rising edge of drop
@@ -105,7 +104,7 @@ block:
     ft = f32(t)
     # os.osc at f0 * (1 + sigma * time)
     inc = f0 * (1.0 + sigma * ft)
-    fi = 1073741824.0 * (inc - round(inc))
+    fi = f32(1 << 30) * (inc - round(inc))
     fl = floor(fi)
     frac = phaseFrac + i32(16777216.0 * (fi - fl))
     if started:

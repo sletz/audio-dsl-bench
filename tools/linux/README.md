@@ -8,12 +8,12 @@ JIT, and the hand-written C++ ports. It selects the 38 shared workloads by defau
 
 Use Python 3.8 or newer, Clang C++, `llvm-objcopy`, `taskset`, CMake 3.31 or newer, Ninja, Make,
 and the development dependencies for LLVM, Faust, and zlib. Unpack the x86-64 Linux
-package of [Onda 0.9.2](https://github.com/onda-lang/onda/releases/tag/0.9.2), the version
-measured on macOS (the commands below), and add its `bin/` directory to `PATH`. A later
-release with processor ABI 7 also builds, but its timings are not those of 0.9.2. The runner
-finds the bundled ABI header and prints the compiler version. Use `ONDA` or `--onda` to select a different compiler,
-and `ONDA_INCLUDE` or `--onda-include` if its matching ABI header lives elsewhere.
-The strict build uses the release's default arithmetic. The fast build passes `--fast-math`.
+package of Onda 0.9.3 and add its `bin/` directory to `PATH`. The runner locates the
+bundled processor ABI 7 header and prints the compiler version. Use `ONDA` or `--onda`
+to select a different compiler and `ONDA_INCLUDE` or `--onda-include` to select its headers.
+The two measured Onda builds pass `--strict-math` and `--fast-math`. The strict C++ builds
+use `-ffp-contract=off`. An explicit `fma` in the source still requests a single rounding.
+[Onda 0.9.3 release](https://github.com/onda-lang/onda/releases/tag/0.9.3)
 
 From the benchmark checkout, put the dependencies in `build/toolchains/` or substitute
 existing checkouts. The Faust and faustlibraries revisions match the upstream report and
@@ -22,12 +22,12 @@ existing checkouts. The Faust and faustlibraries revisions match the upstream re
 ```bash
 deps="$PWD/build/toolchains"
 mkdir -p "$deps"
-curl -fL https://github.com/onda-lang/onda/releases/download/0.9.2/onda-0.9.2-linux-x64.tar.xz \
-  -o "$deps/onda-0.9.2-linux-x64.tar.xz"
-printf '%s  %s\n' '832bbaddad692590022c08a1c07b48d5942ed790abf37de9552bb9f42e69f0f7' \
-  "$deps/onda-0.9.2-linux-x64.tar.xz" | sha256sum --check
-tar -xJf "$deps/onda-0.9.2-linux-x64.tar.xz" -C "$deps"
-export PATH="$deps/onda-0.9.2-linux-x64/bin:$PATH"
+curl -fL https://github.com/onda-lang/onda/releases/download/0.9.3/onda-0.9.3-linux-x64.tar.xz \
+  -o "$deps/onda-0.9.3-linux-x64.tar.xz"
+printf '%s  %s\n' '0c451f5cb90f40a015f6e5568e046740ada9732db53fe47352d8fbe12592c042' \
+  "$deps/onda-0.9.3-linux-x64.tar.xz" | sha256sum --check
+tar -xJf "$deps/onda-0.9.3-linux-x64.tar.xz" -C "$deps"
+export PATH="$deps/onda-0.9.3-linux-x64/bin:$PATH"
 
 git clone https://github.com/grame-cncm/faust "$deps/onda-faust-main"
 git -C "$deps/onda-faust-main" checkout --detach 0b21bae83
@@ -97,17 +97,24 @@ python3 tools/linux/summarize.py build/linux-run/results.tsv
 ```
 
 The harness runs interleaved rounds at 48 kHz with 256-frame blocks. Onda uses the raw
-processor ABI with both block-boundary flags.
+processor ABI with both block-boundary flags. The runner automatically measures
+`dsp/NAME_explicit_loops.onda` when present, using `onda-block` and `onda-block-fm`.
 Every engine has the same x86 denormal setting for the run. `--flush-denormals` enables
 FTZ/DAZ and the default preserves denormals.
 
 The harness first renders four seconds with each engine's default parameters. The TSV
 reports the maximum absolute difference and relative RMS difference against strict scalar
 Faust C++, whether the output is finite, and the RMS of the reference. As in the macOS
-report, these diagnostics do not filter the timing summary. The summary compares the fastest
-engine in each language family against the fastest Faust engine in the same math mode. Each
-cell shows the geometric mean speedup and win count for workloads with timings on both sides.
+report, these diagnostics do not filter the timing summary. Each comparison uses the fastest
+Faust engine in the same math mode. The chart shows both Onda versions where measured.
+The geometric mean and win count use the faster Onda version per workload and math mode.
 Check each workload's `build.log` and `run.log` for compiler or JIT diagnostics.
+
+The published summary uses three complete runs. 
+The first timed the workloads alphabetically, the second in reverse order, and the third
+started halfway through the alphabetical list and wrapped to the start. Run
+`tools/linux/summarize.py` with Python on each TSV and take the middle geometric mean
+for each math mode. Use the win count from the run that supplied that median.
 
 The Linux and macOS figures are not directly comparable. On Linux, the best Faust build is
 chosen among more builds: strict adds `cpp48-scal` and `cpp48-vec` to the four of the macOS
@@ -119,3 +126,12 @@ Append workload names to run a subset. `--ir NAME` writes Onda MIR and optimized
 IR, LLVM IR from Clang for the C++ translation units, and IR from the timed Faust LLVM
 factories. `--llvm-no-fast` requests a separate Faust LLVM diagnostic and labels its
 rows `-no-fm`.
+
+## Regenerate the Linux README chart
+
+```bash
+python3 report/readme_chart.py . --linux-results results/linux-x86_64/results.tsv \
+  --machine "Intel Core i9-14900HX" --flush-denormals
+```
+
+Use `--flush-denormals` for timings recorded with FTZ/DAZ enabled.

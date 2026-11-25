@@ -1,6 +1,6 @@
 #!/bin/bash
-# build.sh NAME : builds build/NAME/bench from dsp/NAME.dsp and dsp/NAME.onda, plus the optional
-# Cmajor (dsp/NAME.cmajor), YDSP (dsp/NAME.ydsp) and hand-written C++ (dsp/NAME.cpp) ports
+# build.sh NAME : builds build/NAME/bench from dsp/NAME.dsp and dsp/NAME.onda, with optional
+# explicit-loop Onda, Cmajor, YDSP and hand-written C++ variants.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ONDA="${ONDA:-$(command -v onda || printf '%s' /Users/letz/Developpements/onda/target/release/onda)}"
@@ -47,47 +47,7 @@ D="$HERE/build/$N"
 rm -rf "$D"; mkdir -p "$D"; cd "$D"
 CXX="clang++ -std=c++17 -mcpu=native"
 
-for v in strict fast; do
-  fm=""; [ "$v" = fast ] && fm="--fast-math"
-  "$ONDA" compile "$HERE/dsp/$N.onda" --emit obj --target-cpu host -b 256 --sr 48000 $fm \
-    -o onda_$v.raw.o --meta-out onda_$v.json > /dev/null
-  $OBJCOPY --redefine-sym _onda_processor_init=_onda_init_$v --redefine-sym _onda_process=_onda_process_$v \
-    onda_$v.raw.o onda_$v.o
-done
-
-python3 - onda_strict.json onda_fast.json > onda_meta.h <<'EOF'
-import json, sys
-d, fast = (json.load(open(path)) for path in sys.argv[1:])
-for obj in (d, fast):
-    if obj["abi_version"] != 7 or obj["metadata"]["buffers"]:
-        sys.exit("expected Onda ABI 7 with no external buffers")
-if d["runtime"] != fast["runtime"] or any(
-    d["metadata"][key] != fast["metadata"][key] for key in ("params", "inputs", "outputs")
-):
-    sys.exit("Onda strict and fast objects have incompatible layouts or parameter defaults")
-rt = d["runtime"]; md = d["metadata"]
-print("#pragma once\n#include <cstring>")
-print(f"#define ONDA_STATE_SIZE {rt['state_size_bytes']}")
-print(f"#define ONDA_STATE_ALIGN {max(16, rt['state_align_bytes'])}")
-print(f"#define ONDA_PARAM_SIZE {rt['param_size_bytes']}")
-print(f"#define ONDA_PARAM_ALIGN {rt['param_align_bytes']}")
-for direction in ("input", "output"):
-    count = 0
-    for port in md[f"{direction}s"]:
-        if port["scalar"] != "f32" or port["slot_offset"] != count:
-            sys.exit(f"expected contiguous f32 {direction} ports")
-        count += port["array_len"]
-    print(f"static constexpr int {direction}_count = {count};")
-print("static inline void onda_write_defaults(unsigned char* p) {")
-for prm in md["params"]:
-    sc = prm["scalar"]; off = prm["byte_offset"]
-    for i, r in enumerate(prm["default_reprs"] or []):
-        o = off + i * prm["element_size_bytes"]
-        ctype = {"f32": "float", "f64": "double", "i32": "int", "i64": "long long", "bool": "unsigned char"}[sc]
-        val = {"true": "1", "false": "0"}.get(r, r)
-        print(f"  {{ {ctype} v = ({ctype})({val}); memcpy(p + {o}, &v, sizeof v); }}")
-print("}")
-EOF
+python3 "$HERE/tools/onda_bench.py" "$ONDA" "$OBJCOPY" "$HERE/dsp/$N.onda" > onda_engines.inc
 
 for mode in scal vec; do
   opt="-scal"; [ $mode = vec ] && opt="-vec -vs 32"
@@ -174,7 +134,7 @@ for v in strict fast; do
 done
 
 $CXX -O2 -I. -I"$HERE/tools" -I"$HERE/tools/ydsp" -I"$ONDA_INCLUDE" -I/usr/local/include -DCMAJ_SRC=\"$CMAJ_SRC\" -DYDSP_SRC=\"$YDSP_SRC\" -DFAUSTLIB=\"$FAUSTLIB\" -DSR48DIR=\"$HERE/sr48\" -c "$HERE/harness.cpp" -o harness.o
-$CXX -o bench harness.o Faust_*.o Cmaj_*.o Cxx_*.o onda_strict.o onda_fast.o "$HERE/build/_common/cmaj_jit.o" \
+$CXX -o bench harness.o Faust_*.o Cmaj_*.o Cxx_*.o onda_*.o "$HERE/build/_common/cmaj_jit.o" \
   "$HERE/build/_ydsp/libydsp_engine.a" /usr/local/lib/libfaustwithllvm.a \
   -L/opt/local/lib -lz -lzstd -lxml2 -lncurses -framework Accelerate \
   -framework Foundation -framework Cocoa -framework IOKit -framework Security -framework CoreAudio \

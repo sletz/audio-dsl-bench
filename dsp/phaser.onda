@@ -4,8 +4,6 @@
 # allpass form, x - bp(2k*x)) whose pole angles follow an LFO (fixed-point phasor, os.lf_sawpos;
 # sine on the left, cosine on the right), then the dry input mixed with the allpass chain.
 # The equations are written as the Faust compiler simplifies them (om = 1 - R from ma.expm1).
-ins 2
-outs 2
 
 params:
   speed = 0.5 {0.0, 10.0}
@@ -17,38 +15,11 @@ params:
   fratio = 1.5 {1.1, 4.0}
   level = 0.0 {-60.0, 10.0}
 
-const BIG = 340282350000000000000000000000000000000.0   # ma.MAX
-
-# hyperbolic sine (no builtin): Taylor series to x^9 below 0.5, where (e^x - e^-x)/2 cancels
-def sinh1(x: f32):
-  if abs(x) < 0.5:
-    x2 = x * x
-    return x * (1.0 + x2 * (0.16666667 + x2 * (0.008333334 + x2 * (0.0001984127 + x2 * 0.0000027557319))))
-  return 0.5 * (exp(x) - exp(-x))
-
-# One second-order allpass section (pf.vibrato2_mono's ap2p) at half pole angle h, with
-# om2q = om^2/4, omc = 1 - om, kq = -2 fq, uq = -4 fq (fq = 1 - R^2): returns the bandpass
-# output bp, the section's output being x - bp.
-struct Ap2:
-  s1 = 0.0
-  s2 = 0.0
-
-  def tick(self, x: f32, h: f32, om2q: f32, omc: f32, kq: f32, uq: f32):
-    c = cos(h)
-    s = sin(h)
-    sq = om2q + omc * (c * c)          # S/4 (S = A(-1)), also the SVF's d
-    pq = om2q + omc * (s * s)          # P/4 (P = A(1))
-    iS = min(BIG, 0.25 / sq)
-    g = sqrt(4.0 * pq * iS)
-    t = sq * g * (iS * min(BIG, 1.0 / g) * ((4.0 * pq - kq) * self.s1 + uq * x) + self.s2)   # -g*hp
-    bp = self.s1 - t
-    self.s1 = self.s1 - 2.0 * t
-    self.s2 = self.s2 + 2.0 * g * bp
-    return bp
+include "common/phaser.onda"
 
 init:
-  phase = 0                            # os.lf_sawpos phasor: 30-bit integer part ...
-  phaseFrac = 0                        # ... and 24-bit fraction
+  phase = 0  # os.lf_sawpos phasor: 30-bit integer part ...
+  phaseFrac = 0  # ... and 24-bit fraction
   apl0 = Ap2()
   apl1 = Ap2()
   apl2 = Ap2()
@@ -57,32 +28,32 @@ init:
   apr1 = Ap2()
   apr2 = Ap2()
   apr3 = Ap2()
-  yl = 0.0                             # chain outputs, fed back through fb
+  yl = 0.0  # chain outputs, fed back through fb
   yr = 0.0
 
 block:
-  lvl = pow(10.0, 0.05 * level)        # ba.db2linear
+  lvl = pow(10.0, 0.05 * level)  # ba.db2linear
   g2 = 0.5 * depth
   g1 = lvl * (1.0 - g2)
   hy = 0.5 * max(-(PI / SR * width), -80.0)
   ex = exp(hy)
-  sh = sinh1(hy)                       # om = -ma.expm1(-pi*width/SR) = -2*ex*sh
+  sh = sinh1(hy)  # om = -ma.expm1(-pi*width/SR) = -2*ex*sh
   om2q = (ex * ex) * (sh * sh)
   omc = 2.0 * ex * sh + 1.0
-  fqq = sh * (ex * sh + 1.0)           # fq = -4*ex*fqq
+  fqq = sh * (ex * sh + 1.0)  # fq = -4*ex*fqq
   kq = 8.0 * ex * fqq
   uq = 16.0 * ex * fqq
-  th0 = TWO_PI * frqmin                # SR * (pole angle of the first notch), from frqmin ...
-  thr = PI * (frqmin - max(frqmin, frqmax))    # ... and frqmax
-  r0 = 1.0 / SR                        # notch i at fratio^i times the first one
+  th0 = TWO_PI * frqmin  # SR * (pole angle of the first notch), from frqmin ...
+  thr = PI * (frqmin - max(frqmin, frqmax))  # ... and frqmax
+  r0 = 1.0 / SR  # notch i at fratio^i times the first one
   r1 = (1.0 / SR) * fratio
   r2 = (1.0 / SR) * (fratio * fratio)
   r3 = (1.0 / SR) * (fratio * fratio * fratio)
-  inc = 1073741824.0 * (1.0 / SR) * speed      # 2^30 * f / SR
+  inc = f32(1 << 30) * (1.0 / SR) * speed  # 2^30 * f / SR
   incInt = i32(floor(inc))
   incFrac = i32(16777216.0 * (inc - floor(inc)))
   sample:
-    ph = 0.00000037450704 * f32(phase >> 6)    # 2 pi * os.lf_sawpos(speed)
+    ph = PhaseToRadians * f32(phase >> 6)  # 2 pi * os.lf_sawpos(speed)
     phaseFrac += incFrac
     phase = (incInt + phase + (phaseFrac >> 24)) & 1073741823
     phaseFrac &= 16777215
@@ -90,23 +61,23 @@ block:
     xl = lvl * in1
     fl = fb * yl
     bl = th0 - thr * (1.0 - sin(ph))
-    l0 = apl0.tick(xl + fl, 0.5 * min(2.984513, r0 * bl), om2q, omc, kq, uq)
-    l1 = apl1.tick(xl - l0 + fl, 0.5 * min(2.984513, r1 * bl), om2q, omc, kq, uq)
+    l0 = apl0.tick(xl + fl, coefficients(0.5 * min(2.984513, r0 * bl), om2q, omc, kq), uq)
+    l1 = apl1.tick(xl - l0 + fl, coefficients(0.5 * min(2.984513, r1 * bl), om2q, omc, kq), uq)
     l01 = l0 + l1
-    l2 = apl2.tick(xl - l01 + fl, 0.5 * min(2.984513, r2 * bl), om2q, omc, kq, uq)
+    l2 = apl2.tick(xl - l01 + fl, coefficients(0.5 * min(2.984513, r2 * bl), om2q, omc, kq), uq)
     l012 = l01 + l2
-    l3 = apl3.tick(xl - l012 + fl, 0.5 * min(2.984513, r3 * bl), om2q, omc, kq, uq)
+    l3 = apl3.tick(xl - l012 + fl, coefficients(0.5 * min(2.984513, r3 * bl), om2q, omc, kq), uq)
     yl = xl - (l012 + l3) + fl
     out1 = g1 * in1 + g2 * yl
     # right channel, LFO phase 1 (cosine)
     xr = lvl * in2
     fr = fb * yr
     br = th0 - thr * (1.0 - cos(ph))
-    q0 = apr0.tick(xr + fr, 0.5 * min(2.984513, r0 * br), om2q, omc, kq, uq)
-    q1 = apr1.tick(xr - q0 + fr, 0.5 * min(2.984513, r1 * br), om2q, omc, kq, uq)
+    q0 = apr0.tick(xr + fr, coefficients(0.5 * min(2.984513, r0 * br), om2q, omc, kq), uq)
+    q1 = apr1.tick(xr - q0 + fr, coefficients(0.5 * min(2.984513, r1 * br), om2q, omc, kq), uq)
     q01 = q0 + q1
-    q2 = apr2.tick(xr - q01 + fr, 0.5 * min(2.984513, r2 * br), om2q, omc, kq, uq)
+    q2 = apr2.tick(xr - q01 + fr, coefficients(0.5 * min(2.984513, r2 * br), om2q, omc, kq), uq)
     q012 = q01 + q2
-    q3 = apr3.tick(xr - q012 + fr, 0.5 * min(2.984513, r3 * br), om2q, omc, kq, uq)
+    q3 = apr3.tick(xr - q012 + fr, coefficients(0.5 * min(2.984513, r3 * br), om2q, omc, kq), uq)
     yr = xr - (q012 + q3) + fr
     out2 = g1 * in2 + g2 * yr

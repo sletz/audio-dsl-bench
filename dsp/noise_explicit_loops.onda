@@ -1,0 +1,19 @@
+params:
+  damp = 0.9 {0.0, 0.999}
+
+init:
+  seed: i32 = 0
+  lp = 0.0
+
+block:
+  feed = (1.0 - damp) * (1.0 / 2147483647.0)
+  noise: f32[BS]
+  for i in 0..BS:
+    seed = seed * 1103515245 + 12345
+    noise[i] = f32(seed)
+
+  frame = 0 {BS, wrap}
+  sample:
+    lp = fma(lp, damp, noise[frame] * feed)
+    out1 = lp
+    frame += 1

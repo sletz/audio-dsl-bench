@@ -1,0 +1,233 @@
+include "common/float_limits.onda"
+include "common/virtual_analog.onda"
+
+# DPW step expressed in the integer phase's 54-bit fixed-point units.
+def phase_increment(hz) -> i64:
+  rate = (1.0 / SR) * hz
+  # The greatest permitted detuned frequency is below half this sample rate.
+  if SR < 16384:
+    rate -= round(rate)
+  counts = f32(1 << 30) * rate
+  whole = floor(counts)
+  fraction = i32(16777216.0 * (counts - whole))
+  return (i64(i32(whole)) << 24) + i64(fraction)
+
+def ramp(phase: i64):
+  # Only the low 54 phase bits are observable, so i64 wrap preserves the phase.
+  return -1.0 + float_limits::Epsilon * f32((phase >> 30) & 16777215)
+
+struct Voice:
+  saw_phase: i64
+  pulse_phase: i64
+  previous_saw
+  previous_pulse
+  history: f32[16384]
+  triangle
+
+  def render(
+    self,
+    frequency: f32[BS],
+    duty_offset: f32[BS],
+    detune,
+    steady: bool,
+    restart: bool,
+    cursor: i32,
+    saws: f32[BS],
+    squares: f32[BS],
+    pulses: f32[BS],
+    triangles: f32[BS]
+  ):
+    saw_step: i64[BS]
+    pulse_step: i64[BS]
+    saw_hz: f32[BS]
+    pulse_hz: f32[BS]
+    square_delay: f32[BS]
+    pulse_delay: f32[BS]
+    hz = frequency[0] * detune
+    fixed_saw = max(20.0, abs(hz))
+    fixed_pulse = max(hz, 23.44895)
+    fixed_square = clamp((0.5 * SR) / fixed_pulse, 0.0, 8191.0)
+    if steady:
+      for frame in 0..BS:
+        pulse_delay[frame] = clamp(SR * (duty_offset[frame] / fixed_pulse), 0.0, 8191.0)
+    else:
+      for frame in 0..BS:
+        hz = frequency[frame] * detune
+        saw_hz[frame] = max(20.0, abs(hz))
+        pulse_hz[frame] = max(hz, 23.44895)
+        saw_step[frame] = phase_increment(saw_hz[frame])
+        pulse_step[frame] = phase_increment(pulse_hz[frame])
+        square_delay[frame] = clamp((0.5 * SR) / pulse_hz[frame], 0.0, 8191.0)
+        pulse_delay[frame] = clamp(SR * (duty_offset[frame] / pulse_hz[frame]), 0.0, 8191.0)
+
+    saw_ramp: f32[BS + 1]
+    pulse_ramp: f32[BS + 1]
+    saw_ramp[0] = self.previous_saw
+    pulse_ramp[0] = self.previous_pulse
+    # The fixed-point stride makes these phase reads independent within the block.
+    if steady:
+      saw_start = self.saw_phase
+      pulse_start = self.pulse_phase
+      saw_stride = phase_increment(fixed_saw)
+      pulse_stride = phase_increment(fixed_pulse)
+      for frame in 1..BS + 1:
+        sramp = ramp(saw_start + i64(frame) * saw_stride)
+        pramp = ramp(pulse_start + i64(frame) * pulse_stride)
+        saw_ramp[frame] = sramp * sramp
+        pulse_ramp[frame] = pramp * pramp
+      self.saw_phase += i64(BS) * saw_stride
+      self.pulse_phase += i64(BS) * pulse_stride
+    else:
+      for frame in 0..BS:
+        self.saw_phase += saw_step[frame]
+        self.pulse_phase += pulse_step[frame]
+        if frame == 0 && restart:
+          self.saw_phase = 0
+          self.pulse_phase = 0
+        s = ramp(self.saw_phase)
+        p = ramp(self.pulse_phase)
+        saw_ramp[frame + 1] = s * s
+        pulse_ramp[frame + 1] = p * p
+    self.previous_saw = saw_ramp[BS]
+    self.previous_pulse = pulse_ramp[BS]
+
+    pulse_source: f32[BS]
+    if steady:
+      for frame in 0..BS:
+        saws[frame] = (saw_ramp[frame + 1] - saw_ramp[frame]) / fixed_saw
+        pulse_source[frame] = (pulse_ramp[frame + 1] - pulse_ramp[frame]) / fixed_pulse
+    else:
+      for frame in 0..BS:
+        saws[frame] = (saw_ramp[frame + 1] - saw_ramp[frame]) / saw_hz[frame]
+        pulse_source[frame] = (pulse_ramp[frame + 1] - pulse_ramp[frame]) / pulse_hz[frame]
+    if restart:
+      saws[0] = 0.0
+      pulse_source[0] = 0.0
+
+    for frame in 0..BS:
+      write = (cursor + frame) & 16383
+      self.history[write] = pulse_source[frame]
+      delay = fixed_square
+      if !steady:
+        delay = square_delay[frame]
+      squares[frame] = diffdel(self.history, write, pulse_source[frame], delay)
+      pulses[frame] = diffdel(self.history, write, pulse_source[frame], pulse_delay[frame])
+      self.triangle = (0.25 * SR) * squares[frame] + (1.0 - 48.0 / SR) * self.triangle
+      triangles[frame] = self.triangle
+
+init:
+  saw_level_error = 0.0
+  previous_level = 0.0
+  frequency_error = 0.0
+  previous_frequency = 0.0
+  duty_error = 0.0
+  previous_duty = 0.0
+  started = false
+  cursor = 0 {16384, wrap}
+  voice1 = Voice()
+  voice2 = Voice()
+  voice3 = Voice()
+  seed: i32 = 0
+  k1 = 0.0
+  k2 = 0.0
+  k3 = 0.0
+
+block:
+  amp = pow(10.0, 0.05 * mixdb)
+  target = 440.0 * pow(2.0, (1.0 / 12.0) * (freq - 49.0))
+  pole = exp(-((1.0 / SR) / portamento))
+  amp_pole = 1.0 - 44.1 / SR
+  dt1 = 0.01 * detune1 + 1.0
+  dt2 = 0.01 * detune2 + 1.0
+  tri_gain = (1.3333334 / SR) * stri
+  saw_gain = ((1.0 / 12.0) * SR)
+  pulse_gain = saw_gain * spt
+  duty_complement = 1.0 - duty
+  # A settled portamento error decays toward zero.
+  frequency_settled = started && previous_frequency == target && target + frequency_error == target
+  frequency: f32[BS]
+  duty_offset: f32[BS]
+  level: f32[BS]
+  for frame in 0..BS:
+    saw_level_error = amp_pole * ((previous_level - amp) + saw_level_error)
+    previous_level = amp
+    frequency_error = pole * ((previous_frequency - target) + frequency_error)
+    previous_frequency = target
+    duty_error = 0.99 * ((previous_duty - duty) + duty_error)
+    previous_duty = duty
+    level[frame] = amp + saw_level_error
+    frequency[frame] = target + frequency_error
+    duty_offset[frame] = duty_complement - duty_error
+
+  saw1: f32[BS]
+  square1: f32[BS]
+  pulse1: f32[BS]
+  triangle1: f32[BS]
+  saw2: f32[BS]
+  square2: f32[BS]
+  pulse2: f32[BS]
+  triangle2: f32[BS]
+  saw3: f32[BS]
+  square3: f32[BS]
+  pulse3: f32[BS]
+  triangle3: f32[BS]
+  voice1.render(
+    frequency,
+    duty_offset,
+    1.0,
+    frequency_settled,
+    !started,
+    cursor,
+    saw1,
+    square1,
+    pulse1,
+    triangle1
+  )
+  voice2.render(
+    frequency,
+    duty_offset,
+    dt1,
+    frequency_settled,
+    !started,
+    cursor,
+    saw2,
+    square2,
+    pulse2,
+    triangle2
+  )
+  voice3.render(
+    frequency,
+    duty_offset,
+    dt2,
+    frequency_settled,
+    !started,
+    cursor,
+    saw3,
+    square3,
+    pulse3,
+    triangle3
+  )
+  # Pink noise and final mix are independent of the oscillator phase updates.
+  pink_noise: f32[BS]
+  for frame in 0..BS:
+    seed = seed * 1103515245 + 12345
+    k0 = 0.5221894 * k3 + pow(2.0, -31.0) * f32(seed) + 2.494956 * k1 - 2.0172658 * k2
+    pink_noise[frame] = 0.049922034 * k0 + 0.0506127 * k2 - (0.095993534 * k1 + 0.004408786 * k3)
+    k3 = k2
+    k2 = k1
+    k1 = k0
+
+  rendered: f32[BS]
+  for frame in 0..BS:
+    saws = ssaw * (saw1[frame] + saw2[frame] + saw3[frame])
+    sqs = ssq * (square1[frame] + square2[frame] + square3[frame])
+    tris = tri_gain * frequency[frame] * (triangle1[frame] + dt1 * triangle2[frame] + dt2 * triangle3[frame])
+    pts = pulse_gain * (pulse1[frame] + pulse2[frame] + pulse3[frame])
+    rendered[frame] = level[frame] * (saw_gain * (saws + sqs) + tris + pts + spn * pink_noise[frame])
+  started = true
+  cursor += BS
+
+  index = 0 {BS, wrap}
+  sample:
+    out1 = sei * in1 + rendered[index]
+    index += 1

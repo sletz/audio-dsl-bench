@@ -42,11 +42,6 @@ td.win { color: var(--win); } td.loss { color: var(--loss); } td.tie { color: va
 .group-onda { color: var(--onda); } .group-faust { color: var(--faust); }
 .note { color: var(--muted); font-size: .86rem; }
 #chart svg { display: block; width: 100%; height: auto; }
-.findings { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
-.finding { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 14px 16px; min-width: 0; }
-.finding .tag { font: 500 .72rem var(--f-mono); letter-spacing: .05em; text-transform: uppercase; }
-.finding .tag.o { color: var(--onda); } .finding .tag.f { color: var(--faust); }
-.finding .tag.c { color: var(--cmaj); } .finding .tag.y { color: var(--ydsp); } .finding .tag.x { color: var(--cxx-ink); }
 .kpis.langs { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
 .kpis.langs .kpi { background: var(--surface); border: 1px solid var(--rule); border-left: 4px solid var(--faust); border-radius: 6px; padding: 10px 14px; }
 .kpis.langs .kpi.o { border-left-color: var(--onda); } .kpis.langs .kpi.c { border-left-color: var(--cmaj); } .kpis.langs .kpi.y { border-left-color: var(--ydsp); } .kpis.langs .kpi.x { border-left-color: var(--cxx); }
@@ -55,8 +50,6 @@ td.win { color: var(--win); } td.loss { color: var(--loss); } td.tie { color: va
 thead tr.groups th { text-align: center; border-bottom: 2px solid var(--rule); font-weight: 600; }
 th.g-faust { color: var(--faust); } th.g-onda { color: var(--onda); } th.g-cmaj { color: var(--cmaj); } th.g-ydsp { color: var(--ydsp); } th.g-cxx { color: var(--cxx-ink); }
 .chart picture img { display: block; width: 100%; height: auto; }
-.finding h3 { margin: .3em 0 .4em; font-size: 1.02rem; }
-.finding p { font-size: .92rem; margin: 0; }
 details { border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); margin-bottom: 10px; }
 summary { cursor: pointer; padding: 10px 14px; font-weight: 500; }
 summary:focus-visible, a:focus-visible { outline: 2px solid var(--onda); outline-offset: 2px; }
@@ -74,17 +67,15 @@ tr.cat th { text-align: left; font: 600 .78rem var(--f-mono); letter-spacing: .0
 tbody th .lab { display: block; font-size: .78rem; color: var(--muted); font-weight: 400; white-space: normal; min-width: 14ch; max-width: 26ch; }
 tr.variant th, tr.variant td { color: var(--muted); font-style: italic; }
 tr.variant td.best { background: transparent; }
-.findgroup { display: grid; gap: 12px; }
-.findgroup > h3 { margin: 18px 0 0; font-size: 1.12rem; }
 @media (max-width: 560px) { dl.method { grid-template-columns: 1fr; } dl.method dt { padding-top: 8px; } }
 </style>
 
 <main>
 <header>
-  <div class="eyebrow prose">Faust 2.95.3 and branch master-dev-certification-7 · Onda 0.9.2 · Cmajor 1.0.3209 · YUP YDSP 2.0.1 · Apple M5 · f32 · 48 kHz · 256-frame blocks</div>
+  <div class="eyebrow prose">Faust 2.95.3 and branch master-dev-certification-7 · Onda · Cmajor 1.0.3209 · YUP YDSP · macOS · f32 · 48 kHz · 256-frame blocks</div>
   <h1>Audio DSL Bench</h1>
   <p class="lede prose">The same %%NPROG%% DSP programs written in four audio DSP languages, Faust, Onda, Cmajor and YDSP, and by hand in plain C++, and timed on one harness with the same input. Eighteen were written for the benchmark; twenty reproduce emblematic examples of the Faust distribution, from oscillators and filters to reverbs, spatialization and physical models.</p>
-  <p class="lede prose">Faust is the reference: every ratio is the speed of a language (or of the C++ port) relative to the fastest of 13 Faust builds of the same floating-point contract, strict IEEE or fast-math. Above ×1, the language is faster than Faust.</p>
+  <p class="lede prose">Every speed is relative to the fastest measured Faust build of the same floating-point contract, strict IEEE or fast-math. Above ×1, the language is faster than Faust.</p>
   <div class="kpis langs">
     <div class="kpi f"><span class="lang">Faust</span><b>%%FWINS%%</b><span>fastest engine on %%FWINS%% of %%NPROG%% programs in strict mode, %%FFWINS%% with fast-math</span></div>
     <div class="kpi o"><span class="lang">Onda</span><b>×%%GS%% · ×%%GF%%</b><span>strict · fast-math; ×%%GSO%% strict against Faust 2.95.3 alone</span></div>
@@ -92,50 +83,40 @@ tr.variant td.best { background: transparent; }
     <div class="kpi y"><span class="lang">YDSP</span><b>×%%YS%% · ×%%YF%%</b><span>strict · fast-math</span></div>
     <div class="kpi x"><span class="lang">C++</span><b>×%%XS%% · ×%%XF%%</b><span>strict · fast-math; hand-written port, clang</span></div>
   </div>
-  <p class="note prose">Geometric means over the %%NPROG%% programs, without the alternative onda writings. Fastest engine per program, strict: Faust %%FWINS%%, onda %%OWINS%%, Cmajor %%CWINS%%, YDSP %%YWINS%%, C++ %%XWINS%%; fast-math: Faust %%FFWINS%%, onda %%OFWINS%%, Cmajor %%CFWINS%%, YDSP %%YFWINS%%, C++ %%XFWINS%%.</p>
+  <p class="note prose">Geometric means over the %%NPROG%% shared programs.%%ONDASCHEDULE%% Wins in strict mode — Faust %%FWINS%%, Onda %%OWINS%%, Cmajor %%CWINS%%, YDSP %%YWINS%%, C++ %%XWINS%%. Fast-math wins — Faust %%FFWINS%%, Onda %%OFWINS%%, Cmajor %%CFWINS%%, YDSP %%YFWINS%%, C++ %%XFWINS%%.</p>
 </header>
 
 <section class="chart">
   <h2>Speed relative to the best Faust build</h2>
-  <p class="prose">For each program, four columns: <span class="group-onda">onda</span>, <span style="color:var(--cmaj)">Cmajor</span>, <span style="color:var(--ydsp)">YDSP</span> and <span style="color:var(--cxx-ink)">C++</span>, against the best Faust build of the same contract (the ×1 line); up, faster than Faust, down, slower; log scale. Strict IEEE above, fast-math below, each on two rows of categories.</p>
+  <p class="prose">The chart compares each language with the best Faust build of the same math mode.</p>
   <div class="scroll" style="padding:8px"><picture>
     <source media="(prefers-color-scheme: dark)" srcset="languages-dark.svg">
-    <img src="languages-light.svg" alt="Speed of onda, Cmajor and YDSP relative to the best Faust build, per program, strict IEEE and fast-math, log scale.">
+    <img src="languages-light.svg" alt="Speed of Onda, Cmajor, YDSP and C++ relative to the best Faust build in strict IEEE and fast-math modes.">
   </picture></div>
-  <div class="findings" style="margin-top:16px">
-    <div class="finding"><span class="tag f">Faust</span><h3>Fastest on filters, delays and reverbs</h3><p>Mostly through the certification-7 branch, which reorders operations, reads delay lines one sample ahead and lets <code>fcautotool</code> pick the options: dattorro takes 3.2 ns with the elected options, 6 in hand-written C++, 9 to 15 in onda, Cmajor, YDSP and Faust 2.95.3.</p></div>
-    <div class="finding"><span class="tag o">Onda</span><h3>Fastest as soon as it vectorizes</h3><p>Built-in SLEEF and SIMD on state arrays (additive64 ×3.6 strict), state kept in registers (noise_gate ×2.0, tanh_drive ×1.7); close to the best Faust on the 20 Faust examples (×%%ONEW%% strict). It loses most on freeverb, frenchbell, hoa_decoder, peq10, and with fast-math on the delay-line programs.</p></div>
-    <div class="finding"><span class="tag c">Cmajor</span><h3>A strong JIT, a costly runtime</h3><p>Its JIT is the fastest of all engines on tapiir and pitch_shifter; on average 9 % faster than its generated C++. Running the processor one frame at a time and exchanging audio by copies costs about 2 ns per sample, much more with many channels.</p></div>
-    <div class="finding"><span class="tag y">YDSP</span><h3>Fast where fastMath vectorizes</h3><p>Fastest of all on tanh_drive with fastMath, ahead of the best Faust on diode_ladder and moog_vcf in strict mode. Strict, it keeps transcendentals on scalar libm, which costs it most on autopan, filter_bank and phaser; its FIR and delay matrices are its weakest programs.</p></div>
-    <div class="finding"><span class="tag x">C++</span><h3>Ordinary code, level with onda</h3><p>The hand-written port is %%CXXCPP%%× faster than Faust 2.95.3's generated C++ and %%CXXCMAJ%%× faster than Cmajor's, level with onda and with cert-7 ocpp in strict mode; fastest of all on %%XWINS%% programs (zita_rev, greyhole, mixer16, hoa_octo...). It loses where Faust rewrites the computation: peq10, freeverb, frenchbell, and with fast-math the delay lines read ahead.</p></div>
-  </div>
 </section>
 
 <section>
   <h2>Results by program</h2>
-  <p class="prose">Median time in <strong>ns per sample</strong> (lower is better), 21 interleaved and shuffled rounds of ~40 ms each, for the fastest engine of each language (and of the C++ port) in each contract. The highlighted cell is the fastest of the contract. "Best Faust": the fastest of the 13 Faust builds (strict: C++ and ocpp at <code>-ffp-contract=off</code>; fast-math: every <code>-ffast-math</code> build and Faust LLVM). "Cmajor": the faster of its generated C++ and its JIT. The last four columns give the strict ratio to the best Faust build.</p>
+  <p class="prose">Each language column gives the median <strong>ns per sample</strong> of its fastest measured engine in that math mode. The highlighted cell is the fastest in that mode. The strict Faust columns use C++ and ocpp at <code>-ffp-contract=off</code>. The fast-math columns use <code>-ffast-math</code> builds and Faust LLVM. The last four columns give the strict ratios to the best Faust build.</p>
   <div class="scroll">
     <table>
       <thead>
         <tr class="groups"><th></th><th colspan="5">Strict IEEE</th><th colspan="5">fast-math</th><th colspan="4">Strict: best Faust / language</th></tr>
-        <tr><th scope="col" style="text-align:left">Program</th><th scope="col" class="g-faust">Faust</th><th scope="col" class="g-onda">onda</th><th scope="col" class="g-cmaj">Cmajor</th><th scope="col" class="g-ydsp">YDSP</th><th scope="col" class="g-cxx">C++</th><th scope="col" class="g-faust">Faust</th><th scope="col" class="g-onda">onda</th><th scope="col" class="g-cmaj">Cmajor</th><th scope="col" class="g-ydsp">YDSP</th><th scope="col" class="g-cxx">C++</th><th scope="col" class="g-onda">onda</th><th scope="col" class="g-cmaj">Cmajor</th><th scope="col" class="g-ydsp">YDSP</th><th scope="col" class="g-cxx">C++</th></tr>
+        <tr><th scope="col" style="text-align:left">Program</th><th scope="col" class="g-faust">Faust</th><th scope="col" class="g-onda">Onda</th><th scope="col" class="g-cmaj">Cmajor</th><th scope="col" class="g-ydsp">YDSP</th><th scope="col" class="g-cxx">C++</th><th scope="col" class="g-faust">Faust</th><th scope="col" class="g-onda">Onda</th><th scope="col" class="g-cmaj">Cmajor</th><th scope="col" class="g-ydsp">YDSP</th><th scope="col" class="g-cxx">C++</th><th scope="col" class="g-onda">Onda</th><th scope="col" class="g-cmaj">Cmajor</th><th scope="col" class="g-ydsp">YDSP</th><th scope="col" class="g-cxx">C++</th></tr>
       </thead>
       <tbody>
 %%DROWS%%
       </tbody>
     </table>
   </div>
-  <p class="note">Every engine's output is compared with Faust C++ over 4 s. In the IEEE pass, where neither side contracts multiply-adds, the strict onda, Cmajor and YDSP ports stay within 8·10⁻⁴ relative RMS of Faust, the largest on additive64 (f32 phase drift); several are bit-exact. In the default pass, greyhole differs by 0.2 for every engine that does not fuse multiply-adds, Faust's own included: its smoothing recursion amplifies the last bit into slowly wandering delay lengths. The certification-7 builds differ by 7.5·10⁻³ on virtual_analog, in both passes and in strict mode too, where the other engines match Faust C++.</p>
+  <p class="note">The harness records four seconds of output diagnostics against scalar Faust C++. The raw TSV files include those diagnostics alongside the timings.</p>
 </section>
 
 <section>
-  <h2>How far from the optimum</h2>
-  <p class="prose">No compiler can be shown to produce the fastest code for every program: program equivalence is undecidable. Once the algorithm, the floating-point contract and the machine are fixed, the optimum exists, and two measurements bracket it. From above, the <strong>fastest engine of all</strong> for each program: what code generation already reaches. From below, the <strong>machine floor</strong> of a sample loop: the time its instructions cannot go below on this core.</p>
+  <h2>Fastest measured engines</h2>
   <div class="kpis">
-    <div class="kpi f"><span class="lang">Best engine per program</span><b>×%%VBS%% · ×%%VBF%%</b><span>faster than the best Faust build, strict · fast-math, if the fastest engine were taken for each program; Faust is not the fastest on %%NVS%% and %%NVF%% of %%NPROG%% programs</span></div>
-    <div class="kpi x"><span class="lang">Fastest / machine floor</span><b>×%%MEDS%% · ×%%MEDF%%</b><span>median over the %%NBOUND%% programs whose sample loop could be analysed; within 0.9 to 1.15 of the floor on %%NEARS%% of %%NFS%% (strict) and %%NEARF%% of %%NFF%% (fast-math)</span></div>
+    <div class="kpi f"><span class="lang">Best engine per program</span><b>×%%VBS%% · ×%%VBF%%</b><span>geometric mean speed relative to the best Faust build, strict · fast-math. Another engine led on %%NVS%% and %%NVF%% of %%NPROG%% programs.</span></div>
   </div>
-  <p class="prose">In strict mode, where the loop can be analysed, the fastest code already runs at the floor of the leanest instruction sequence found (%%NEARS%% of %%NFS%% programs). With fast-math the spread is wider: the fastest code is 16 to 73 % above the floor on diffuser32, peq10, noise_gate, flanger, zita_rev, the violin, biquad8 and crybaby, where stalls the model leaves out (memory, delay-line accesses) take the rest. Where it is at the floor, what remains is not scheduling: a further gain needs fewer instructions or shorter recurrences, that is, rewriting the computation (merging stages, reading delay lines ahead, vectorizing across modes or voices), which is where the engines differ. A ratio below 1 means that the fastest engine is not one the tool can read (a JIT, a split or nested loop) and emits leaner code than every analysed one: tapiir with the Cmajor JIT and the elected Faust options, dattorro and fdn8 with the elected options.</p>
   <div class="scroll">
     <table>
       <thead>
@@ -148,6 +129,14 @@ tr.variant td.best { background: transparent; }
     </table>
   </div>
   <p class="note">Gap: best Faust time over the fastest time, ×1.00 where a Faust build is the fastest.</p>
+</section>
+
+<!-- BOUNDS -->
+<section>
+  <h2>Sample-loop machine floors</h2>
+  <div class="kpis">
+    <div class="kpi x"><span class="lang">Fastest / machine floor</span><b>×%%MEDS%% · ×%%MEDF%%</b><span>median over the %%NBOUND%% programs with an analysed sample loop. Within 0.9 to 1.15 of the floor on %%NEARS%% of %%NFS%% programs in strict mode and %%NEARF%% of %%NFF%% in fast-math.</span></div>
+  </div>
   <div class="scroll">
     <table>
       <thead>
@@ -159,13 +148,13 @@ tr.variant td.best { background: transparent; }
       </tbody>
     </table>
   </div>
-  <p class="note">Floor: the lowest bound among the analysed codes of the contract, with the code that gives it and what limits it. Fastest: the time of the fastest engine (any engine, analysed or not) in cycles, at %%GHZ%% GHz, the highest clock seen while measuring the machine; the clock of the timing runs is not known more precisely than about 7 %, so ratios between 0.9 and 1.15 count as at the floor.</p>
-  <p class="note"><code>tools/loop_bound.py</code> disassembles every ahead-of-time object (the JIT engines have none) and keeps a loop when it is the only innermost loop of the audio functions, not nested in another, with no call (libm) and no branch inside, advancing one sample per iteration: %%NBOUND%% programs have at least one such code; transcendentals, loops split in stages and vector loops leave the others out. The floor of a loop is the larger of a throughput bound (instructions of each class over the issue rate of the class: 4 FP/SIMD, 7 integer, 3 loads, 2 stores, 1 divide, 9 in all per cycle) and a recurrence bound (maximum cycle mean of the loop-carried dependencies, register moves free, state stored and reloaded at a fixed address at the store-to-reload latency, load addresses not counted since the core predicts them). Latencies and issue rates are measured on the M5 by <code>tools/m_latency.c</code>: fadd 2 cycles, fmul and fmadd 3, fdiv 7, fsqrt 9, store-to-reload 6. llvm-mca was tried first: its newest Apple model (apple-m4 in LLVM 21: fadd 4, fmadd 8, three FP pipes) gave bounds above the measured times.</p>
+  <p class="note">The floor is the lowest bound among the analysed loops of the same math mode. The fastest measured time is converted to cycles using the %%GHZ%% GHz clock from the machine-floor run. <code>tools/loop_bound.py</code> estimates the bound from instruction throughput and loop-carried dependencies.</p>
 </section>
+<!-- /BOUNDS -->
 
 <section>
-  <h2>All 23 engines</h2>
-  <p class="prose">Median ns per sample for every engine; the highlighted cell is the fastest of the row. Faust 2.95.3: C++ and the LLVM JIT; Faust cert-7: the <code>master-dev-certification-7</code> branch, its <code>-lang ocpp</code> backend and the options elected by <code>fcautotool</code>; "fixed SR": the sample rate constant at compile time. C++: the hand-written port. Rows in italics are alternative onda writings, outside the means.</p>
+  <h2>All engines</h2>
+  <p class="prose">Median ns per sample for every engine; the highlighted cell is the fastest of the row. Faust 2.95.3: C++ and the LLVM JIT; Faust cert-7: the <code>master-dev-certification-7</code> branch, its <code>-lang ocpp</code> backend and the options elected by <code>fcautotool</code>; "fixed SR": the sample rate constant at compile time. C++: the hand-written port. Rows in italics are alternative Onda writings, outside the means.</p>
   <div class="scroll">
     <table>
       <thead>
@@ -175,47 +164,6 @@ tr.variant td.best { background: transparent; }
 %%ROWS%%
       </tbody>
     </table>
-  </div>
-</section>
-
-<section>
-  <h2>What the generated code shows</h2>
-  <div class="findgroup">
-  <h3>Faust</h3>
-  <div class="findings">
-    <div class="finding"><span class="tag f">freeverb ×2.4, fdn8 ×2.3 against onda</span><h3>Delay lines read one sample ahead</h3><p>ocpp reads the next sample's delay line at the end of the current iteration (<code>fTemp0 = fVeeec0; fVeeec0 = buf[(IOTA-224)&amp;255];</code>), which takes the load latency off the critical path, and keeps the state in scalars with a single masked <code>IOTA</code>. freeverb: 2.74 ns with the elected options against 6.48 for onda-fm, which recomputes a circular index per line. fdn8, with the elected options: 2.36 ns against 5.42.</p></div>
-    <div class="finding"><span class="tag f">peq10, biquad8</span><h3>Order of operations and signal algebra</h3><p>On peq10, ocpp merges the stages (a stage's input memory is the delayed output of the previous one) and writes <code>fSlow13·y[0] + (past terms)</code>: a single multiply-add per stage on the critical path. 5.35 ns in IEEE and 3.73 with FMA contraction, against 8.54 for onda, which follows the source order and may not change it in strict mode; 4.3 ns with <code>-ffast-math</code>. On biquad8, Faust recognizes <code>b2 ≡ b0</code> and factors it: 2.85 ns with fast-math against 4.31 for onda.</p></div>
-    <div class="finding"><span class="tag f">diffuser32, fm_pad</span><h3>Loops split and run stage by stage</h3><p>Faust <code>-vec</code> computes each allpass of diffuser32 over 32 samples before the next; since the delays (≥ 113) exceed the vector size, the iterations are independent and overlap: 16.0 ns in IEEE, 11.6 with the elected options, against 21.6 for onda, which chains the 32 stages every sample. On fm_pad, <code>-vec</code> moves the 4 sin + 2 tanh into a recurrence-free loop that clang vectorizes with Accelerate: 6.4 ns against 14.4 for onda and Cmajor, 24 for YDSP.</p></div>
-    <div class="finding"><span class="tag f">frenchbell, clarinet</span><h3>Physical models rolled and reordered</h3><p>ocpp rolls the 50 identical mode filters of frenchbell into a loop over coefficient tables and splits the long sum into 4 partial sums: 11.1 ns in IEEE with a fixed SR, 8.9 with fast-math, against 19.3 for onda (16.5 written with 4 partial sums, <code>frenchbell_x</code>). On the clarinet, ocpp takes 7.2 ns in IEEE and 5.4 with fast-math, against 11.2 for <code>-lang cpp</code> and 10.4 for onda.</p></div>
-    <div class="finding"><span class="tag f">ocpp ×%%OCPPGAIN%%</span><h3>cert-7 and fcautotool</h3><p>Under the same IEEE contract, ocpp is on average %%OCPPGAIN%%× faster than the <code>-lang cpp</code> of 2.95.3; the options elected by <code>fcautotool</code> bring the gain to %%BESTGAIN%%× with fast-math. The pick depends on the program (table below). Unlike the certification-4 branch, cert-7 compiles the violin and the flute (cert-4's interval analysis could not bound the <code>de.fdelay4</code> index): 16.1 ns in IEEE on the violin against 21.3 for <code>-lang cpp</code>, 17.2 on the flute against 22.1 for <code>-vec</code>.</p></div>
-    <div class="finding"><span class="tag f">Fixed SR, contract</span><h3>Comparing like with like</h3><p>Fixing <code>SR = 48000.0</code> in <code>platform.lib</code> changes little: the constants it folds were already computed once at init or per block. Apple clang contracts into FMA by default, which sometimes changes the result a lot (peq10 ocpp: 3.73 ns with FMA, 5.35 without), and Faust LLVM marks every operation fast-math. Hence the strict columns at <code>-ffp-contract=off</code>, and Faust LLVM ranked with fast-math.</p></div>
-  </div>
-  <h3>Onda</h3>
-  <div class="findings">
-    <div class="finding"><span class="tag o">additive64 ×3.6, tanh_drive ×1.7 (strict)</span><h3>Vectorization and built-in SLEEF</h3><p>Written as arrays, the 64 partials of additive64 are updated in SIMD and go through <code>Sleef_sinf4</code>: 34 ns with fast-math against 81 for the best Faust build (<code>-vec</code> + Accelerate) and 173 for YDSP. tanh_drive goes through <code>Sleef_tanhf4</code>. The Faust C++ backends call scalar libm, and <code>-vec</code> does not vectorize a phase recurrence.</p></div>
-    <div class="finding"><span class="tag o">noise, zita_rev, noise_gate</span><h3>State in registers</h3><p>onda loads the state on entry and writes it back on exit (noise loop: 8 instructions, 1 memory access); <code>-lang cpp</code> copies every <code>fRec[0]/[1]</code> through memory at each sample (noise: 3.2 ns against 1.2). On zita_rev, the Faust normalizer flattens the allpasses into the Hadamard (16-term sums); onda keeps it whole: 11.0 ns strict against 12.3 for ocpp IEEE and 23.1 for <code>-lang cpp</code>.</p></div>
-    <div class="finding"><span class="tag o">hoa_decoder ×50, mixer16 ×40</span><h3>Two writing pitfalls</h3><p>Written with the <code>ins[j]</code>/<code>outs[k]</code> views, every access becomes a tree of comparisons: hoa_decoder takes 32 ns against 0.66; with named ports in a local array, 1.10 ns strict, 0.67 with fast-math. <code>pow</code>, <code>cos</code>, <code>sin</code> of parameters left in <code>sample:</code> run per sample: mixer16 takes 49 ns; with the coefficients in <code>block:</code>, 1.35 ns strict and 0.93 with fast-math, ahead of Faust (1.22).</p></div>
-    <div class="finding"><span class="tag o">Proven bounds, JIT = AOT</span><h3>Implementation</h3><p>No index clamp in the loops of fir, fdn8 and zita_rev: the <code>{N, wrap}</code> domains and the MIR bounds proofs remove the checks. The AOT object and the ORC JIT give the same times within 5 %. Rough edges: no scientific-notation literals, no <code>log10</code> or <code>sinh</code> builtin (the ports write them out), and the build requires exactly LLVM 21.</p></div>
-  </div>
-  <h3>Cmajor</h3>
-  <div class="findings">
-    <div class="finding"><span class="tag c">tapiir ×1.89, pitch_shifter ×1.81</span><h3>Where the JIT leads</h3><p>The Cmajor JIT is the fastest engine of all on two delay-line programs: tapiir (3.3 ns against 6.2 for the best Faust in IEEE) and pitch_shifter (5.0 against 9.0). On the violin it is level with cert-7 ocpp in IEEE (16.2 against 16.1), behind the hand-written C++ (13.8). On these, its generated C++ is no faster than Faust's: the gain is the JIT's own code.</p></div>
-    <div class="finding"><span class="tag c">hoa_decoder ×0.12, mixer16 ×0.25, sine ×0.51</span><h3>The per-frame machinery</h3><p>The runtime calls the processor once per frame through an I/O structure, checks its parameter ramps every frame, and exchanges audio by copies (<code>setInputFrames</code>, <code>copyOutputFrames</code>): about 2 ns per sample on a sine (4.6 against 2.3), much more with many channels (hoa_decoder, 15 channels: 5.4 ns against 0.66; mixer16, 18 channels: 4.9 against 1.2).</p></div>
-    <div class="finding"><span class="tag c">JIT ×%%JITCPP%% in time</span><h3>JIT or generated C++</h3><p>The JIT (sample rate known at build time) is on average 9 % faster than the generated C++ (17 % with fast maths), with large swings: tapiir 3.3 against 7.9 ns, noise 1.6 against 4.0, biquad8 7.6 against 20.4 (the C++ class keeps its state in memory from one frame to the next), while the C++ wins on the clarinet (8.8 against 12.1) and fm_pad (14.4 against 20.7).</p></div>
-    <div class="finding"><span class="tag c">Writing</span><h3>Events and scalars</h3><p>Parameters are <code>input event</code> endpoints whose handlers recompute the derived coefficients, Cmajor's way to keep control-rate math out of the sample loop (the generated C++ ignores the <code>init</code> annotations of value endpoints). The JIT prefers scalar state: biquad8 with two <code>float[8]</code> took 19.5 ns, with 16 scalars 7.2.</p></div>
-  </div>
-  <h3>YDSP</h3>
-  <div class="findings">
-    <div class="finding"><span class="tag y">tanh_drive 0.95 ns, freeverb 3.31 ns</span><h3>fastMath: SLEEF and register state</h3><p>With <code>fastMath</code>, YDSP widens the per-sample loop onto SLEEF's 4-lane <code>u35</code> functions: tanh_drive at 0.95 ns is the fastest of all 23 engines (onda 1.01). With scalar state and constant-wrapped delay lines, freeverb takes 3.31 ns, faster than every Faust 2.95.3 build (6.9 at best); only cert-7 does better (2.7). frenchbell's 50 modes are vectorized: 12.0 ns strict, against 11.1 for the best Faust and 19.3 for onda.</p></div>
-    <div class="finding"><span class="tag y">fir32c ×0.34, autopan ×0.39</span><h3>Transcendentals and rolled loops</h3><p>Strict YDSP keeps libm calls scalar and each costs it more than elsewhere: additive64 takes 252 ns (173 with fastMath, 49 for onda), the two <code>tanh</code> of autopan about 4 ns each, the 10 <code>pow</code> of filter_bank about 5 ns each. The FIR reads its history with a masked index, which the vectorizer rejects: 11 ns against 3.7 for Faust.</p></div>
-    <div class="finding"><span class="tag y">fdn8 44 → 5.7 ns</span><h3>The idiom matters most</h3><p>Scalar state stays in registers across the sample loop, and a delay line whose counter wraps at a constant has its bounds proven. fdn8 as a struct array of lines with a nested loop took 44 ns, with named lines and scalar state 5.7; freeverb and diffuser32 as graphs of one processor with a run-time size took 14.8 and 33.9 ns, as single processors 4.4 and 19.2.</p></div>
-  </div>
-  <h3>C++</h3>
-  <div class="findings">
-    <div class="finding"><span class="tag x">×%%CXXCPP%% against Faust 2.95.3 C++</span><h3>What the generated C++ leaves</h3><p>The same equations, written by hand, run %%CXXCPP%%× faster than <code>faust -lang cpp</code> in IEEE: the hand-written class loads its state into locals for the block, where the generated one copies every <code>fRec[0]/[1]</code> through memory at each sample (zita_rev 8.7 ns against 12.2 for the best Faust, karplus 4.4 against 8.2 for <code>-lang cpp</code>). cert-7 ocpp closes that gap: it is level with the C++ port on average.</p></div>
-    <div class="finding"><span class="tag x">peq10 22 → 13 ns, exciter 16 → 6.6 ns</span><h3>Two idioms that mattered</h3><p>Coefficient arrays left in members are reloaded at every sample, because the output pointer may alias them: copied into locals, peq10 went from 22 to 13 ns. On exciter, a nested ternary on the noisy sign of the signal compiles to branches that mispredict: with both sides computed first, clang selects and the time falls from 16 to 6.6 ns, the best strict time. Cmajor's generated C++ has the same branch (20 ns).</p></div>
-    <div class="finding"><span class="tag x">peq10 ×0.41, freeverb ×0.60</span><h3>Where Faust still wins</h3><p>Written in source order, the cascaded biquads of peq10 keep every multiply-add on the critical path; ocpp merges the stages and reorders the sum (5.4 ns against 12.9). On freeverb and fdn8, ocpp's delay lines read one sample ahead; with fast-math, tapiir and dattorro gain the most from the elected options.</p></div>
-  </div>
   </div>
 </section>
 
@@ -245,25 +193,26 @@ tr.variant td.best { background: transparent; }
 <section class="prose">
   <h2>Method</h2>
   <dl class="method">
-    <dt>Machine</dt><dd>Apple M5, macOS 26.6, on AC power, thread at user-interactive QoS.</dd>
-    <dt>onda</dt><dd>0.9.2, built against MacPorts LLVM 21.1.8 (the project pins 21.1.2). AOT object <code>--emit obj --target-cpu host -b 256 --sr 48000</code>, with and without <code>--fast-math</code>, called through the raw ABI (<code>onda_process</code>).</dd>
+    <dt>Scheduling</dt><dd>The harness requests user-interactive QoS on macOS.</dd>
+    <dt>Onda</dt><dd>AOT object <code>--emit obj --target-cpu host -b 256 --sr 48000</code>, in strict and fast-math modes, called through the raw ABI (<code>onda_process</code>).</dd>
     <dt>Faust C++</dt><dd><code>faust -lang cpp</code> 2.95.3, master-dev 0b21bae83 (<code>-scal</code> and <code>-vec -vs 32</code>) with the libraries of the faustlibraries checkout, Apple clang <code>-O3 -mcpu=native</code>, three contracts: default (FMA), <code>-ffp-contract=off</code>, <code>-ffast-math</code>; plus <code>-vec</code> with <code>-fveclib=Accelerate</code>.</dd>
     <dt>Faust LLVM</dt><dd><code>libfaustwithllvm</code> (2.95.3), <code>createDSPFactoryFromFile</code>, opt −1 (max), <code>-scal</code> and <code>-vec -vs 32</code>, plus <code>-scal</code> with a fixed SR.</dd>
     <dt>Faust cert-7</dt><dd>Branch <code>master-dev-certification-7</code> (7db0ae9cd, 2.94.1), exported with <code>git archive</code> and built with the Makefile of <code>build/</code>. <code>-lang ocpp</code> in IEEE (<code>-ffp-contract=off</code>), with the default contract and with <code>-ffast-math</code>; options elected by <code>fcautotool</code> compiled with <code>-O3 -ffast-math</code>, as during the election.</dd>
-    <dt>Cmajor</dt><dd>1.0.3209. <code>cmaj generate --target=cpp --maxFramesPerBlock=256</code>, class renamed per variant, compiled by Apple clang <code>-O3 -mcpu=native</code> (IEEE: <code>-ffp-contract=off</code>; fast: <code>-ffast-math</code>), audio exchanged through <code>setInputFrames</code> / <code>advance</code> / <code>copyOutputFrames</code>; the sample rate is a run-time value. JIT: <code>libCmajPerformer.dylib</code>, <code>cmaj::Engine</code> "llvm", optimisation level 3 and 4 (fast maths), sample rate given at build time (<code>BuildSettings::setFrequency</code>), so constant like onda's. Parameters are <code>input event</code> endpoints whose handlers recompute the derived coefficients: Cmajor's way to keep control-rate math out of the sample loop (the generated C++ also ignores the <code>init</code> annotations of <code>input value</code> endpoints).</dd>
-    <dt>YDSP</dt><dd>YUP <code>yup_dsp_jit</code> 2.0.1 (commit 4792e50), built with YUP's CMake as a static library behind a C interface (<code>tools/ydsp/</code>). <code>YdspCompiler::compile</code> on the host target (<code>automatic</code> tier, NEON, 4 lanes), <code>fastMath</code> false and true; <code>YdspAudioGraph::process</code> per 256-frame block. Parameters are sampled once per block and the parameter-only expressions are hoisted out of the sample loop by the optimiser; the sample rate is a run-time value.</dd>
+    <dt>Cmajor</dt><dd>1.0.3209. <code>cmaj generate --target=cpp --maxFramesPerBlock=256</code>, class renamed per variant, compiled by Apple clang <code>-O3 -mcpu=native</code> (IEEE: <code>-ffp-contract=off</code>; fast: <code>-ffast-math</code>), audio exchanged through <code>setInputFrames</code> / <code>advance</code> / <code>copyOutputFrames</code>; the sample rate is a run-time value. JIT: <code>libCmajPerformer.dylib</code>, <code>cmaj::Engine</code> "llvm", optimisation level 3 and 4 (fast maths), sample rate given at build time (<code>BuildSettings::setFrequency</code>), so constant like Onda's. Parameters are <code>input event</code> endpoints whose handlers recompute the derived coefficients: Cmajor's way to keep control-rate math out of the sample loop (the generated C++ also ignores the <code>init</code> annotations of <code>input value</code> endpoints).</dd>
+    <dt>YDSP</dt><dd>YUP <code>yup_dsp_jit</code>, built with YUP's CMake as a static library behind a C interface (<code>tools/ydsp/</code>). <code>YdspCompiler::compile</code> on the host target (<code>automatic</code> tier, NEON, 4 lanes), <code>fastMath</code> false and true; <code>YdspAudioGraph::process</code> per 256-frame block. Parameters are sampled once per block and the parameter-only expressions are hoisted out of the sample loop by the optimiser; the sample rate is a run-time value.</dd>
     <dt>C++</dt><dd>Hand-written port, compiled inside a namespace with Apple clang <code>-O3 -mcpu=native</code> (IEEE: <code>-ffp-contract=off</code>; fast: <code>-ffast-math</code>); <code>prepare(48000)</code> at init, so the sample rate is a run-time value, then <code>process</code> on the harness buffers in place. Parameters are members whose setters recompute the derived coefficients.</dd>
     <dt>Fixed SR</dt><dd>Copy of the faustlibraries libraries where <code>platform.lib</code> defines <code>SR = 48000.0</code> (faust looks for <code>platform.lib</code> next to <code>maths.lib</code> first, hence the full copy).</dd>
-    <dt>CPU targets</dt><dd>onda (LLVM 21) and Apple clang 21 target <code>apple-m4</code>: LLVM 21 does not know the M5. Only the Faust LLVM JIT, built with a newer LLVM, targets <code>apple-m5</code>.</dd>
-    <dt>Harness</dt><dd>One executable per program links the 23 engines (15 onda and Faust, 4 Cmajor, 2 YDSP, 2 C++), with 16 input and output channels; same buffers, same input (deterministic white noise, 64 blocks cycled), 2000 warm-up blocks, then 21 rounds in shuffled order. Median reported; median absolute deviation below 2 % except additive64 (~2 %).</dd>
-    <dt>Corpus</dt><dd>%%NPROG%% programs in four languages and C++, same algorithm in each (same equations, same delay lengths, same order of operations where possible). Eighteen were written for the benchmark, part of them to exploit a Faust lever (loop splitting in <code>-vec</code>, control-rate computations lifted out of the loop, zero or repeated constants, many delay lines); twenty reproduce examples of the Faust distribution with their default settings (bypass dropped, gates held at 1; four defaults changed where they made the program trivial: pitch_shifter, autopan, tapiir, and noise_gate kept but open). Four alternative onda writings (fir32, hoa_decoder, mixer16, frenchbell_x) separate what belongs to the compiler from what belongs to the writing. Each port takes the form its compiler handles best while staying ordinary code in its language; the greyhole ports pad their 24 delay lines by 16 floats to avoid L1 cache-set conflicts, a memory-layout choice Faust's C++ does not make.</dd>
+    <dt>Harness</dt><dd>One executable per program links the available engines, with 16 input and output channels; same buffers, same input (deterministic white noise, 64 blocks cycled), 2000 warm-up blocks, then shuffled, interleaved rounds. The reported timing is the median.</dd>
+    <dt>Corpus</dt><dd>%%NPROG%% programs in four languages and C++, same algorithm in each (same equations, same delay lengths, same order of operations where possible). Eighteen were written for the benchmark, part of them to exploit a Faust lever (loop splitting in <code>-vec</code>, control-rate computations lifted out of the loop, zero or repeated constants, many delay lines); twenty reproduce examples of the Faust distribution with their default settings (bypass dropped, gates held at 1; four defaults changed where they made the program trivial: pitch_shifter, autopan, tapiir, and noise_gate kept but open). Four alternative Onda writings (fir32, hoa_decoder, mixer16, frenchbell_x) separate what belongs to the compiler from what belongs to the writing. Each port takes the form its compiler handles best while staying ordinary code in its language; the greyhole ports pad their 24 delay lines by 16 floats to avoid L1 cache-set conflicts, a memory-layout choice Faust's C++ does not make.</dd>
     <dt>Limits</dt><dd>A single machine (ARM64, 128-bit NEON); on x86 AVX2/AVX-512, the SLEEF gap should grow and the SLP gap change. Constant parameters (no automation). A single block size.</dd>
   </dl>
 </section>
 
+<!-- SOURCES -->
 <section>
-  <h2>Sources</h2>
-  <p class="prose note">The 42 programs in table order, one column per language (Faust, Onda, Cmajor, YDSP, C++; the four alternative onda writings have no Cmajor, YDSP or C++ port). Scroll horizontally to reach the last columns.</p>
+  <h2>Measured sources</h2>
+  <p class="prose note">The 42 programs in table order with all available ports and Onda schedules. Scroll horizontally to reach the last columns.</p>
 %%SOURCES%%
 </section>
+<!-- /SOURCES -->
 </main>

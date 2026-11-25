@@ -1,0 +1,28 @@
+# dm.virtual_analog_oscillator_demo of Faust's demos.lib (examples/generator/virtualAnalog.dsp)
+# ported to onda, controls at their defaults like virtual_analog.dsp: three detuned voices, each a
+# saw (os.sawN(2)), a square and a pulse train (os.pulsetrain: a difference of linearly
+# interpolated delays of a second sawN(2) at the clipped frequency) and a triangle (leaky
+# integrated square), plus pink noise and the external input, mixed by their level sliders. The
+# phases are the fixed-point phasor of oscillators.lib (_phasor_fix: whole counts of 2^-30 cycle
+# plus 2^-24 fractions), reset to 0 at the first sample. Constant factors are grouped as faust
+# groups them (SR / 12 for the saws, squares and pulses, 4 / 3 / SR for the triangles).
+
+params:
+  ssaw = 1.0 {0.0, 1.0}
+  spt = 0.0 {0.0, 1.0}
+  duty = 0.5 {0.0, 1.0}
+  ssq = 0.0 {0.0, 1.0}
+  stri = 0.0 {0.0, 1.0}
+  spn = 0.0 {0.0, 1.0}
+  sei = 0.0 {0.0, 1.0}
+  mixdb = -20.0 {-120.0, 10.0}
+  freq = 49.0 {1.0, 88.0}
+  detune1 = -0.1 {-10.0, 10.0}
+  detune2 = 0.1 {-10.0, 10.0}
+  portamento = 0.1 {0.001, 10.0}
+
+# pulsetrainN's diffdel: x - x@int(del) (1 - frac(del)) - x@(int(del) + 1) frac(del)
+def diffdel(buf: f32[16384], w: i32, x, del):
+  id = i32(del)
+  fl = f32(id)
+  return x - buf[(w - id) & 16383] * (1.0 - del + fl) - (del - fl) * buf[(w - id - 1) & 16383]

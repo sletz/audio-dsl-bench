@@ -3,8 +3,8 @@
 # smoothed phase), each through a tanh saturator (it.interpolate_linear by the smoothed shape) and
 # it.remap(-1, 1, 1 - amount, 1), as the gains of the two channels. si.smoo in its error form.
 # Operations in the order of Faust's generated C++.
-ins 2
-outs 2
+
+include "common/float_limits.onda"
 
 params:
   amount = 1.0 {0.0, 1.0}
@@ -28,20 +28,24 @@ const SINE: f32[65536] = sine_table()
 const COSINE: f32[65536] = cosine_table()
 
 init:
-  ph = 0                               # os.oscp phasor: 30-bit integer part ...
-  phFrac = 0                           # ... and 24-bit fraction
-  shapePrev = 0.0                      # si.smoo on shape: input, previous sample ...
-  shapeErr = 0.0                       # ... and error state
-  phasePrev = 0.0                      # si.smoo on phase
+  ph = 0  # os.oscp phasor: 30-bit integer part ...
+  phFrac = 0  # ... and 24-bit fraction
+  shapePrev = 0.0  # si.smoo on shape: input, previous sample ...
+  shapeErr = 0.0  # ... and error state
+  phasePrev = 0.0  # si.smoo on phase
   phaseErr = 0.0
 
 block:
   f = 1.0 / SR * rate
-  inc = 1073741824.0 * (f - round(f))  # 2^30 * f / SR, wrapped to [-0.5, 0.5] turn
+  inc = f32(1 << 30) * (f - round(f))  # 2^30 * f / SR, wrapped to [-0.5, 0.5] turn
   incFloor = floor(inc)
   incInt = i32(incFloor)
   incFrac = i32(16777216.0 * (inc - incFloor))
-  pSmoo = 1.0 - 44.1 / SR              # si.smoo pole
+  pSmoo = 1.0 - 44.1 / SR  # si.smoo pole
+  phase_settled = pSmoo >= 0.0 && phasePrev == phase && phase + phaseErr == phase
+  phase_rad = 0.017453292 * phase
+  phase_cos = cos(phase_rad)
+  phase_sin = sin(phase_rad)
   sample:
     i = (ph >> 6) >> 8
     s = SINE[i]
@@ -49,13 +53,24 @@ block:
     ph = (incInt + ph + (phFrac >> 24)) & 1073741823
     phFrac &= 16777215
     # si.smooth: y = x + e, e = pole * (e + x[n-1] - x); min(ma.MAX) is Faust's no-op
-    shapeErr = pSmoo * (min(340282346638528859811704183484516925440.0, shapePrev - shape) + shapeErr)
+    shapeErr = pSmoo * (min(float_limits::MaxFinite, shapePrev - shape) + shapeErr)
     shapePrev = shape
     sh = shape + shapeErr
     # left: oscp(rate, 0) = the sine; saturator, then remap(-1, 1, 1 - amount, 1)
-    out1 = in1 * (1.0 + amount * (-1.0 + 0.5 * (1.0 + s + sh * (tanh(10.0 * s) - s))))
-    phaseErr = pSmoo * (min(340282346638528859811704183484516925440.0, phasePrev - phase) + phaseErr)
+    left = 1.0 + s
+    if sh != 0.0:
+      left += sh * (tanh(10.0 * s) - s)
+    out1 = in1 * (1.0 + amount * (-1.0 + 0.5 * left))
+    phaseErr = pSmoo * (min(float_limits::MaxFinite, phasePrev - phase) + phaseErr)
     phasePrev = phase
-    p = 0.017453292 * (phase + phaseErr)         # ma.deg2rad
-    r = s * cos(p) + COSINE[i] * sin(p)          # oscp(rate, p)
-    out2 = in2 * (1.0 + amount * (-1.0 + 0.5 * (1.0 + r + sh * (tanh(10.0 * r) - r))))
+    cos_phase = phase_cos
+    sin_phase = phase_sin
+    if !phase_settled:
+      p = 0.017453292 * (phase + phaseErr)
+      cos_phase = cos(p)
+      sin_phase = sin(p)
+    r = s * cos_phase + COSINE[i] * sin_phase
+    right = 1.0 + r
+    if sh != 0.0:
+      right += sh * (tanh(10.0 * r) - r)
+    out2 = in2 * (1.0 + amount * (-1.0 + 0.5 * right))
