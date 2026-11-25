@@ -110,8 +110,7 @@ Faust engine in the same math mode. The chart shows both Onda versions where mea
 The geometric mean and win count use the faster Onda version per workload and math mode.
 Check each workload's `build.log` and `run.log` for compiler or JIT diagnostics.
 
-The published summary uses three complete runs. After the noise port changed, all engines
-were timed again for that workload three times with the same settings, once per dataset.
+The published summary uses three complete runs. 
 The first timed the workloads alphabetically, the second in reverse order, and the third
 started halfway through the alphabetical list and wrapped to the start. Run
 `tools/linux/summarize.py` with Python on each TSV and take the middle geometric mean
